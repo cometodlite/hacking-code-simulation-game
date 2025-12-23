@@ -873,6 +873,45 @@ button:hover {
   input, select, textarea { min-height: 44px !important; font-size: 16px !important; }
 }
 
+
+/* =========================
+   MOBILE VIEWS (Status/Action/Codes/Shop/Log)
+   ========================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  body { overflow:hidden; }
+  .mobile-tabs { grid-template-columns: repeat(5, 1fr) !important; }
+  .mobile-tabs button{ font-size: 12px !important; }
+  .mobile-view { display:none !important; }
+  body.mobile-view-status #mobileViewStatus,
+  body.mobile-view-action #mobileViewAction,
+  body.mobile-view-codes  #mobileViewCodes,
+  body.mobile-view-shop   #mobileViewShop,
+  body.mobile-view-log    #mobileViewLog { display:block !important; }
+
+  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
+    height: calc(100dvh - 52px - 92px) !important;
+    max-height: calc(100dvh - 52px - 92px) !important;
+    overflow:auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 120px !important;
+  }
+
+  /* Make code list touch-friendly */
+  #codeList li{
+    padding: 12px 10px !important;
+    min-height: 44px !important;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  #codeList li button{ min-height: 40px !important; }
+  /* Bigger upgrade/evolve buttons area */
+  #btnUpgradeCode, #btnEvolveCode{
+    width: 100% !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -3520,6 +3559,171 @@ button:hover {
       document.body.classList.remove('mobile-tab-left','mobile-tab-center','mobile-tab-right');
     }
   });
+})();
+</script>
+<script>
+// === MOBILE VIEWS: split PC layout into mobile tabs ===
+(function(){
+  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+  if(!isMobile) return;
+
+  // helper
+  const byText = (root, sel, txt) => {
+    const els = Array.from(root.querySelectorAll(sel));
+    return els.find(e => (e.textContent||'').trim().toLowerCase() === txt.toLowerCase());
+  };
+
+  // Create mobile view containers
+  const views = [
+    ['Status','mobileViewStatus'],
+    ['Action','mobileViewAction'],
+    ['Codes','mobileViewCodes'],
+    ['Shop','mobileViewShop'],
+    ['Log','mobileViewLog'],
+  ];
+  const main = document.getElementById('main') || document.querySelector('#main') || document.body;
+
+  views.forEach(([_,id])=>{
+    if(document.getElementById(id)) return;
+    const v = document.createElement('div');
+    v.id = id;
+    v.className = 'mobile-view';
+    main.insertBefore(v, main.firstChild);
+  });
+
+  // Move leftPanel -> Status + Shop
+  const left = document.getElementById('leftPanel');
+  if(left){
+    const shopTitle = Array.from(left.querySelectorAll('.section-title')).find(t => (t.textContent||'').trim()==='Shop');
+    const statusView = document.getElementById('mobileViewStatus');
+    const shopView = document.getElementById('mobileViewShop');
+
+    if(shopTitle){
+      // nodes before Shop go to Status
+      let node = left.firstChild;
+      const toMoveStatus = [];
+      while(node && node !== shopTitle){
+        const next = node.nextSibling;
+        toMoveStatus.push(node);
+        node = next;
+      }
+      toMoveStatus.forEach(n=>statusView.appendChild(n));
+
+      // Shop title and everything after -> Shop
+      let node2 = shopTitle;
+      const toMoveShop = [];
+      while(node2){
+        const next = node2.nextSibling;
+        toMoveShop.push(node2);
+        node2 = next;
+      }
+      toMoveShop.forEach(n=>shopView.appendChild(n));
+    }else{
+      // fallback: whole left panel in Status
+      statusView.appendChild(left);
+    }
+  }
+
+  // Move centerPanel -> Action + Codes
+  const center = document.getElementById('centerPanel');
+  if(center){
+    const actionView = document.getElementById('mobileViewAction');
+    const codesView  = document.getElementById('mobileViewCodes');
+
+    const codeInvTitle = Array.from(center.querySelectorAll('.section-title')).find(t => (t.textContent||'').trim()==='코드 인벤토리');
+    let codeBlock = null;
+    if(codeInvTitle){
+      // typically inside a flex-row container
+      codeBlock = codeInvTitle.closest('.flex-row') || codeInvTitle.closest('.stat-box') || codeInvTitle.parentElement;
+    }
+
+    if(codeBlock){
+      // move nodes before codeBlock into Action
+      let node = center.firstChild;
+      const toMoveAction = [];
+      while(node && node !== codeBlock){
+        const next = node.nextSibling;
+        toMoveAction.push(node);
+        node = next;
+      }
+      toMoveAction.forEach(n=>actionView.appendChild(n));
+
+      // move codeBlock and after into Codes
+      let node2 = codeBlock;
+      const toMoveCodes = [];
+      while(node2){
+        const next = node2.nextSibling;
+        toMoveCodes.push(node2);
+        node2 = next;
+      }
+      toMoveCodes.forEach(n=>codesView.appendChild(n));
+    }else{
+      // fallback: whole center in Action
+      actionView.appendChild(center);
+    }
+  }
+
+  // LOG view: try to use existing logBox if present, else open "더보기" logs
+  const logView = document.getElementById('mobileViewLog');
+  const logBox = document.getElementById('logBox');
+  if(logBox){
+    logView.appendChild(logBox.closest('.stat-box') ? logBox.closest('.stat-box') : logBox);
+  } else {
+    const tip = document.createElement('div');
+    tip.className = 'stat-box';
+    tip.innerHTML = '<div class="section-title">Log</div><div class="small">LOG는 상단의 “더보기”에서 확인할 수 있습니다.</div>';
+    logView.appendChild(tip);
+  }
+
+  // Replace tab bar with 5 tabs
+  const oldTabs = document.querySelector('.mobile-tabs');
+  if(oldTabs) oldTabs.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'mobile-tabs';
+  wrap.innerHTML = `
+    <button type="button" data-view="status">STATUS</button>
+    <button type="button" data-view="action">ACTION</button>
+    <button type="button" data-view="codes">CODES</button>
+    <button type="button" data-view="shop">SHOP</button>
+    <button type="button" data-view="log">LOG</button>
+  `;
+  document.body.appendChild(wrap);
+
+  function setView(v){
+    document.body.classList.remove('mobile-view-status','mobile-view-action','mobile-view-codes','mobile-view-shop','mobile-view-log');
+    document.body.classList.add('mobile-view-'+v);
+    wrap.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+    const id = 'mobileView' + v.charAt(0).toUpperCase() + v.slice(1);
+    const panel = document.getElementById(id);
+    if(panel) panel.scrollTop = 0;
+
+    // If LOG chosen and logs are in more modal, try open it
+    if(v==='log'){
+      const btnMore = document.getElementById('btnMore');
+      if(btnMore && !document.getElementById('logBox')) btnMore.click();
+    }
+  }
+
+  wrap.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>setView(btn.dataset.view));
+  });
+
+  // When a code is tapped, auto-scroll to detail inside codes view
+  const codeList = document.getElementById('codeList');
+  const codeDetail = document.getElementById('codeDetail');
+  if(codeList && codeDetail){
+    codeList.addEventListener('click', (e)=>{
+      const li = e.target.closest('li');
+      if(!li) return;
+      // ensure we're on Codes view
+      setView('codes');
+      setTimeout(()=>codeDetail.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+    });
+  }
+
+  // default view
+  setView('status');
 })();
 </script>
 </body>
