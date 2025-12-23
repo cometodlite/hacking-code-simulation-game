@@ -912,6 +912,44 @@ button:hover {
   }
 }
 
+
+/* =========================
+   SAFE-AREA + DYNAMIC HEIGHT FIX (iOS/Android)
+   ========================= */
+:root{
+  --mobileTabsH: 86px; /* fallback */
+  --mobileTabsPad: 10px;
+}
+@supports (padding: env(safe-area-inset-bottom)) {
+  :root{ --safeBottom: env(safe-area-inset-bottom); --safeTop: env(safe-area-inset-top); }
+}
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  /* Use dynamic viewport and safe-area */
+  header{ padding-top: calc(10px + var(--safeTop, 0px)) !important; }
+
+  .mobile-tabs{
+    bottom: calc(var(--mobileTabsPad) + var(--safeBottom, 0px)) !important;
+    left: 10px !important;
+    right: 10px !important;
+    padding-bottom: calc(8px + var(--safeBottom, 0px)) !important;
+  }
+
+  /* Make room for the fixed tab bar so content never gets hidden */
+  body{
+    padding-bottom: calc(var(--mobileTabsH) + var(--mobileTabsPad) + var(--safeBottom, 0px)) !important;
+  }
+
+  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    /* Use dvh but subtract header + tabs (real measured via JS) */
+    height: calc(100dvh - 52px - var(--mobileTabsH) - var(--mobileTabsPad) - var(--safeBottom, 0px)) !important;
+    max-height: calc(100dvh - 52px - var(--mobileTabsH) - var(--mobileTabsPad) - var(--safeBottom, 0px)) !important;
+    padding-bottom: calc(var(--mobileTabsH) + 24px) !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -3724,6 +3762,32 @@ button:hover {
 
   // default view
   setView('status');
+})();
+</script>
+<script>
+// === SAFE-AREA / TABS HEIGHT CALIBRATION ===
+(function(){
+  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+  if(!isMobile) return;
+
+  function setTabsHeightVar(){
+    const tabs = document.querySelector('.mobile-tabs');
+    if(!tabs) return;
+    const h = Math.ceil(tabs.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--mobileTabsH', h + 'px');
+  }
+
+  // Run now and after layout settles
+  window.addEventListener('load', ()=>{ setTabsHeightVar(); setTimeout(setTabsHeightVar, 250); setTimeout(setTabsHeightVar, 800); });
+  window.addEventListener('resize', ()=>{ setTabsHeightVar(); });
+  window.addEventListener('orientationchange', ()=>{ setTimeout(setTabsHeightVar, 300); });
+
+  // iOS Safari sometimes changes viewport when address bar hides/shows while scrolling
+  document.addEventListener('scroll', ()=>{
+    // light throttle
+    if(window.__tabsH_to) return;
+    window.__tabsH_to = setTimeout(()=>{ window.__tabsH_to = null; setTabsHeightVar(); }, 250);
+  }, {passive:true});
 })();
 </script>
 </body>
