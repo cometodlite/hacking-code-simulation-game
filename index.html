@@ -912,6 +912,110 @@ button:hover {
   }
 }
 
+
+/* =========================
+   SAFE-AREA + DYNAMIC HEIGHT FIX (iOS/Android)
+   ========================= */
+:root{
+  --mobileTabsH: 86px; /* fallback */
+  --mobileTabsPad: 10px;
+}
+@supports (padding: env(safe-area-inset-bottom)) {
+  :root{ --safeBottom: env(safe-area-inset-bottom); --safeTop: env(safe-area-inset-top); }
+}
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  /* Use dynamic viewport and safe-area */
+  header{ padding-top: calc(10px + var(--safeTop, 0px)) !important; }
+
+  .mobile-tabs{
+    bottom: calc(var(--mobileTabsPad) + var(--safeBottom, 0px)) !important;
+    left: 10px !important;
+    right: 10px !important;
+    padding-bottom: calc(8px + var(--safeBottom, 0px)) !important;
+  }
+
+  /* Make room for the fixed tab bar so content never gets hidden */
+  body{
+    padding-bottom: calc(var(--mobileTabsH) + var(--mobileTabsPad) + var(--safeBottom, 0px)) !important;
+  }
+
+  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    /* Use dvh but subtract header + tabs (real measured via JS) */
+    height: calc(100dvh - 52px - var(--mobileTabsH) - var(--mobileTabsPad) - var(--safeBottom, 0px)) !important;
+    max-height: calc(100dvh - 52px - var(--mobileTabsH) - var(--mobileTabsPad) - var(--safeBottom, 0px)) !important;
+    padding-bottom: calc(var(--mobileTabsH) + 24px) !important;
+  }
+}
+
+
+/* =========================
+   MOBILE TABS AUTO-HIDE (scroll down hide, scroll up show)
+   ========================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .mobile-tabs{
+    transition: transform 180ms ease, opacity 180ms ease;
+    will-change: transform;
+  }
+  body.mobile-tabs-hidden .mobile-tabs{
+    transform: translateY(calc(100% + var(--safeBottom, 0px) + 20px));
+    opacity: 0.0;
+    pointer-events: none;
+  }
+  body.mobile-tabs-hidden{
+    padding-bottom: calc(var(--safeBottom, 0px) + 10px) !important;
+  }
+  body.mobile-tabs-hidden #mobileViewStatus,
+  body.mobile-tabs-hidden #mobileViewAction,
+  body.mobile-tabs-hidden #mobileViewCodes,
+  body.mobile-tabs-hidden #mobileViewShop,
+  body.mobile-tabs-hidden #mobileViewLog{
+    height: calc(100dvh - 52px - var(--safeBottom, 0px) - 10px) !important;
+    max-height: calc(100dvh - 52px - var(--safeBottom, 0px) - 10px) !important;
+    padding-bottom: calc(24px + var(--safeBottom, 0px)) !important;
+  }
+}
+
+
+/* =========================
+   ANDROID OPTIMIZATION
+   ========================= */
+:root{ --vvKeyboardOffset: 0px; }
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  /* smoother + prevent pull-to-refresh conflicts */
+  html, body { overscroll-behavior-y: none; }
+  body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  /* performance: blur can be heavy on some Android devices */
+  .mobile-tabs{ backdrop-filter: none; }
+  @supports (backdrop-filter: blur(10px)) {
+    /* keep subtle blur if supported well */
+    .mobile-tabs{ backdrop-filter: blur(8px); }
+  }
+
+  /* If keyboard is open (Android/Chrome), lift the tab bar */
+  body.keyboard-open .mobile-tabs{
+    transform: translateY(calc(-1 * var(--vvKeyboardOffset))) !important;
+  }
+
+  /* Reduce accidental horizontal scroll */
+  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
+    overflow-x: hidden !important;
+  }
+}
+
+
+/* shop limit badge + disabled */
+.shop-limit-badge{
+  font-size: 12px;
+}
+.shop-buy:disabled{
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 </style>
 </head>
 <body>
@@ -1635,7 +1739,7 @@ button:hover {
       {
         id: 'perm_credit_boost',
         name: '영구 크레딧 멀티플라이어',
-        desc: '해킹 크레딧 보상 15% 증가 (영구, 중첩).',
+        desc: '해킹 크레딧 보상 15% 증가 (영구, 1회 구매 한정).',
         cost: 1500,
         rarity: 'EPIC',
         category: 'ECONOMY',
@@ -1646,7 +1750,7 @@ button:hover {
       {
         id: 'risk_support',
         name: '위험 해킹 서포터',
-        desc: '위험 해킹 모드 성공 확률 +5%p (영구, 중첩).',
+        desc: '위험 해킹 모드 성공 확률 +5%p (영구, 1회 구매 한정).',
         cost: 950,
         rarity: 'RARE',
         category: 'UTILITY',
@@ -1657,7 +1761,7 @@ button:hover {
       {
         id: 'big_credit_pack',
         name: '데이터 크레딧 팩',
-        desc: '즉시 크레딧 +500.',
+        desc: '즉시 크레딧 +500. (일일 구매 제한: 2회)',
         cost: 400,
         rarity: 'COMMON',
         category: 'ECONOMY',
@@ -1669,7 +1773,7 @@ button:hover {
       {
         id: 'scanner_plus',
         name: '정밀 스캐너',
-        desc: '코드 스캔 시 추가 경험치 +1 (영구, 중첩).',
+        desc: '코드 스캔 시 추가 경험치 +1 (영구, 1회 구매 한정).',
         cost: 450,
         rarity: 'UNCOMMON',
         category: 'SYSTEM',
@@ -2310,6 +2414,107 @@ button:hover {
       });
     }
 
+    
+    // =========================
+    // SHOP LIMITS (Daily / One-time)
+    // =========================
+    const SHOP_LIMITS = {
+      // Daily cap
+      big_credit_pack: { type: 'daily', limit: 2, label: '05:00 리셋 (2회)' },
+      // One-time (no stacking)
+      perm_credit_boost: { type: 'once', limit: 1, label: '1회' },
+      risk_support: { type: 'once', limit: 1, label: '1회' },
+      scanner_plus: { type: 'once', limit: 1, label: '1회' }
+    };
+
+    const SHOP_META_KEY = 'HCSIG_SHOP_META_V1';
+
+    function getLocalDateKey() {
+      // SERVER RESET KEY (fixed 05:00 KST)
+      // 05:00 이전에는 '전날'로 간주, 05:00 이후는 '당일'로 간주
+      const RESET_HOUR = 5;
+      const d = new Date();
+      if (d.getHours() < RESET_HOUR) d.setDate(d.getDate() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function loadShopMeta() {
+      try {
+        const raw = localStorage.getItem(SHOP_META_KEY);
+        if (!raw) throw new Error('empty');
+        const meta = JSON.parse(raw);
+        if (!meta || typeof meta !== 'object') throw new Error('bad');
+        if (!meta.daily) meta.daily = {};
+        if (!meta.once) meta.once = {};
+        return meta;
+      } catch (e) {
+        return { date: getLocalDateKey(), daily: {}, once: {} };
+      }
+    }
+
+    function saveShopMeta(meta) {
+      localStorage.setItem(SHOP_META_KEY, JSON.stringify(meta));
+    }
+
+    function ensureDailyShopReset() {
+      const meta = loadShopMeta();
+      const today = getLocalDateKey();
+      if (meta.date !== today) {
+        meta.date = today;
+        meta.daily = {}; // reset daily counts
+        saveShopMeta(meta);
+        log('[시스템] 일일 상점 제한이 초기화되었습니다. (05:00 리셋)', 'system');
+      }
+      return meta;
+    }
+
+    function getShopLimitInfo(itemId) {
+      return SHOP_LIMITS[itemId] || null;
+    }
+
+    function getShopRemaining(itemId) {
+      const info = getShopLimitInfo(itemId);
+      if (!info) return null;
+      const meta = ensureDailyShopReset();
+      if (info.type === 'daily') {
+        const used = meta.daily[itemId] || 0;
+        return { used, limit: info.limit, remaining: Math.max(0, info.limit - used), type: info.type, label: info.label };
+      }
+      if (info.type === 'once') {
+        const bought = !!meta.once[itemId];
+        return { used: bought ? 1 : 0, limit: 1, remaining: bought ? 0 : 1, type: info.type, label: info.label };
+      }
+      return null;
+    }
+
+    function canBuyShopItem(itemId) {
+      const info = getShopRemaining(itemId);
+      if (!info) return { ok: true };
+      if (info.remaining <= 0) {
+        return { ok: false, reason: info.type === 'daily' ? '오늘 구매 제한에 도달했습니다.' : '이미 구매한 영구 아이템입니다.' };
+      }
+      return { ok: true };
+    }
+
+    function markShopPurchase(itemId) {
+      const info = getShopLimitInfo(itemId);
+      if (!info) return;
+      const meta = ensureDailyShopReset();
+      if (info.type === 'daily') {
+        meta.daily[itemId] = (meta.daily[itemId] || 0) + 1;
+      } else if (info.type === 'once') {
+        meta.once[itemId] = true;
+      }
+      saveShopMeta(meta);
+    }
+
+    // Reset daily limits automatically at server reset time (fixed 05:00 KST)
+    setInterval(() => { try { ensureDailyShopReset(); } catch(e){} }, 60 * 1000);
+
+
     function renderShop() {
       shopList.innerHTML = '';
 
@@ -2390,6 +2595,16 @@ button:hover {
         const costSpan = document.createElement('span');
         costSpan.className = 'shop-cost';
         costSpan.textContent = `💰 ${item.cost}`;
+        // limit badge (daily/once)
+        const lim = getShopRemaining(item.id);
+        if (lim) {
+          const badge = document.createElement('span');
+          badge.className = 'shop-limit-badge';
+          badge.textContent = `${lim.used}/${lim.limit} (${lim.label})`;
+          badge.style.marginLeft = '8px';
+          badge.style.opacity = '0.85';
+          costSpan.appendChild(badge);
+        }
 
         nameSpan.appendChild(leftWrap);
 
@@ -2404,7 +2619,21 @@ button:hover {
         btn.className = 'shop-buy';
         btn.textContent = '구매';
         btn.title = '구매하면 크레딧이 소모됩니다.';
+        const lim2 = getShopRemaining(item.id);
+        if (lim2 && lim2.remaining <= 0) {
+          btn.disabled = true;
+          btn.textContent = '구매 불가';
+          btn.title = lim2.type === 'daily' ? '오늘 구매 제한에 도달했습니다.' : '이미 구매한 영구 아이템입니다.';
+        }
         btn.addEventListener('click', () => {
+          // purchase cap check (daily/once)
+          const cap = canBuyShopItem(item.id);
+          if (!cap.ok) {
+            log(`[상점] ${cap.reason}`, 'shop');
+            showToast(cap.reason, 'shop');
+            return;
+          }
+
           if (state.credits < item.cost) {
             log(`[상점] 크레딧이 부족합니다. (필요: ${item.cost})`, 'shop');
             showToast('크레딧이 부족합니다.', 'shop');
@@ -2418,6 +2647,9 @@ button:hover {
           }
           state.credits -= item.cost;
           item.buy?.();
+          // mark cap usage
+          markShopPurchase(item.id);
+
           state.stats.shopPurchaseCount++;
           log(`[상점] ${item.name} 구매 (💰 -${item.cost})`, 'shop');
           if (item.id === 'energy_pack') {
@@ -3724,6 +3956,135 @@ button:hover {
 
   // default view
   setView('status');
+})();
+</script>
+<script>
+// === SAFE-AREA / TABS HEIGHT CALIBRATION ===
+(function(){
+  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+  if(!isMobile) return;
+
+  function setTabsHeightVar(){
+    const tabs = document.querySelector('.mobile-tabs');
+    if(!tabs) return;
+    const h = Math.ceil(tabs.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--mobileTabsH', h + 'px');
+  }
+
+  // Run now and after layout settles
+  window.addEventListener('load', ()=>{ setTabsHeightVar(); setTimeout(setTabsHeightVar, 250); setTimeout(setTabsHeightVar, 800); });
+  window.addEventListener('resize', ()=>{ setTabsHeightVar(); });
+  window.addEventListener('orientationchange', ()=>{ setTimeout(setTabsHeightVar, 300); });
+
+  // iOS Safari sometimes changes viewport when address bar hides/shows while scrolling
+  document.addEventListener('scroll', ()=>{
+    // light throttle
+    if(window.__tabsH_to) return;
+    window.__tabsH_to = setTimeout(()=>{ window.__tabsH_to = null; setTabsHeightVar(); }, 250);
+  }, {passive:true});
+})();
+</script>
+<script>
+// === MOBILE TABS AUTO-HIDE on scroll ===
+(function(){
+  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+  if(!isMobile) return;
+
+  function activeViewEl(){
+    const ids = ['mobileViewStatus','mobileViewAction','mobileViewCodes','mobileViewShop','mobileViewLog'];
+    for(const id of ids){
+      const el = document.getElementById(id);
+      if(!el) continue;
+      const st = window.getComputedStyle(el);
+      if(st.display !== 'none') return el;
+    }
+    return null;
+  }
+
+  let lastTop = 0;
+  let hidden = false;
+  let ticking = false;
+
+  function showTabs(){
+    if(!hidden) return;
+    hidden = false;
+    document.body.classList.remove('mobile-tabs-hidden');
+  }
+  function hideTabs(){
+    if(hidden) return;
+    hidden = true;
+    document.body.classList.add('mobile-tabs-hidden');
+  }
+
+  function onScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(()=>{
+      const el = activeViewEl();
+      if(!el){ ticking=false; return; }
+      const top = el.scrollTop || 0;
+      const delta = top - lastTop;
+
+      if(top <= 4){ showTabs(); lastTop = top; ticking=false; return; }
+      if(Math.abs(delta) < 6){ ticking=false; return; }
+
+      if(delta > 0) hideTabs();
+      else showTabs();
+
+      lastTop = top;
+      ticking = false;
+    });
+  }
+
+  function attach(){
+    const ids = ['mobileViewStatus','mobileViewAction','mobileViewCodes','mobileViewShop','mobileViewLog'];
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      if(el.__hcsigHideAttached) return;
+      el.__hcsigHideAttached = true;
+      el.addEventListener('scroll', onScroll, {passive:true});
+      el.addEventListener('touchstart', showTabs, {passive:true});
+    });
+  }
+
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.mobile-tabs button');
+    if(btn) showTabs();
+  });
+
+  window.addEventListener('load', attach);
+  window.addEventListener('resize', attach);
+  setTimeout(attach, 600);
+})();
+</script>
+<script>
+// === ANDROID: VisualViewport keyboard handling + UA class ===
+(function(){
+  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+  if(!isMobile) return;
+
+  const ua = navigator.userAgent || '';
+  if(/Android/i.test(ua)) document.body.classList.add('is-android');
+  if(/iPhone|iPad|iPod/i.test(ua)) document.body.classList.add('is-ios');
+
+  const vv = window.visualViewport;
+  if(!vv) return;
+
+  function update(){
+    // keyboard offset roughly equals viewport "missing" height
+    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty('--vvKeyboardOffset', kb + 'px');
+    if(kb > 40) document.body.classList.add('keyboard-open');
+    else document.body.classList.remove('keyboard-open');
+  }
+
+  vv.addEventListener('resize', update);
+  vv.addEventListener('scroll', update);
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', ()=>setTimeout(update, 250));
+  setTimeout(update, 250);
+  setTimeout(update, 900);
 })();
 </script>
 </body>
