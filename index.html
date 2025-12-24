@@ -1049,6 +1049,53 @@ button:hover {
   }
 }
 
+
+/* =========================
+   MOBILE: STRETCH ACTIVE PANEL TO FILL (visual + layout)
+   ========================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  /* Main container already flexes; make visible panel/cards stretch */
+  #main { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
+  /* When panels are used as "screens" on mobile, make them fill */
+  #leftPanel.panel, #centerPanel.panel, #rightPanel.panel{
+    flex: 1 1 auto;
+    min-height: 0;
+    display:flex;
+    flex-direction:column;
+    /* give a subtle surface so empty space doesn't feel like "nothing" */
+    background: rgba(255,255,255,0.03);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+
+  /* The scrollable content areas inside panels */
+  #leftPanel .stat-box,
+  #leftPanel #shop,
+  #leftPanel #shopList,
+  #centerPanel .panel-body,
+  #centerPanel #codeList,
+  #rightPanel .log-box,
+  #rightPanel #logList {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Ensure shop/log/code lists can scroll and occupy remaining height */
+  #shopList, #logList, #codeList{
+    overflow:auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Make the shop wrapper expand (if it exists) */
+  #shop{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    flex:1 1 auto;
+  }
+}
+
 </style>
 </head>
 <body>
