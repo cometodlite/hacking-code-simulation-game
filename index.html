@@ -1016,6 +1016,39 @@ button:hover {
   cursor: not-allowed;
 }
 
+
+/* =========================
+   MOBILE: FILL VIEWPORT (no empty gap feel)
+   ========================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  html, body { height: 100%; }
+  body { min-height: 100dvh; display: flex; flex-direction: column; }
+  header { flex: 0 0 auto; }
+  #main { flex: 1 1 auto; min-height: 0; }
+
+  /* Each mobile view should be a full-height column */
+  .mobile-view { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+
+  /* Make the primary content card grow to fill remaining space */
+  .mobile-view .stat-box,
+  .mobile-view .panel,
+  .mobile-view .log-list,
+  .mobile-view .shop-list,
+  .mobile-view .codes-wrap,
+  .mobile-view .actions-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Keep lists scrollable inside full-height views */
+  .mobile-view .log-list,
+  .mobile-view .shop-list,
+  .mobile-view .code-list {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 </style>
 </head>
 <body>
