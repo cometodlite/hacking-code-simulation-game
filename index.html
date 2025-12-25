@@ -4,6 +4,89 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>HCSiG - Hacking Code Simulator Game</title>
+<script>
+// --- Early viewport/layout fix (iOS Safari first-paint jump) ---
+(function(){
+  try{
+    if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    document.documentElement.style.setProperty('--appH', Math.ceil(window.innerHeight) + 'px');
+  }catch(e){}
+})();
+</script>
+
+<script>
+// --- Layout vars sync (header/tabs/viewport). Fixes initial "pushed up" until a UI event happens. ---
+(function(){
+  const root = document.documentElement;
+  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+
+  function px(n){ return Math.max(0, Math.round(n)) + 'px'; }
+
+  function setAppH(){
+    const vv = window.visualViewport;
+    const h = vv ? vv.height : window.innerHeight;
+    root.style.setProperty('--appH', px(h));
+  }
+
+  function setHeaderTabs(){
+    const header = document.querySelector('header');
+    const tabs = document.querySelector('.mobile-tabs');
+
+    if(header){
+      root.style.setProperty('--headerH', px(header.getBoundingClientRect().height));
+    }
+    if(isMobile){
+      if(tabs){
+        const th = tabs.getBoundingClientRect().height;
+        root.style.setProperty('--tabsH', px(th));
+        // bottom space that content must avoid (tabs + gap + safe area)
+        root.style.setProperty('--tabsInset', `calc(${px(th)} + 20px + env(safe-area-inset-bottom))`);
+        root.style.setProperty('--tabsPad',   `calc(${px(th)} + 28px + env(safe-area-inset-bottom))`);
+      }else{
+        root.style.setProperty('--tabsH', '92px');
+        root.style.setProperty('--tabsInset', 'calc(92px + 20px + env(safe-area-inset-bottom))');
+        root.style.setProperty('--tabsPad',   'calc(92px + 28px + env(safe-area-inset-bottom))');
+      }
+    }
+  }
+
+  function kick(){
+    setAppH();
+    setHeaderTabs();
+    // remove tiny scroll offsets that look like the whole UI is shifted upward
+    try{ if(window.scrollY !== 0) window.scrollTo(0,0); }catch(e){}
+  }
+
+  // run ASAP
+  kick();
+  document.addEventListener('DOMContentLoaded', kick);
+  window.addEventListener('load', kick);
+
+  const vv = window.visualViewport;
+  if(vv){
+    vv.addEventListener('resize', kick);
+    vv.addEventListener('scroll', kick);
+  }
+  window.addEventListener('resize', kick);
+  window.addEventListener('orientationchange', ()=>setTimeout(kick, 250));
+  window.addEventListener('pageshow', ()=>setTimeout(kick, 60));
+
+  // ResizeObserver catches font-load/header wrap changes that happen AFTER first paint
+  try{
+    const ro = new ResizeObserver(()=>kick());
+    const header = document.querySelector('header');
+    if(header) ro.observe(header);
+    const tabs = document.querySelector('.mobile-tabs');
+    if(tabs) ro.observe(tabs);
+  }catch(e){}
+
+  // Last resort: re-kick a couple times shortly after first render
+  setTimeout(kick, 80);
+  setTimeout(kick, 220);
+  setTimeout(kick, 650);
+})();
+</script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -449,7 +532,7 @@ button:hover {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.65);
-      /* Must sit ABOVE mobile bottom tabs (z-index: 9999) */
+      /* Must be above mobile tabs/snow/toasts */
       z-index: 20000;
       align-items: center;
       justify-content: center;
@@ -877,13 +960,20 @@ button:hover {
   body.mobile-tab-right #leftPanel,
   body.mobile-tab-right #centerPanel { display: none !important; }
 
-  #leftPanel, #centerPanel, #rightPanel {
-    height: calc(100dvh - 52px - 84px) !important;
-    max-height: calc(100dvh - 52px - 84px) !important;
-    overflow: auto !important;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 100px !important;
-  }
+  
+#leftPanel, #centerPanel, #rightPanel {
+  /* Use fixed insets instead of vh math (iOS first-paint vh bug) */
+  position: fixed;
+  top: var(--headerH, 52px);
+  left: 0;
+  right: 0;
+  bottom: var(--tabsInset, calc(92px + 20px + env(safe-area-inset-bottom)));
+  height: auto !important;
+  max-height: none !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--tabsPad, calc(92px + 28px + env(safe-area-inset-bottom))) !important;
+}
 
   button { min-height: 44px !important; }
   input, select, textarea { min-height: 44px !important; font-size: 16px !important; }
@@ -897,6 +987,8 @@ button:hover {
   body { overflow:hidden; }
   .mobile-tabs { grid-template-columns: repeat(5, 1fr) !important; }
   .mobile-tabs button{ font-size: 12px !important; }
+  /* Hide PC panels on mobile to avoid fixed-position overlay capturing taps */
+  #leftPanel, #centerPanel, #rightPanel { display: none !important; }
   .mobile-view { display:none !important; }
   body.mobile-view-status #mobileViewStatus,
   body.mobile-view-action #mobileViewAction,
@@ -904,13 +996,20 @@ button:hover {
   body.mobile-view-shop   #mobileViewShop,
   body.mobile-view-log    #mobileViewLog { display:block !important; }
 
-  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
-    height: calc(100dvh - 52px - 92px) !important;
-    max-height: calc(100dvh - 52px - 92px) !important;
-    overflow:auto !important;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 120px !important;
-  }
+  
+#mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
+  /* Use fixed insets instead of vh math (iOS first-paint vh bug) */
+  position: fixed;
+  top: var(--headerH, 52px);
+  left: 0;
+  right: 0;
+  bottom: var(--tabsInset, calc(92px + 20px + env(safe-area-inset-bottom)));
+  height: auto !important;
+  max-height: none !important;
+  overflow:auto !important;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--tabsPad, calc(92px + 28px + env(safe-area-inset-bottom))) !important;
+}
 
   /* Make code list touch-friendly */
   #codeList li{
@@ -925,23 +1024,6 @@ button:hover {
   /* Bigger upgrade/evolve buttons area */
   #btnUpgradeCode, #btnEvolveCode{
     width: 100% !important;
-  }
-}
-
-/* =========================
-   MORE MODAL (Mobile safe area + bottom tabs)
-   - Prevents the modal from being visually "cut" by the fixed bottom tabs on iOS/Android.
-   ========================= */
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  /* Give the backdrop padding so the centered modal doesn't sit under the fixed bottom tabs */
-  #moreModalBackdrop.active{
-    align-items: flex-start;
-    justify-content: center;
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 10px calc(110px + env(safe-area-inset-bottom, 0px));
-  }
-  #moreModal{
-    margin-top: 8px;
-    max-height: calc(100dvh - 52px - 110px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1168,7 +1250,7 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
   <header>
     <div class="header-left">
       <h1>HCSiG</h1>
-      <span class="header-version">v1.6.6 (Web)</span>
+      <span class="header-version">v1.6.11 (Web)</span>
     </div>
     <div class="header-right">
       <span class="subtitle">Hacking Code Simulator Game</span>
@@ -1538,7 +1620,7 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
   <div id="toastContainer"></div>
 
   <script>
-    const CURRENT_VERSION = 'v1.6.6';
+    const CURRENT_VERSION = 'v1.6.10';
     const ENERGY_INTERVAL_MS = 120000; // 에너지 1칸당 120초
     const SAVE_KEY = 'HCSiG_SAVE_v16';
     const OLD_SAVE_KEY = 'HCSiG_SAVE_v15';
@@ -3900,7 +3982,7 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
       applySettings();
       syncSettingsUI();
       updateStatsUI();
-      log('HCSiG 초기화 완료. (v1.6.5 QoL)', 'system');
+      log('HCSiG 초기화 완료. (v1.6.11 Mobile Fix)', 'system');
 
       if (localStorage.getItem(SAVE_KEY)) {
         loadGame();
@@ -3934,6 +4016,13 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
 (function(){
   const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
   if(!isMobile) return;
+
+  // IMPORTANT: This build uses the newer 5-tab "MOBILE VIEWS" system.
+  // The legacy 3-tab (left/center/right) switcher can create an invisible overlay that blocks taps on iOS
+  // until a relayout event (like opening "More") happens. Disable it entirely.
+  return;
+
+  // (legacy code below intentionally unreachable)
 
   if(!document.body.classList.contains('mobile-tab-left') &&
      !document.body.classList.contains('mobile-tab-center') &&
