@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
   <title>HCSiG - Hacking Code Simulator Game</title>
   <style>
     * {
@@ -15,6 +15,12 @@
     body {
       background: #05070b;
       color: #e5e5e5;
+      height: var(--app-height, 100vh);
+      min-height: 100vh;
+      min-height: 100svh;
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow: hidden;
     }
 
     header {
@@ -58,7 +64,7 @@
 
     #main {
       display: flex;
-      height: calc(100vh - 48px);
+      height: calc(var(--app-height, 100vh) - 48px);
       width: 100vw;
       overflow: hidden;
     }
@@ -155,6 +161,21 @@
       height: 100%;
       width: 0%;
       background: linear-gradient(90deg, #00ffaa, #00d4ff);
+      transition: width 0.1s linear;
+    }
+
+    #traceBarWrapper {
+      margin-top: 4px;
+      height: 10px;
+      background: #0b1220;
+      border: 1px solid #223;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    #traceBarInner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ffcf5c, #ff4b4b);
       transition: width 0.1s linear;
     }
 
@@ -776,6 +797,7 @@ button:hover {
     }
     html{
       font-size: calc(16px * var(--font-scale));
+      height: 100%;
     }
     #main, #moreModal{
       zoom: var(--ui-zoom);
@@ -790,40 +812,49 @@ button:hover {
     }
 
   
-/* =========================
-   MOBILE COMPAT PATCH v1.6.5
-   ========================= */
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  body {
-    overflow: hidden;
-  }
-  #main, .main {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100dvh !important;
-  }
-  .resizer, .resize-bar {
-    display: none !important;
-  }
-  #leftPanel, #centerPanel, #rightPanel {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-right: none !important;
-    overflow: auto !important;
-  }
-  #leftPanel { max-height: 32dvh; }
-  #centerPanel { flex: 1 1 auto !important; }
-  #rightPanel { max-height: 28dvh; }
-  button, input, select {
-    min-height: 42px;
-    font-size: 14px;
-  }
+
+/* shop limit badge + disabled */
+.shop-limit-badge{
+  font-size: 12px;
+}
+.shop-buy:disabled{
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 
+
 /* =========================
-   MOBILE UI MODE (Tabbed)
+   MOBILE: FILL VIEWPORT (no empty gap feel)
    ========================= */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  html, body { height: 100%; }
+  body { min-height: 100dvh; display: flex; flex-direction: column; }
+  header { flex: 0 0 auto; }
+  #main { flex: 1 1 auto; min-height: 0; }
+
+  /* Each mobile view should be a full-height column */
+  .mobile-view { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+
+  /* Make the primary content card grow to fill remaining space */
+  .mobile-view .stat-box,
+  .mobile-view .panel,
+  .mobile-view .log-list,
+  .mobile-view .shop-list,
+  .mobile-view .codes-wrap,
+  .mobile-view .actions-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Keep lists scrollable inside full-height views */
+  .mobile-view .log-list,
+  .mobile-view .shop-list,
+  .mobile-view .code-list {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
 @media (max-width: 900px), (hover: none) and (pointer: coarse) {
   #main, .main { position: relative; }
   .mobile-tabs {
@@ -873,236 +904,99 @@ button:hover {
   input, select, textarea { min-height: 44px !important; font-size: 16px !important; }
 }
 
+    /* =========================
+       Christmas Theme (optional)
+       ========================= */
+    .xmas-accent { color: #7dd3fc; }
+    #snowLayer{
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+    .snowflake{
+      position: absolute;
+      top: -12px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      opacity: 0.75;
+      filter: blur(0.2px);
+      animation: snowFall linear infinite;
+    }
+    @keyframes snowFall{
+      0%{ transform: translateY(-20px); }
+      100%{ transform: translateY(calc(var(--app-height, 100vh) + 40px)); }
+    }
 
-/* =========================
-   MOBILE VIEWS (Status/Action/Codes/Shop/Log)
-   ========================= */
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  body { overflow:hidden; }
-  .mobile-tabs { grid-template-columns: repeat(5, 1fr) !important; }
-  .mobile-tabs button{ font-size: 12px !important; }
-  .mobile-view { display:none !important; }
-  body.mobile-view-status #mobileViewStatus,
-  body.mobile-view-action #mobileViewAction,
-  body.mobile-view-codes  #mobileViewCodes,
-  body.mobile-view-shop   #mobileViewShop,
-  body.mobile-view-log    #mobileViewLog { display:block !important; }
-
-  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
-    height: calc(100dvh - 52px - 92px) !important;
-    max-height: calc(100dvh - 52px - 92px) !important;
-    overflow:auto !important;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 120px !important;
-  }
-
-  /* Make code list touch-friendly */
-  #codeList li{
-    padding: 12px 10px !important;
-    min-height: 44px !important;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
-  #codeList li button{ min-height: 40px !important; }
-  /* Bigger upgrade/evolve buttons area */
-  #btnUpgradeCode, #btnEvolveCode{
-    width: 100% !important;
-  }
-}
-
-
-/* =========================
-   SAFE-AREA + DYNAMIC HEIGHT FIX (iOS/Android)
-   ========================= */
-:root{
-  --mobileTabsH: 86px; /* fallback */
-  --mobileTabsPad: 10px;
-}
-@supports (padding: env(safe-area-inset-bottom)) {
-  :root{ --safeBottom: env(safe-area-inset-bottom); --safeTop: env(safe-area-inset-top); }
-}
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  /* Use dynamic viewport and safe-area */
-  header{ padding-top: calc(10px + var(--safeTop, 0px)) !important; }
-
-  .mobile-tabs{
-    bottom: calc(var(--mobileTabsPad) + var(--safeBottom, 0px)) !important;
-    left: 10px !important;
-    right: 10px !important;
-    padding-bottom: calc(8px + var(--safeBottom, 0px)) !important;
-  }
-
-  /* Make room for the fixed tab bar so content never gets hidden */
-  body{
-    padding-bottom: calc(var(--mobileTabsH) + var(--mobileTabsPad) + var(--safeBottom, 0px)) !important;
-  }
-
-  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
-    height: auto !important;
-    max-height: none !important;
-    min-height: 0 !important;
-    /* Use dvh but subtract header + tabs (real measured via JS) */
-    height: calc(100dvh - 52px - var(--mobileTabsH) - var(--mobileTabsPad) - var(--safeBottom, 0px)) !important;
-    max-height: calc(100dvh - 52px - var(--mobileTabsH) - var(--mobileTabsPad) - var(--safeBottom, 0px)) !important;
-    padding-bottom: calc(var(--mobileTabsH) + 24px) !important;
-  }
-}
-
-
-/* =========================
-   MOBILE TABS AUTO-HIDE (scroll down hide, scroll up show)
-   ========================= */
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  .mobile-tabs{
-    transition: transform 180ms ease, opacity 180ms ease;
-    will-change: transform;
-  }
-  body.mobile-tabs-hidden .mobile-tabs{
-    transform: translateY(calc(100% + var(--safeBottom, 0px) + 20px));
-    opacity: 0.0;
-    pointer-events: none;
-  }
-  body.mobile-tabs-hidden{
-    padding-bottom: calc(var(--safeBottom, 0px) + 10px) !important;
-  }
-  body.mobile-tabs-hidden #mobileViewStatus,
-  body.mobile-tabs-hidden #mobileViewAction,
-  body.mobile-tabs-hidden #mobileViewCodes,
-  body.mobile-tabs-hidden #mobileViewShop,
-  body.mobile-tabs-hidden #mobileViewLog{
-    height: calc(100dvh - 52px - var(--safeBottom, 0px) - 10px) !important;
-    max-height: calc(100dvh - 52px - var(--safeBottom, 0px) - 10px) !important;
-    padding-bottom: calc(24px + var(--safeBottom, 0px)) !important;
-  }
-}
-
-
-/* =========================
-   ANDROID OPTIMIZATION
-   ========================= */
-:root{ --vvKeyboardOffset: 0px; }
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  /* smoother + prevent pull-to-refresh conflicts */
-  html, body { overscroll-behavior-y: none; }
-  body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-
-  /* performance: blur can be heavy on some Android devices */
-  .mobile-tabs{ backdrop-filter: none; }
-  @supports (backdrop-filter: blur(10px)) {
-    /* keep subtle blur if supported well */
-    .mobile-tabs{ backdrop-filter: blur(8px); }
-  }
-
-  /* If keyboard is open (Android/Chrome), lift the tab bar */
-  body.keyboard-open .mobile-tabs{
-    transform: translateY(calc(-1 * var(--vvKeyboardOffset))) !important;
-  }
-
-  /* Reduce accidental horizontal scroll */
-  #mobileViewStatus, #mobileViewAction, #mobileViewCodes, #mobileViewShop, #mobileViewLog{
-    overflow-x: hidden !important;
-  }
-}
-
-
-/* shop limit badge + disabled */
-.shop-limit-badge{
-  font-size: 12px;
-}
-.shop-buy:disabled{
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-
-/* =========================
-   MOBILE: FILL VIEWPORT (no empty gap feel)
-   ========================= */
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  html, body { height: 100%; }
-  body { min-height: 100dvh; display: flex; flex-direction: column; }
-  header { flex: 0 0 auto; }
-  #main { flex: 1 1 auto; min-height: 0; }
-
-  /* Each mobile view should be a full-height column */
-  .mobile-view { height: 100%; min-height: 0; display: flex; flex-direction: column; }
-
-  /* Make the primary content card grow to fill remaining space */
-  .mobile-view .stat-box,
-  .mobile-view .panel,
-  .mobile-view .log-list,
-  .mobile-view .shop-list,
-  .mobile-view .codes-wrap,
-  .mobile-view .actions-wrap {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
-  /* Keep lists scrollable inside full-height views */
-  .mobile-view .log-list,
-  .mobile-view .shop-list,
-  .mobile-view .code-list {
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-
-/* =========================
-   MOBILE: STRETCH ACTIVE PANEL TO FILL (visual + layout)
-   ========================= */
-@media (max-width: 900px), (hover: none) and (pointer: coarse) {
-  /* Main container already flexes; make visible panel/cards stretch */
-  #main { display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
-  /* When panels are used as "screens" on mobile, make them fill */
-  #leftPanel.panel, #centerPanel.panel, #rightPanel.panel{
-    flex: 1 1 auto;
-    min-height: 0;
-    display:flex;
-    flex-direction:column;
-    /* give a subtle surface so empty space doesn't feel like "nothing" */
-    background: rgba(255,255,255,0.03);
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.06);
-    overflow: hidden;
-  }
-
-  /* The scrollable content areas inside panels */
-  #leftPanel .stat-box,
-  #leftPanel #shop,
-  #leftPanel #shopList,
-  #centerPanel .panel-body,
-  #centerPanel #codeList,
-  #rightPanel .log-box,
-  #rightPanel #logList {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
-  /* Ensure shop/log/code lists can scroll and occupy remaining height */
-  #shopList, #logList, #codeList{
-    overflow:auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Make the shop wrapper expand (if it exists) */
-  #shop{
-    display:flex;
-    flex-direction:column;
-    min-height:0;
-    flex:1 1 auto;
-  }
-}
+    /* =========================
+       Mailbox
+       ========================= */
+    .mail-topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:8px; margin:8px 0 10px;
+    }
+    .mail-count{
+      font-size:12px; opacity:.85;
+    }
+    .mail-item{
+      border: 1px solid #1f2a3d;
+      background: #0b1220;
+      border-radius: 10px;
+      padding: 10px 10px;
+      margin-bottom: 8px;
+    }
+    .mail-title{
+      font-weight: 700;
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .mail-meta{
+      font-size: 12px;
+      opacity: .78;
+      margin-bottom: 6px;
+    }
+    .mail-body{
+      font-size: 13px;
+      line-height: 1.35;
+      opacity: .92;
+      white-space: pre-wrap;
+    }
+    .mail-reward{
+      margin-top: 8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      font-size: 12px;
+      opacity: .95;
+    }
+    .mail-claimed{
+      opacity: .55;
+      filter: grayscale(0.2);
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 2px 8px;
+      border: 1px solid #263247;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.6);
+      font-size: 12px;
+      opacity: 0.9;
+    }
 
 </style>
 </head>
 <body>
+  <div id="snowLayer" aria-hidden="true"></div>
   <header>
     <div class="header-left">
       <h1>HCSiG</h1>
-      <span class="header-version">v1.6.5 (Web)</span>
+      <span class="header-version">v1.7.0 🎄 Christmas (Web)</span>
     </div>
     <div class="header-right">
       <span class="subtitle">Hacking Code Simulator Game</span>
@@ -1143,7 +1037,19 @@ button:hover {
           <div id="energyBarInner"></div>
         </div>
 
-        <div class="stat-row" style="align-items:center;">
+        <div class="stat-row" style="margin-top:6px;">
+          <span class="label">Trace</span>
+          <span class="value" id="statTraceValue">0 / 100</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">차단까지</span>
+          <span class="value" id="statTraceTimer">SAFE</span>
+        </div>
+        <div id="traceBarWrapper">
+          <div id="traceBarInner"></div>
+        </div>
+
+                <div class="stat-row" style="align-items:center;">
           <span class="label">에너지 팩</span>
           <span class="value" style="display:flex; align-items:center; gap:6px;">
             <span id="statEnergyPack">0</span>
@@ -1193,6 +1099,7 @@ button:hover {
               <div style="flex:1;">
                 <span class="small">타겟 서버</span>
                 <select id="serverSelect"></select>
+                <div id="serverMeta" class="small" style="color:#9aa4b2; margin-top:2px;">-</div>
               </div>
               <div style="flex:1;">
                 <span class="small">로드아웃</span>
@@ -1274,6 +1181,7 @@ button:hover {
           <button class="more-tab-button active" data-tab="update">업데이트 로그</button>
           <button class="more-tab-button" data-tab="mission">미션</button>
           <button class="more-tab-button" data-tab="achievement">업적</button>
+          <button class="more-tab-button" data-tab="mail">우편함</button>
           <button class="more-tab-button" data-tab="logs">로그</button>
           <button class="more-tab-button" data-tab="settings">설정</button>
           <button class="more-tab-button" data-tab="save">데이터</button>
@@ -1314,6 +1222,7 @@ button:hover {
             <button class="mission-scope-btn" data-scope="weekly">WEEKLY</button>
             <button class="mission-scope-btn" data-scope="month">MONTH</button>
             <button class="mission-scope-btn" data-scope="general">GENERAL</button>
+            <button class="mission-scope-btn" data-scope="stage">STAGE</button>
           </div>
           <div class="stat-box" id="missionList"></div>
         </div>
@@ -1324,7 +1233,30 @@ button:hover {
             <span class="badge">ACHIEVEMENT</span>
             <span>업적</span>
           </div>
-          <div class="stat-box" id="achievementList"></div>
+          
+        <!-- 우편함 탭 -->
+        <div id="tabMail" class="more-tab-panel">
+          <div>
+            <span class="badge">MAIL</span>
+            <span>우편함</span>
+          </div>
+
+          <div class="mail-topbar">
+            <div class="mail-count" id="mailCountText">보관함: 0개</div>
+            <div class="button-row" style="margin:0;">
+              <button id="btnClaimAllMail" title="수령 가능한 우편의 보상을 모두 수령합니다.">모두 수령</button>
+            </div>
+          </div>
+
+          <div class="stat-box" id="mailList"></div>
+
+          <div class="small" style="opacity:0.85; margin-top:6px;">
+            • 보상은 수령 시 즉시 반영됩니다. (크레딧 / 에너지 팩 등)<br>
+            • 이벤트 우편은 기간이 지나면 자동으로 사라질 수 있습니다.
+          </div>
+        </div>
+
+<div class="stat-box" id="achievementList"></div>
         </div>
 
 
@@ -1463,10 +1395,11 @@ button:hover {
   <div id="toastContainer"></div>
 
   <script>
-    const CURRENT_VERSION = 'v1.6.5';
+    const CURRENT_VERSION = 'v1.7.0';
     const ENERGY_INTERVAL_MS = 120000; // 에너지 1칸당 120초
-    const SAVE_KEY = 'HCSiG_SAVE_v16';
-    const OLD_SAVE_KEY = 'HCSiG_SAVE_v15';
+    const SAVE_KEY = 'HCSiG_SAVE_v17';
+    const OLD_SAVE_KEY = 'HCSiG_SAVE_v16';
+    const LEGACY_SAVE_KEY = 'HCSiG_SAVE_v15';
     const LAST_SEEN_VERSION_KEY = 'HCSiG_LAST_SEEN_VERSION';
 
     // 업데이트 로그
@@ -1539,6 +1472,14 @@ button:hover {
           '로그 검색/핀 기능과 최대 100개 표시(핀 제외) 제한을 추가했습니다.',
           '마지막 저장 시각 표시 및 자동저장 UX를 개선했습니다.'
         ]
+      },
+      {
+        version: 'v1.7.0',
+        lines: [
+          'Trace Protocol을 추가했습니다. (Trace 게이지/차단 타이머/자연 감소)',
+          '서버에 방화벽(FW), 추적감도(Trace), 보상계수 정보를 표시합니다.',
+          '스캔/해킹 행동에 따라 Trace가 상승하며, 100 도달 시 일정 시간 차단됩니다.'
+        ]
       }
 
     ];
@@ -1554,6 +1495,10 @@ button:hover {
       energy: 20,
       energyMax: 20,
       energyTimerMs: 0,
+      trace: 0,
+      traceMax: 100,
+      traceLockMs: 0,
+      traceDecayAccMs: 0,
       items: { energyPack: 0 },
       lastSavedAt: null,
       activeCodeId: null,
@@ -1585,7 +1530,8 @@ button:hover {
         },
         general: {
           completed: {}
-        }
+        },
+        stage: { completed: {} }
       },
       achievements: {},
       loadouts: {
@@ -1608,9 +1554,305 @@ button:hover {
         energySpentTotal: 0,
         creditsEarnedTotal: 0,
         missionsCompletedTotal: 0,
-        riskHackSuccessCount: 0
+        riskHackSuccessCount: 0,
+        // v1.7.x 콘텐츠 카운터
+        traceReducedCount: 0,
+        traceZeroCount: 0,
+        stealthHackSuccessCount: 0,
+        highTraceHackSuccessCount: 0,
+        lockdownCount: 0,
+        postLockSuccessCount: 0,
+        logLinesTotal: 0,
+        successStreak: 0,
+        successStreakMax: 0,
+        failStreak: 0,
+        failStreakMax: 0,
+        ghostSuccessAtTrace0: 0,
+        sameActionStreak: 0,
+        sameActionLast: null,
+        silentNightStartAt: null,
+        silentNightBroken: false,
+        lastLogWasFailOrWarnAt: null,
+        energy0Attempted: false,
+        lockAttempted: false,
+        justUnlockedFromLock: false,
+        postLockPending: false
       }
     };
+
+    // =========================
+    // Christmas + Mailbox System
+    // =========================
+    function ensureMailbox() {
+      if (!state.mailbox || typeof state.mailbox !== 'object') {
+        state.mailbox = { messages: [], flags: {}, lastDailyGiftKey: null };
+      }
+      if (!Array.isArray(state.mailbox.messages)) state.mailbox.messages = [];
+      if (!state.mailbox.flags || typeof state.mailbox.flags !== 'object') state.mailbox.flags = {};
+      if (typeof state.mailbox.lastDailyGiftKey !== 'string' && state.mailbox.lastDailyGiftKey !== null) {
+        state.mailbox.lastDailyGiftKey = null;
+      }
+    }
+
+    function mailRewardText(rw) {
+      const parts = [];
+      if (!rw) return '보상 없음';
+      if (rw.credits) parts.push(`크레딧 +${rw.credits}`);
+      if (rw.energyPack) parts.push(`에너지 팩 +${rw.energyPack}`);
+      if (rw.energyMax) parts.push(`에너지 최대치 +${rw.energyMax}`);
+      return parts.length ? parts.join(' / ') : '보상 없음';
+    }
+
+    function addMail(msg) {
+      ensureMailbox();
+      // de-dupe by id
+      if (state.mailbox.messages.some(m => m.id === msg.id)) return false;
+      state.mailbox.messages.unshift(msg);
+      return true;
+    }
+
+    function pruneExpiredMail() {
+      ensureMailbox();
+      const now = Date.now();
+      state.mailbox.messages = state.mailbox.messages.filter(m => {
+        if (!m.expiresAt) return true;
+        return now <= m.expiresAt;
+      });
+    }
+
+    function getUnreadMailCount() {
+      ensureMailbox();
+      return state.mailbox.messages.filter(m => !m.claimed).length;
+    }
+
+    function updateMoreButtonBadge() {
+      const btn = document.getElementById('btnMore');
+      if (!btn) return;
+      const n = getUnreadMailCount();
+      // keep text but append dot badge
+      btn.dataset.unread = String(n);
+      btn.style.position = 'relative';
+      let dot = btn.querySelector('.unread-dot');
+      if (!dot) {
+        dot = document.createElement('span');
+        dot.className = 'unread-dot';
+        dot.style.position = 'absolute';
+        dot.style.top = '6px';
+        dot.style.right = '8px';
+        dot.style.minWidth = '16px';
+        dot.style.height = '16px';
+        dot.style.padding = '0 4px';
+        dot.style.borderRadius = '999px';
+        dot.style.fontSize = '11px';
+        dot.style.display = 'inline-flex';
+        dot.style.alignItems = 'center';
+        dot.style.justifyContent = 'center';
+        dot.style.border = '1px solid #263247';
+        dot.style.background = 'rgba(11, 18, 32, 0.9)';
+        dot.style.opacity = '0.95';
+        btn.appendChild(dot);
+      }
+      if (n > 0) {
+        dot.textContent = n > 99 ? '99+' : String(n);
+        dot.style.display = 'inline-flex';
+      } else {
+        dot.style.display = 'none';
+      }
+    }
+
+    function ensureChristmasMails() {
+      ensureMailbox();
+      pruneExpiredMail();
+
+      // One-time "Christmas Gift" mail (kept for the season build)
+      if (!state.mailbox.flags.xmasGiftV1) {
+        addMail({
+          id: 'xmas_gift_v1',
+          title: '🎄 크리스마스 선물 지급',
+          body: '해커님을 위한 작은 선물을 준비했습니다.\n즐거운 연말 되세요!\n\n— HCSiG 운영팀',
+          rewards: { credits: 300, energyPack: 1 },
+          createdAt: Date.now(),
+          claimed: false
+        });
+        state.mailbox.flags.xmasGiftV1 = true;
+      }
+
+      // Daily login gift during December (KST reset key 기반)
+      const d = new Date();
+      const isDecember = (d.getMonth() === 11); // 0=Jan
+      if (isDecember) {
+        const todayKey = getLocalDateKey();
+        if (state.mailbox.lastDailyGiftKey !== todayKey) {
+          // small gift
+          addMail({
+            id: `xmas_daily_${todayKey}`,
+            title: '🎁 연말 출석 보상',
+            body: '오늘도 접속해줘서 고마워요!\n(05:00 KST 기준 1일 1회)',
+            rewards: { credits: 60 },
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 14, // 14 days
+            claimed: false
+          });
+          state.mailbox.lastDailyGiftKey = todayKey;
+        }
+      }
+
+      updateMoreButtonBadge();
+    }
+
+    function applyMailRewards(rewards) {
+      if (!rewards) return;
+      if (rewards.credits) state.credits += rewards.credits;
+      if (rewards.energyPack) state.items.energyPack = (state.items.energyPack || 0) + rewards.energyPack;
+      if (rewards.energyMax) {
+        state.energyMax += rewards.energyMax;
+        state.energy = Math.min(state.energyMax, state.energy);
+      }
+      updateStatsUI();
+      refreshShopUI?.();
+    }
+
+    function claimMailById(id) {
+      ensureMailbox();
+      const mail = state.mailbox.messages.find(m => m.id === id);
+      if (!mail || mail.claimed) return false;
+      mail.claimed = true;
+      applyMailRewards(mail.rewards);
+      log(`[우편함] "${mail.title}" 보상을 수령했습니다. (${mailRewardText(mail.rewards)})`, 'system');
+      showToast('우편 수령 완료', 'ok');
+      updateMoreButtonBadge();
+      saveGame(true);
+      return true;
+    }
+
+    function claimAllMail() {
+      ensureMailbox();
+      let claimed = 0;
+      state.mailbox.messages.forEach(m => {
+        if (!m.claimed) {
+          m.claimed = true;
+          applyMailRewards(m.rewards);
+          claimed++;
+        }
+      });
+      if (claimed > 0) {
+        log(`[우편함] 수령 가능한 우편 ${claimed}개를 모두 수령했습니다.`, 'system');
+        showToast(`우편 ${claimed}개 수령`, 'ok');
+        updateMoreButtonBadge();
+        saveGame(true);
+      } else {
+        showToast('수령할 우편이 없습니다.', 'warn');
+      }
+      return claimed;
+    }
+
+    function renderMailbox() {
+      ensureMailbox();
+      pruneExpiredMail();
+      const wrap = document.getElementById('mailList');
+      const countText = document.getElementById('mailCountText');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+
+      const total = state.mailbox.messages.length;
+      const unread = getUnreadMailCount();
+      if (countText) countText.textContent = `보관함: ${total}개 (수령 가능 ${unread}개)`;
+
+      if (total === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.style.opacity = '0.85';
+        empty.textContent = '새로운 우편이 없습니다.';
+        wrap.appendChild(empty);
+        return;
+      }
+
+      state.mailbox.messages.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'mail-item' + (m.claimed ? ' mail-claimed' : '');
+        const title = document.createElement('div');
+        title.className = 'mail-title';
+
+        const left = document.createElement('div');
+        left.style.display = 'flex';
+        left.style.alignItems = 'center';
+        left.style.gap = '8px';
+
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = m.claimed ? '수령완료' : '수령 가능';
+        left.appendChild(pill);
+
+        const t = document.createElement('span');
+        t.textContent = m.title || '우편';
+        left.appendChild(t);
+
+        title.appendChild(left);
+
+        const btn = document.createElement('button');
+        btn.textContent = m.claimed ? '완료' : '수령';
+        btn.disabled = !!m.claimed;
+        btn.addEventListener('click', () => {
+          claimMailById(m.id);
+          renderMailbox();
+        });
+        title.appendChild(btn);
+
+        const meta = document.createElement('div');
+        meta.className = 'mail-meta';
+        const created = m.createdAt ? new Date(m.createdAt) : null;
+        const createdTxt = created ? `${created.getFullYear()}-${String(created.getMonth()+1).padStart(2,'0')}-${String(created.getDate()).padStart(2,'0')}` : '';
+        const expTxt = m.expiresAt ? ` · 만료: ${new Date(m.expiresAt).toLocaleDateString()}` : '';
+        meta.textContent = (createdTxt ? `수신: ${createdTxt}` : '수신') + expTxt;
+
+        const body = document.createElement('div');
+        body.className = 'mail-body';
+        body.textContent = m.body || '';
+
+        const reward = document.createElement('div');
+        reward.className = 'mail-reward';
+
+        const rw = document.createElement('div');
+        rw.textContent = `보상: ${mailRewardText(m.rewards)}`;
+        reward.appendChild(rw);
+
+        item.appendChild(title);
+        item.appendChild(meta);
+        item.appendChild(body);
+        item.appendChild(reward);
+
+        wrap.appendChild(item);
+      });
+    }
+
+    // Simple snow effect (no images)
+    function setupSnow() {
+      const layer = document.getElementById('snowLayer');
+      if (!layer) return;
+
+      // Allow user to disable via settings
+      const enabled = !(state.ui && state.ui.seasonalTheme === false);
+      layer.innerHTML = '';
+      if (!enabled) return;
+
+      const count = 36;
+      const h = window.innerHeight || 800;
+      for (let i = 0; i < count; i++) {
+        const flake = document.createElement('div');
+        flake.className = 'snowflake';
+        const size = 2 + Math.random() * 6;
+        flake.style.width = `${size}px`;
+        flake.style.height = `${size}px`;
+        flake.style.left = `${Math.random() * 100}%`;
+        flake.style.opacity = `${0.25 + Math.random() * 0.7}`;
+        flake.style.background = 'rgba(255,255,255,0.9)';
+        flake.style.animationDuration = `${6 + Math.random() * 10}s`;
+        flake.style.animationDelay = `${Math.random() * 6}s`;
+        // slight horizontal drift using translateX in keyframes via CSS variables isn't available; emulate with margin-left over time
+        flake.style.marginLeft = `${-10 + Math.random() * 20}px`;
+        layer.appendChild(flake);
+      }
+    }
 
     const codeDefs = {
       basic: {
@@ -1720,6 +1962,19 @@ button:hover {
       }
     ];
 
+    // Trace Protocol: 서버 속성 자동 부여 (FW/추적감도/보상계수)
+    servers.forEach(s => {
+      if (typeof s.firewall !== 'number') {
+        s.firewall = Math.round(s.security * 1.1 + s.minLevel * 6);
+      }
+      if (typeof s.traceSensitivity !== 'number') {
+        s.traceSensitivity = Math.max(1.0, Math.min(2.6, Number((1 + s.security / 100).toFixed(2))));
+      }
+      if (typeof s.rewardMultiplier !== 'number') {
+        s.rewardMultiplier = Math.max(1.0, Number((1 + s.minLevel * 0.15 + s.security / 300).toFixed(2)));
+      }
+    });
+
     // 상점 아이템 + 카테고리 + 희귀도
     const shopItems = [
       {
@@ -1819,7 +2074,7 @@ button:hover {
       {
         id: 'perm_credit_boost',
         name: '영구 크레딧 멀티플라이어',
-        desc: '해킹 크레딧 보상 15% 증가 (영구, 1회 구매 한정).',
+        desc: '해킹 크레딧 보상 15% 증가 (영구, 중첩).',
         cost: 1500,
         rarity: 'EPIC',
         category: 'ECONOMY',
@@ -1830,7 +2085,7 @@ button:hover {
       {
         id: 'risk_support',
         name: '위험 해킹 서포터',
-        desc: '위험 해킹 모드 성공 확률 +5%p (영구, 1회 구매 한정).',
+        desc: '위험 해킹 모드 성공 확률 +5%p (영구, 중첩).',
         cost: 950,
         rarity: 'RARE',
         category: 'UTILITY',
@@ -1841,7 +2096,7 @@ button:hover {
       {
         id: 'big_credit_pack',
         name: '데이터 크레딧 팩',
-        desc: '즉시 크레딧 +500. (일일 구매 제한: 2회)',
+        desc: '즉시 크레딧 +500.',
         cost: 400,
         rarity: 'COMMON',
         category: 'ECONOMY',
@@ -1853,7 +2108,7 @@ button:hover {
       {
         id: 'scanner_plus',
         name: '정밀 스캐너',
-        desc: '코드 스캔 시 추가 경험치 +1 (영구, 1회 구매 한정).',
+        desc: '코드 스캔 시 추가 경험치 +1 (영구, 중첩).',
         cost: 450,
         rarity: 'UNCOMMON',
         category: 'SYSTEM',
@@ -1954,7 +2209,43 @@ button:hover {
         { id: 'gen_mission_40',    name: '퀘스트 매니악',        type: 'missionsCompleted', target: 40,   rewardCredits: 800,  desc: '누적 퀘스트 40개 완료' },
 
         { id: 'gen_risk_10',       name: '위험 친화 I',          type: 'riskHackSuccess',   target: 10,   rewardCredits: 400,  desc: '위험 해킹 모드로 해킹 성공 10회' },
-        { id: 'gen_risk_25',       name: '위험 친화 II',         type: 'riskHackSuccess',   target: 25,   rewardCredits: 700,  desc: '위험 해킹 모드로 해킹 성공 25회' }
+        { id: 'gen_risk_25',       name: '위험 친화 II',         type: 'riskHackSuccess',   target: 25,   rewardCredits: 700,  desc: '위험 해킹 모드로 해킹 성공 25회' },
+
+
+        // v1.7.x 추가 GENERAL (Trace/로그 축)
+        { id: 'gen_trace_reduce_10', name: '추적 진정 I', type: 'traceReduced', target: 10, rewardCredits: 150, desc: 'Trace를 누적 10 감소시키기' },
+        { id: 'gen_trace_reduce_30', name: '추적 진정 II', type: 'traceReduced', target: 30, rewardCredits: 350, desc: 'Trace를 누적 30 감소시키기' },
+        { id: 'gen_trace_zero_5', name: '흔적 삭제', type: 'traceZeroCount', target: 5, rewardCredits: 250, desc: 'Trace 0% 달성 5회' },
+        { id: 'gen_stealth_hack_10', name: '잠입 성공 I', type: 'stealthHackSuccess', target: 10, rewardCredits: 300, desc: 'Trace 25% 이하에서 해킹 성공 10회' },
+        { id: 'gen_stealth_hack_25', name: '잠입 성공 II', type: 'stealthHackSuccess', target: 25, rewardCredits: 600, desc: 'Trace 25% 이하에서 해킹 성공 25회' },
+        { id: 'gen_hightrace_hack_5', name: '고위험 고수익 I', type: 'highTraceHackSuccess', target: 5, rewardCredits: 350, desc: 'Trace 75% 이상에서 해킹 성공 5회' },
+        { id: 'gen_hightrace_hack_15', name: '고위험 고수익 II', type: 'highTraceHackSuccess', target: 15, rewardCredits: 800, desc: 'Trace 75% 이상에서 해킹 성공 15회' },
+        { id: 'gen_lock_survivor', name: '락다운 생존자', type: 'postLockSuccess', target: 1, rewardCredits: 500, desc: 'Trace LOCK 발생 이후 첫 해킹 성공' },
+        { id: 'gen_logs_200', name: '로그 채굴 I', type: 'logsCreated', target: 200, rewardCredits: 200, desc: '로그 200줄 생성' },
+        { id: 'gen_logs_600', name: '로그 채굴 II', type: 'logsCreated', target: 600, rewardCredits: 500, desc: '로그 600줄 생성' }
+      ]
+    ,
+      stage: [
+        { id: 'stage_01', name: 'STAGE 1: 첫 분석', type: 'scans', target: 10, rewardCredits: 30, desc: '누적 코드 스캔 10회', stage: 1 },
+        { id: 'stage_02', name: 'STAGE 2: 첫 침입', type: 'hackSuccess', target: 3, rewardCredits: 35, desc: '누적 해킹 성공 3회', stage: 2, requires: 'stage_01' },
+        { id: 'stage_03', name: 'STAGE 3: 에너지 소모', type: 'energySpentTotal', target: 50, rewardCredits: 40, desc: '누적 에너지 50 소모', stage: 3, requires: 'stage_02' },
+        { id: 'stage_04', name: 'STAGE 4: 분석 습관', type: 'scans', target: 30, rewardCredits: 45, desc: '누적 코드 스캔 30회', stage: 4, requires: 'stage_03' },
+        { id: 'stage_05', name: 'STAGE 5: 침입 루틴', type: 'hackSuccess', target: 10, rewardCredits: 55, desc: '누적 해킹 성공 10회', stage: 5, requires: 'stage_04' },
+        { id: 'stage_06', name: 'STAGE 6: 흔적 관리', type: 'traceReduced', target: 5, rewardCredits: 60, desc: 'Trace 감소 5회 달성', stage: 6, requires: 'stage_05' },
+        { id: 'stage_07', name: 'STAGE 7: 성장 시작', type: 'level', target: 5, rewardCredits: 70, desc: '플레이어 레벨 5 달성', stage: 7, requires: 'stage_06' },
+        { id: 'stage_08', name: 'STAGE 8: CPU 튜닝', type: 'cpuTier', target: 3, rewardCredits: 80, desc: 'CPU 티어 3 달성', stage: 8, requires: 'stage_07' },
+        { id: 'stage_09', name: 'STAGE 9: 첫 소비', type: 'shopPurchases', target: 5, rewardCredits: 80, desc: '상점 누적 5회 구매', stage: 9, requires: 'stage_08' },
+        { id: 'stage_10', name: 'STAGE 10: 완전 삭제', type: 'traceZeroCount', target: 1, rewardCredits: 90, desc: 'Trace 0% 달성 1회', stage: 10, requires: 'stage_09' },
+        { id: 'stage_11', name: 'STAGE 11: 잠입자', type: 'stealthHackSuccess', target: 5, rewardCredits: 100, desc: 'Trace 25% 이하 해킹 성공 5회', stage: 11, requires: 'stage_10' },
+        { id: 'stage_12', name: 'STAGE 12: 고위험', type: 'highTraceHackSuccess', target: 3, rewardCredits: 110, desc: 'Trace 75% 이상 해킹 성공 3회', stage: 12, requires: 'stage_11' },
+        { id: 'stage_13', name: 'STAGE 13: 데이터 자본', type: 'creditsEarnedTotal', target: 10000, rewardCredits: 120, desc: '누적 획득 크레딧 10,000 달성', stage: 13, requires: 'stage_12' },
+        { id: 'stage_14', name: 'STAGE 14: 숙련 운영자', type: 'level', target: 10, rewardCredits: 130, desc: '플레이어 레벨 10 달성', stage: 14, requires: 'stage_13' },
+        { id: 'stage_15', name: 'STAGE 15: 장비 확장', type: 'energyMax', target: 25, rewardCredits: 140, desc: '에너지 최대치 25 달성', stage: 15, requires: 'stage_14' },
+        { id: 'stage_16', name: 'STAGE 16: 집요함', type: 'hackSuccess', target: 25, rewardCredits: 160, desc: '누적 해킹 성공 25회', stage: 16, requires: 'stage_15' },
+        { id: 'stage_17', name: 'STAGE 17: 기록 채굴', type: 'logsCreated', target: 300, rewardCredits: 170, desc: '로그 300줄 생성', stage: 17, requires: 'stage_16' },
+        { id: 'stage_18', name: 'STAGE 18: 락다운 생존', type: 'postLockSuccess', target: 1, rewardCredits: 200, desc: 'Trace LOCK 이후 첫 성공 1회', stage: 18, requires: 'stage_17' },
+        { id: 'stage_19', name: 'STAGE 19: 위험 친화', type: 'riskHackSuccess', target: 5, rewardCredits: 220, desc: '위험 해킹 모드 성공 5회', stage: 19, requires: 'stage_18' },
+        { id: 'stage_20', name: 'STAGE 20: 마스터 클래스', type: 'level', target: 15, rewardCredits: 300, desc: '플레이어 레벨 15 달성', stage: 20, requires: 'stage_19' },
       ]
     };
 
@@ -1984,7 +2275,30 @@ button:hover {
       { id: 'cpu_tier_5',           name: '오버클러커',        desc: 'CPU 티어를 5 이상으로 업그레이드했습니다.',   difficulty: 'hard',   hidden: true  },
       { id: 'month_mission_all',    name: '월간 마스터',       desc: '한 달 동안 모든 MONTH QUEST를 완료했습니다.', difficulty: 'hard',   hidden: true  },
       { id: 'credits_20000',        name: '데이터 자본가 II',  desc: '누적 획득 크레딧 20000을 달성했습니다.',       difficulty: 'hard',   hidden: true  },
-      { id: 'risk_10_success',      name: '위험한 승부사',     desc: '위험 해킹 모드로 해킹 성공 10회를 달성했습니다.',difficulty: 'hard',  hidden: true  }
+      { id: 'risk_10_success',      name: '위험한 승부사',     desc: '위험 해킹 모드로 해킹 성공 10회를 달성했습니다.',difficulty: 'hard',  hidden: true  },
+
+
+      // v1.7.x 추가 업적 (일반 12 + 히든 8)
+      { id: 'trace_reduce_25', name: 'TRACE AWARE', desc: 'Trace 감소를 누적 25 달성했습니다.', difficulty: 'easy', hidden: false },
+      { id: 'trace_zero_10', name: 'COOL HEAD', desc: 'Trace 0%를 10회 달성했습니다.', difficulty: 'normal', hidden: false },
+      { id: 'stealth_breacher_20', name: 'SHADOW BREACHER', desc: 'Trace 25% 이하에서 해킹 성공 20회를 달성했습니다.', difficulty: 'normal', hidden: false },
+      { id: 'high_risk_20', name: 'HIGH RISK', desc: 'Trace 75% 이상에서 해킹 성공 20회를 달성했습니다.', difficulty: 'hard', hidden: false },
+      { id: 'lockdown_3', name: 'LOCKDOWN SURVIVOR', desc: 'Trace LOCK을 3회 경험했습니다.', difficulty: 'normal', hidden: false },
+      { id: 'comeback_1', name: 'COMEBACK', desc: '연속 실패 3회 후 다음 시도에 성공했습니다.', difficulty: 'hard', hidden: false },
+      { id: 'streak_3', name: 'STREAKER I', desc: '연속 성공 3회를 달성했습니다.', difficulty: 'easy', hidden: false },
+      { id: 'streak_7', name: 'STREAKER II', desc: '연속 성공 7회를 달성했습니다.', difficulty: 'hard', hidden: false },
+      { id: 'log_addict_500', name: 'LOG ADDICT', desc: '로그를 500줄 생성했습니다.', difficulty: 'easy', hidden: false },
+      { id: 'log_archivist_1500', name: 'LOG ARCHIVIST', desc: '로그를 1500줄 생성했습니다.', difficulty: 'hard', hidden: false },
+      { id: 'market_regular_50', name: 'MARKET REGULAR', desc: '상점에서 50회 구매했습니다.', difficulty: 'normal', hidden: false },
+      { id: 'credits_50000', name: 'DATA MAGNATE III', desc: '누적 획득 크레딧 50000을 달성했습니다.', difficulty: 'hard', hidden: false },
+      { id: 'hidden_trace95', name: 'YOU WERE WATCHED', desc: 'Trace 95%에 도달했습니다.', difficulty: 'hard', hidden: true },
+      { id: 'hidden_lock_attempt', name: 'THEY KNOW', desc: 'Trace LOCK 상태에서 행동을 시도했습니다.', difficulty: 'normal', hidden: true },
+      { id: 'hidden_last_second', name: 'LAST SECOND', desc: 'Trace 90% 이상에서 해킹에 성공했습니다.', difficulty: 'hard', hidden: true },
+      { id: 'hidden_ghost3', name: 'GHOST', desc: 'Trace 0% 상태에서 해킹에 3회 성공했습니다.', difficulty: 'hard', hidden: true },
+      { id: 'hidden_same_action_20', name: 'SYSTEM ANOMALY', desc: '같은 행동을 20회 연속 수행했습니다.', difficulty: 'normal', hidden: true },
+      { id: 'hidden_energy0_attempt', name: 'BLACKOUT', desc: '에너지 0 상태에서 행동을 시도했습니다.', difficulty: 'easy', hidden: true },
+      { id: 'hidden_no_fail_5min', name: 'SILENT NIGHT', desc: '5분 동안 경고/실패 로그 없이 로그를 유지했습니다.', difficulty: 'hard', hidden: true },
+      { id: 'hidden_lock_and_clear', name: 'CLOSE CALL', desc: 'Trace LOCK 이후 첫 해킹 성공을 달성했습니다.', difficulty: 'hard', hidden: true }
     ];
 
     // DOM
@@ -1994,10 +2308,13 @@ button:hover {
     const statCpuTier = document.getElementById('statCpuTier');
     const statEnergyValue = document.getElementById('statEnergyValue');
     const statEnergyTimer = document.getElementById('statEnergyTimer');
+    const statTraceValue = document.getElementById('statTraceValue');
+    const statTraceTimer = document.getElementById('statTraceTimer');
     const statEnergyPack = document.getElementById('statEnergyPack');
     const statLastSave = document.getElementById('statLastSave');
     const btnUseEnergyPack = document.getElementById('btnUseEnergyPack');
     const energyBarInner = document.getElementById('energyBarInner');
+    const traceBarInner = document.getElementById('traceBarInner');
 
     const logList = document.getElementById('logList');
 
@@ -2010,6 +2327,7 @@ button:hover {
     const shopList = document.getElementById('shopList');
     const shopSortSelect = document.getElementById('shopSortSelect');
     const serverSelect = document.getElementById('serverSelect');
+    const serverMeta = document.getElementById('serverMeta');
 
     const codeListEl = document.getElementById('codeList');
     const codeDetailEl = document.getElementById('codeDetail');
@@ -2044,6 +2362,9 @@ button:hover {
     const btnSaveLoadout = document.getElementById('btnSaveLoadout');
     const btnLoadLoadout = document.getElementById('btnLoadLoadout');
 
+    // 액션 잠금 상태 (스캔 애니메이션/Trace 차단 등)
+    let actionBusy = false;
+
     const filterSystem = document.getElementById('filterSystem');
     const filterScan = document.getElementById('filterScan');
     const filterHack = document.getElementById('filterHack');
@@ -2057,6 +2378,7 @@ button:hover {
     const tabLogs = document.getElementById('tabLogs');
     const tabSettings = document.getElementById('tabSettings');
     const tabSave = document.getElementById('tabSave');
+    const tabMail = document.getElementById('tabMail');
 
     const updateVersionTitle = document.getElementById('updateVersionTitle');
     const updateLinesList = document.getElementById('updateLinesList');
@@ -2117,6 +2439,23 @@ button:hover {
       const ratio = state.energy / state.energyMax;
       energyBarInner.style.width = (ratio * 100) + '%';
 
+      // Trace Protocol UI
+      if (statTraceValue && statTraceTimer && traceBarInner) {
+        const tMax = state.traceMax || 100;
+        const t = Math.max(0, Math.min(tMax, state.trace || 0));
+        statTraceValue.textContent = `${t} / ${tMax}`;
+
+        if ((state.traceLockMs || 0) > 0) {
+          statTraceTimer.textContent = `${(state.traceLockMs / 1000).toFixed(1)}초`;
+        } else {
+          const left = Math.max(0, tMax - t);
+          statTraceTimer.textContent = left <= 0 ? 'LOCK' : `${left}`;
+        }
+
+        traceBarInner.style.width = ((t / tMax) * 100) + '%';
+      }
+
+
       chkRiskMode.checked = state.riskMode;
 
       // 에너지 팩 UI
@@ -2137,6 +2476,8 @@ button:hover {
           statLastSave.textContent = '-';
         }
       }
+
+      refreshActionButtonsState();
 
       renderCodeList();
       renderCodeDetail();
@@ -2171,6 +2512,27 @@ button:hover {
     }
 
     function log(message, type = 'system') {
+      // v1.7.x: 로그 누적/무사 로그(히든 업적) 추적
+      state.stats.logLinesTotal = (state.stats.logLinesTotal || 0) + 1;
+      const nowTs = Date.now();
+      // 실패/경고로 간주할 로그
+      const failOrWarn = (type === 'hack' && String(message).includes('실패')) || (type === 'system' && String(message).includes('TRACE 감지'));
+      if (failOrWarn) {
+        state.stats.lastLogWasFailOrWarnAt = nowTs;
+        state.stats.silentNightBroken = true;
+      }
+      // SILENT NIGHT: 5분 동안 fail/warn 없이 유지
+      if (!state.stats.silentNightStartAt) state.stats.silentNightStartAt = nowTs;
+      if (!state.stats.silentNightBroken) {
+        if (nowTs - state.stats.silentNightStartAt >= 5 * 60 * 1000) {
+          unlockAchievement('hidden_no_fail_5min');
+        }
+      } else {
+        // 깨졌으면 재측정 시작
+        state.stats.silentNightStartAt = nowTs;
+        state.stats.silentNightBroken = false;
+      }
+
       const entry = document.createElement('div');
       entry.className = 'log-entry';
       entry.dataset.type = type;
@@ -2270,13 +2632,20 @@ button:hover {
       checkMissions('weekly');
       checkMissions('month');
       checkMissions('general');
+      checkMissions('stage');
       checkAchievements('levelUp');
       updateStatsUI();
     }
 
     function consumeEnergy(amount) {
       ensureMissionResets();
-      if (state.energy < amount) return false;
+      if (state.energy < amount) {
+        if (state.energy === 0) {
+          state.stats.energy0Attempted = true;
+          unlockAchievement('hidden_energy0_attempt');
+        }
+        return false;
+      }
       state.energy -= amount;
       state.stats.energySpentTotal += amount;
 
@@ -2288,6 +2657,7 @@ button:hover {
       checkMissions('weekly');
       checkMissions('month');
       checkMissions('general');
+      checkMissions('stage');
 
       if (state.energy <= 0) {
         state.energy = 0;
@@ -2327,6 +2697,46 @@ button:hover {
     }
 
     setInterval(() => {
+      // Trace Protocol: 차단 카운트다운 + 자연 감소
+      let traceUIShouldUpdate = false;
+      if (typeof state.trace !== 'number') state.trace = 0;
+      state.traceMax = state.traceMax || 100;
+      state.traceLockMs = state.traceLockMs || 0;
+      state.traceDecayAccMs = state.traceDecayAccMs || 0;
+
+      if (state.traceLockMs > 0) {
+        state.trace = state.traceMax;
+        state.traceLockMs = Math.max(0, state.traceLockMs - 100);
+        traceUIShouldUpdate = true;
+        if (state.traceLockMs === 0) {
+          // 차단 해제 시 Trace를 일부 남기고 복귀
+          state.trace = Math.min(state.traceMax, Math.round(state.traceMax * 0.6));
+          showToast('TRACE 차단 해제', 'ok');
+          log('TRACE 차단이 해제되었습니다.', 'system');
+          state.stats.justUnlockedFromLock = true;
+          refreshActionButtonsState();
+        }
+      } else if (state.trace > 0) {
+        state.traceDecayAccMs += 100;
+        if (state.traceDecayAccMs >= 1000) {
+          const steps = Math.floor(state.traceDecayAccMs / 1000);
+          state.traceDecayAccMs -= steps * 1000;
+          const decay = steps; // 초당 1 감소
+          const before = state.trace;
+          state.trace = Math.max(0, state.trace - decay);
+          if (before !== state.trace) {
+            traceUIShouldUpdate = true;
+            const diff = before - state.trace;
+            if (diff > 0) {
+              state.stats.traceReducedCount = (state.stats.traceReducedCount || 0) + diff;
+              if (state.trace === 0) {
+                state.stats.traceZeroCount = (state.stats.traceZeroCount || 0) + 1;
+              }
+            }
+          }
+        }
+      }
+
       if (state.energy >= state.energyMax) {
         state.energy = state.energyMax;
         state.energyTimerMs = 0;
@@ -2343,6 +2753,10 @@ button:hover {
             state.energyTimerMs = 0;
           }
         }
+        updateStatsUI();
+      }
+      // 에너지 갱신이 없더라도 Trace UI는 갱신되어야 함
+      if (traceUIShouldUpdate && state.energyTimerMs <= 0) {
         updateStatsUI();
       }
     }, 100);
@@ -2451,6 +2865,7 @@ button:hover {
       log(`코드 강화: ${code.name} Lv.${code.level} (파워 +5 → ${code.power}), 크레딧 -${cost}.`, 'system');
       updateStatsUI();
       checkMissions('general');
+      checkMissions('stage');
     }
 
     function evolveSelectedCode() {
@@ -2482,6 +2897,7 @@ button:hover {
       }
       updateStatsUI();
       checkMissions('general');
+      checkMissions('stage');
     }
 
     function renderServers() {
@@ -2489,12 +2905,30 @@ button:hover {
       servers.forEach(s => {
         const option = document.createElement('option');
         option.value = s.id;
-        option.textContent = `${s.name} (보안 ${s.security}, Lv${s.minLevel}+ )`;
+        const fw = (typeof s.firewall === 'number') ? s.firewall : s.security;
+        const ts = (typeof s.traceSensitivity === 'number') ? s.traceSensitivity : 1.0;
+        const rm = (typeof s.rewardMultiplier === 'number') ? s.rewardMultiplier : 1.0;
+        option.textContent = `${s.name} (보안 ${s.security}, FW ${fw}, Trace x${ts.toFixed(2)}, 보상 x${rm.toFixed(2)}, Lv${s.minLevel}+ )`;
         serverSelect.appendChild(option);
       });
+      updateServerMeta();
     }
 
-    
+    function updateServerMeta() {
+      if (!serverMeta) return;
+      const s = getSelectedServer();
+      if (!s) {
+        serverMeta.textContent = '-';
+        return;
+      }
+      const fw = (typeof s.firewall === 'number') ? s.firewall : s.security;
+      const ts = (typeof s.traceSensitivity === 'number') ? s.traceSensitivity : 1.0;
+      const rm = (typeof s.rewardMultiplier === 'number') ? s.rewardMultiplier : 1.0;
+      serverMeta.textContent = `보안 ${s.security} / 방화벽 ${fw} / 추적감도 x${ts.toFixed(2)} / 보상계수 x${rm.toFixed(2)}`;
+    }
+
+    // =========================
+    // SHOP LIMITS (Daily / One-time)
     // =========================
     // SHOP LIMITS (Daily / One-time)
     // =========================
@@ -2595,6 +3029,7 @@ button:hover {
     setInterval(() => { try { ensureDailyShopReset(); } catch(e){} }, 60 * 1000);
 
 
+
     function renderShop() {
       shopList.innerHTML = '';
 
@@ -2675,6 +3110,8 @@ button:hover {
         const costSpan = document.createElement('span');
         costSpan.className = 'shop-cost';
         costSpan.textContent = `💰 ${item.cost}`;
+
+        
         // limit badge (daily/once)
         const lim = getShopRemaining(item.id);
         if (lim) {
@@ -2685,8 +3122,7 @@ button:hover {
           badge.style.opacity = '0.85';
           costSpan.appendChild(badge);
         }
-
-        nameSpan.appendChild(leftWrap);
+nameSpan.appendChild(leftWrap);
 
         head.appendChild(nameSpan);
         head.appendChild(costSpan);
@@ -2699,13 +3135,15 @@ button:hover {
         btn.className = 'shop-buy';
         btn.textContent = '구매';
         btn.title = '구매하면 크레딧이 소모됩니다.';
+        
         const lim2 = getShopRemaining(item.id);
         if (lim2 && lim2.remaining <= 0) {
           btn.disabled = true;
           btn.textContent = '구매 불가';
           btn.title = lim2.type === 'daily' ? '오늘 구매 제한에 도달했습니다.' : '이미 구매한 영구 아이템입니다.';
         }
-        btn.addEventListener('click', () => {
+btn.addEventListener('click', () => {
+          
           // purchase cap check (daily/once)
           const cap = canBuyShopItem(item.id);
           if (!cap.ok) {
@@ -2713,8 +3151,7 @@ button:hover {
             showToast(cap.reason, 'shop');
             return;
           }
-
-          if (state.credits < item.cost) {
+if (state.credits < item.cost) {
             log(`[상점] 크레딧이 부족합니다. (필요: ${item.cost})`, 'shop');
             showToast('크레딧이 부족합니다.', 'shop');
             return;
@@ -2727,11 +3164,10 @@ button:hover {
           }
           state.credits -= item.cost;
           item.buy?.();
-          // mark cap usage
-          markShopPurchase(item.id);
-
           state.stats.shopPurchaseCount++;
-          log(`[상점] ${item.name} 구매 (💰 -${item.cost})`, 'shop');
+          
+          markShopPurchase(item.id);
+log(`[상점] ${item.name} 구매 (💰 -${item.cost})`, 'shop');
           if (item.id === 'energy_pack') {
             showToast(`에너지 팩 +1 (보유: ${state.items.energyPack})`, 'shop');
           } else {
@@ -2825,8 +3261,80 @@ button:hover {
       }, step);
     }
 
+    
+    function isTraceLocked() {
+      return (state.traceLockMs || 0) > 0;
+    }
+
+    function refreshActionButtonsState() {
+      // 기본 툴팁 보관
+      if (!btnScan.dataset.defaultTitle) btnScan.dataset.defaultTitle = btnScan.title || '';
+      if (!btnHack.dataset.defaultTitle) btnHack.dataset.defaultTitle = btnHack.title || '';
+      if (!btnUpgradeCpu.dataset.defaultTitle) btnUpgradeCpu.dataset.defaultTitle = btnUpgradeCpu.title || '';
+
+      const locked = isTraceLocked();
+      const disabled = !!actionBusy || locked;
+      btnScan.disabled = disabled;
+      btnHack.disabled = disabled;
+      btnUpgradeCpu.disabled = disabled;
+
+      if (locked) {
+        const msg = 'TRACE 차단 중입니다.';
+        btnScan.title = msg;
+        btnHack.title = msg;
+        btnUpgradeCpu.title = msg;
+      } else {
+        // 복원
+        btnScan.title = btnScan.dataset.defaultTitle;
+        btnHack.title = btnHack.dataset.defaultTitle;
+        btnUpgradeCpu.title = btnUpgradeCpu.dataset.defaultTitle;
+      }
+    }
+
+
+function triggerTraceLock(reason = '') {
+      state.stats.lockdownCount = (state.stats.lockdownCount || 0) + 1;
+      state.stats.justUnlockedFromLock = false;
+      // 락다운 이후 첫 성공(퀘스트/히든) 추적
+      state.stats.postLockPending = true;
+      state.trace = state.traceMax;
+      state.traceLockMs = 30000; // 30초 차단
+      state.traceDecayAccMs = 0;
+      showToast(`TRACE 감지! ${(state.traceLockMs / 1000).toFixed(0)}초 차단`, 'warn');
+      log(`TRACE 감지! ${(state.traceLockMs / 1000).toFixed(0)}초 동안 연결이 차단됩니다.${reason ? ' (' + reason + ')' : ''}`, 'system');
+      refreshActionButtonsState();
+    }
+
+    function addTrace(amount, reason = '') {
+      if (!amount || amount <= 0) return;
+      if (isTraceLocked()) return;
+      if (typeof state.trace !== 'number') state.trace = 0;
+      if (!state.traceMax) state.traceMax = 100;
+
+      state.trace = Math.max(0, Math.min(state.traceMax, state.trace + amount));
+      state.traceDecayAccMs = 0;
+
+      // v1.7.x: Trace 임계(히든)
+      if (state.trace >= 95) unlockAchievement('hidden_trace95');
+
+      // 임계치 도달 → 차단
+      if (state.trace >= state.traceMax) {
+        triggerTraceLock(reason);
+      }
+      updateStatsUI();
+    }
+
+
     function scanForCode() {
       ensureMissionResets();
+
+      if (isTraceLocked()) {
+        showToast('TRACE 차단 중입니다. 잠시 후 다시 시도하세요.', 'warn');
+        log('TRACE 차단 중: 코드 스캔이 제한됩니다.', 'system');
+        state.stats.lockAttempted = true;
+        unlockAchievement('hidden_lock_attempt');
+        return;
+      }
 
       const energyCost = 1;
       if (!consumeEnergy(energyCost)) {
@@ -2836,21 +3344,26 @@ button:hover {
       state.stats.scanCount++;
       state.missionProgress.daily.scans++;
       state.missionProgress.daily.actions++;
+
+      // v1.7.x: 행동 연속(히든) 추적
+      if (state.stats.sameActionLast === 'scan') state.stats.sameActionStreak = (state.stats.sameActionStreak || 0) + 1;
+      else { state.stats.sameActionLast = 'scan'; state.stats.sameActionStreak = 1; }
+      if (state.stats.sameActionStreak >= 20) unlockAchievement('hidden_same_action_20');
       state.missionProgress.weekly.scans++;
       state.missionProgress.month.scans++;
       checkMissions('daily');
       checkMissions('weekly');
       checkMissions('month');
       checkMissions('general');
+      checkMissions('stage');
 
       if (scanRunning) return;
 
       const rarity = rollRarity();
       const duration = getScanDurationForRarity(rarity);
 
-      btnScan.disabled = true;
-      btnHack.disabled = true;
-      btnUpgradeCpu.disabled = true;
+      actionBusy = true;
+      refreshActionButtonsState();
 
       runScanAnimation(duration, () => {
         const templates = Object.values(codeDefs).filter(d => d.rarity === rarity);
@@ -2887,13 +3400,17 @@ button:hover {
         const expGain = 2 + modifiers.scanExtraExp;
         addExp(expGain);
         log(`코드 스캔 완료: 경험치 +${expGain}.`, 'scan');
+        // Trace Protocol: 스캔 시 추적 수치 상승(희귀도별)
+        const traceGainMap = { COMMON: 2, UNCOMMON: 3, RARE: 4, EPIC: 6, LEGENDARY: 8 };
+        addTrace(traceGainMap[rarity] || 2, 'scan');
+
 
         checkAchievements('scan');
         checkMissions('general');
+      checkMissions('stage');
 
-        btnScan.disabled = false;
-        btnHack.disabled = false;
-        btnUpgradeCpu.disabled = false;
+        actionBusy = false;
+        refreshActionButtonsState();
       });
     }
 
@@ -2905,6 +3422,14 @@ button:hover {
     function doHack() {
       ensureMissionResets();
 
+      if (isTraceLocked()) {
+        showToast('TRACE 차단 중입니다. 잠시 후 다시 시도하세요.', 'warn');
+        log('TRACE 차단 중: 서버 해킹이 제한됩니다.', 'system');
+        state.stats.lockAttempted = true;
+        unlockAchievement('hidden_lock_attempt');
+        return;
+      }
+
       const energyCost = 2;
       if (!consumeEnergy(energyCost)) {
         log('에너지가 부족하여 서버 해킹을 수행할 수 없습니다.', 'hack');
@@ -2912,6 +3437,12 @@ button:hover {
       }
 
       state.missionProgress.daily.actions++;
+
+      // v1.7.x: Trace/연속/행동 스트릭 추적
+      const traceBefore = state.trace || 0;
+      if (state.stats.sameActionLast === 'hack') state.stats.sameActionStreak = (state.stats.sameActionStreak || 0) + 1;
+      else { state.stats.sameActionLast = 'hack'; state.stats.sameActionStreak = 1; }
+      if (state.stats.sameActionStreak >= 20) unlockAchievement('hidden_same_action_20');
 
       const code = getActiveCodeInstance();
       if (!code) {
@@ -2929,7 +3460,7 @@ button:hover {
         return;
       }
 
-      let serverSec = server.security;
+      let serverSec = (typeof server.firewall === 'number') ? server.firewall : server.security;
       let creditMultiplier = modifiers.creditMultiplierSession * modifiers.creditMultiplierPermanent;
       let successChanceBonus = 0;
 
@@ -2955,12 +3486,56 @@ button:hover {
       successChance = Math.max(0.05, Math.min(0.95, successChance));
 
       const success = Math.random() < successChance;
+
+      // Trace Protocol: 서버 해킹은 보안/추적감도에 따라 Trace가 상승합니다.
+      const ts = (typeof server.traceSensitivity === 'number') ? server.traceSensitivity : 1.0;
+      let traceGain = (6 + server.security * 0.08) * ts;
+      traceGain *= success ? 0.7 : 1.3;
+      if (state.riskMode) traceGain *= 1.25;
+
+      // 코드 특성에 따른 Trace 보정
+      if (def && def.id === 'data_phantom') traceGain *= 0.75;
+      if (def && def.id === 'port_scanner') traceGain *= 0.9;
+      if (def && def.id === 'overflow_inject') traceGain *= 1.15;
+
+      traceGain = Math.max(2, Math.min(25, Math.round(traceGain)));
+      addTrace(traceGain, 'hack');
+
       code.usage = (code.usage || 0) + 1;
 
       if (success) {
+        // v1.7.x: 성공/실패 스트릭
+        state.stats.successStreak = (state.stats.successStreak || 0) + 1;
+        state.stats.failStreak = 0;
+        state.stats.successStreakMax = Math.max(state.stats.successStreakMax || 0, state.stats.successStreak);
+        if (state.stats.comebackArmed) { unlockAchievement('comeback_1'); state.stats.comebackArmed = false; }
+        if (state.stats.successStreak >= 3) unlockAchievement('streak_3');
+        if (state.stats.successStreak >= 7) unlockAchievement('streak_7');
+
+        // Trace 구간 성공 카운트(미션/업적)
+        if (typeof traceBefore === 'number') {
+          if (traceBefore <= 25) state.stats.stealthHackSuccessCount = (state.stats.stealthHackSuccessCount || 0) + 1;
+          if (traceBefore >= 75) state.stats.highTraceHackSuccessCount = (state.stats.highTraceHackSuccessCount || 0) + 1;
+          if (traceBefore >= 90) unlockAchievement('hidden_last_second');
+        }
+
+        // Trace 0% 성공(히든)
+        if ((traceBefore || 0) === 0) {
+          state.stats.ghostSuccessAtTrace0 = (state.stats.ghostSuccessAtTrace0 || 0) + 1;
+          if (state.stats.ghostSuccessAtTrace0 >= 3) unlockAchievement('hidden_ghost3');
+        }
+
+        // LOCK 이후 첫 성공 추적(퀘스트/히든)
+        if (state.stats.postLockPending) {
+          state.stats.postLockPending = false;
+          state.stats.postLockSuccessCount = (state.stats.postLockSuccessCount || 0) + 1;
+          unlockAchievement('hidden_lock_and_clear');
+        }
+
         const rawReward =
           server.minReward + Math.random() * (server.maxReward - server.minReward);
-        const rewardCredits = Math.round(rawReward * creditMultiplier);
+        const serverRewardMul = (typeof server.rewardMultiplier === 'number') ? server.rewardMultiplier : 1.0;
+        const rewardCredits = Math.round(rawReward * creditMultiplier * serverRewardMul);
         const gainedExp = 8;
 
         state.credits += rewardCredits;
@@ -2985,6 +3560,7 @@ button:hover {
         checkMissions('weekly');
         checkMissions('month');
         checkMissions('general');
+      checkMissions('stage');
 
         if (state.stats.hackSuccessCount === 1) {
           unlockAchievement('first_hack_success');
@@ -3001,6 +3577,12 @@ button:hover {
           log('Ghost_Script 효과: 추가 레벨 업 발생!', 'hack');
         }
       } else {
+        // v1.7.x: 성공/실패 스트릭
+        state.stats.failStreak = (state.stats.failStreak || 0) + 1;
+        state.stats.successStreak = 0;
+        state.stats.failStreakMax = Math.max(state.stats.failStreakMax || 0, state.stats.failStreak);
+        if (state.stats.failStreak >= 3) state.stats.comebackArmed = true;
+
         log(
           `서버 해킹 실패. [${server.name}] 성공 확률 ${Math.round(successChance * 100)}%였음.`,
           'hack'
@@ -3035,6 +3617,7 @@ button:hover {
 
       checkAchievements('hack');
       checkMissions('general');
+      checkMissions('stage');
     }
 
     function upgradeCpu() {
@@ -3052,6 +3635,7 @@ button:hover {
       }
       updateStatsUI();
       checkMissions('general');
+      checkMissions('stage');
     }
 
     function ensureMissionResets() {
@@ -3096,7 +3680,8 @@ button:hover {
 
     function getMissionProgressValue(scope, type) {
       if (scope === 'daily' || scope === 'weekly' || scope === 'month') {
-        const prog = state.missionProgress[scope];
+        if (!state.missionProgress[scope]) state.missionProgress[scope] = { completed: {} };
+      const prog = state.missionProgress[scope];
         if (!prog) return 0;
         if (type === 'scans') return prog.scans;
         if (type === 'actions') return prog.actions || 0;
@@ -3107,7 +3692,7 @@ button:hover {
         return 0;
       }
 
-      if (scope === 'general') {
+      if (scope === 'general' || scope === 'stage') {
         if (type === 'scans') return state.stats.scanCount;
         if (type === 'hackSuccess') return state.stats.hackSuccessCount;
         if (type === 'energySpentTotal') return state.stats.energySpentTotal;
@@ -3119,6 +3704,13 @@ button:hover {
         if (type === 'achievements') return Object.keys(state.achievements).length;
         if (type === 'missionsCompleted') return state.stats.missionsCompletedTotal;
         if (type === 'riskHackSuccess') return state.stats.riskHackSuccessCount;
+        // v1.7.x 콘텐츠: Trace/로그/LOCK 축
+        if (type === 'traceReduced') return state.stats.traceReducedCount || 0;
+        if (type === 'traceZeroCount') return state.stats.traceZeroCount || 0;
+        if (type === 'stealthHackSuccess') return state.stats.stealthHackSuccessCount || 0;
+        if (type === 'highTraceHackSuccess') return state.stats.highTraceHackSuccessCount || 0;
+        if (type === 'postLockSuccess') return state.stats.postLockSuccessCount || 0;
+        if (type === 'logsCreated') return state.stats.logLinesTotal || 0;
         if (type === 'energy0Flag') return state.stats.energySpentTotal > 0 && state.energy === 0 ? 1 : 0;
       }
       return 0;
@@ -3133,6 +3725,12 @@ button:hover {
 
       defs.forEach(def => {
         if (prog.completed[def.id]) return;
+
+        // STAGE 퀘스트: 이전 단계 클리어 전에는 진행 불가
+        if (scope === 'stage') {
+          const req = def.requires;
+          if (req && !(prog.completed && prog.completed[req])) return;
+        }
 
         if (scope === 'month' && def.type === 'energy0Flag') {
           if (state.energy === 0) {
@@ -3204,7 +3802,8 @@ button:hover {
         daily: 'DAILY QUEST',
         weekly: 'WEEKLY QUEST',
         month: 'MONTH QUEST',
-        general: 'GENERAL QUEST'
+        general: 'GENERAL QUEST',
+        stage: 'STAGE QUEST'
       };
 
       const defs = missionDefs[scope];
@@ -3250,7 +3849,8 @@ button:hover {
       log(`[업적 달성] ${def.name}`, 'system');
       showToast(`업적 달성: ${def.name}`, 'achievement');
       renderAchievements();
-      checkMissions('general'); // 업적 기반 GENERAL QUEST 체크
+      checkMissions('general');
+      checkMissions('stage'); // 업적 기반 GENERAL QUEST 체크
     }
 
     function checkAchievements(reason) {
@@ -3271,6 +3871,17 @@ button:hover {
       if (state.stats.creditsEarnedTotal >= 20000) unlockAchievement('credits_20000');
 
       if (state.stats.missionsCompletedTotal >= 10) unlockAchievement('mission_10');
+
+      // v1.7.x 추가 업적 조건
+      if ((state.stats.traceReducedCount || 0) >= 25) unlockAchievement('trace_reduce_25');
+      if ((state.stats.traceZeroCount || 0) >= 10) unlockAchievement('trace_zero_10');
+      if ((state.stats.stealthHackSuccessCount || 0) >= 20) unlockAchievement('stealth_breacher_20');
+      if ((state.stats.highTraceHackSuccessCount || 0) >= 20) unlockAchievement('high_risk_20');
+      if ((state.stats.lockdownCount || 0) >= 3) unlockAchievement('lockdown_3');
+      if ((state.stats.logLinesTotal || 0) >= 500) unlockAchievement('log_addict_500');
+      if ((state.stats.logLinesTotal || 0) >= 1500) unlockAchievement('log_archivist_1500');
+      if ((state.stats.shopPurchaseCount || 0) >= 50) unlockAchievement('market_regular_50');
+      if ((state.stats.creditsEarnedTotal || 0) >= 50000) unlockAchievement('credits_50000');
     }
 
     function renderAchievements() {
@@ -3345,6 +3956,7 @@ button:hover {
         const s = servers.find(server => server.id === data.serverId);
         if (s) {
           serverSelect.value = data.serverId;
+          updateServerMeta();
         }
       }
       state.riskMode = !!data.riskMode;
@@ -3402,7 +4014,8 @@ button:hover {
         achievement: tabAchievement,
         logs: tabLogs,
         settings: tabSettings,
-        save: tabSave
+        save: tabSave,
+        mail: tabMail
       };
       Object.keys(panelMap).forEach(name => {
         panelMap[name].classList.toggle('active', name === tabName);
@@ -3410,7 +4023,14 @@ button:hover {
       moreTabButtons.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
       });
-    }
+    
+
+      // tab side-effects
+      if (tabName === 'mail') {
+        renderMailbox();
+        updateMoreButtonBadge();
+      }
+}
 
     moreTabButtons.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3508,12 +4128,14 @@ button:hover {
 
     function loadGame() {
       let raw = localStorage.getItem(SAVE_KEY);
-      // v1.5.x 저장 데이터 자동 마이그레이션
+      // 저장 데이터 자동 마이그레이션 (v16/v15 → v17)
       if (!raw) {
         raw = localStorage.getItem(OLD_SAVE_KEY);
-        if (raw) {
-          localStorage.setItem(SAVE_KEY, raw);
-        }
+        if (raw) localStorage.setItem(SAVE_KEY, raw);
+      }
+      if (!raw) {
+        raw = localStorage.getItem(LEGACY_SAVE_KEY);
+        if (raw) localStorage.setItem(SAVE_KEY, raw);
       }
       if (!raw) {
         log('저장된 데이터가 없습니다.', 'system');
@@ -3525,6 +4147,11 @@ button:hover {
         if (data.state) {
           Object.assign(state, state, data.state);
         }
+        // Mailbox defaults
+        ensureMailbox();
+        // v1.7.x STAGE 퀘스트 마이그레이션
+        state.missionProgress = state.missionProgress || {};
+        state.missionProgress.stage = state.missionProgress.stage || { completed: {} };
         if (Array.isArray(data.ownedCodes)) {
           ownedCodes.length = 0;
           data.ownedCodes.forEach(c => ownedCodes.push(c));
@@ -3537,6 +4164,11 @@ button:hover {
         state.stats.creditsEarnedTotal ||= 0;
         state.stats.missionsCompletedTotal ||= 0;
         state.stats.riskHackSuccessCount ||= 0;
+        // Trace Protocol 필드 보정
+        state.trace = (typeof state.trace === 'number') ? state.trace : 0;
+        state.traceMax = state.traceMax || 100;
+        state.traceLockMs = state.traceLockMs || 0;
+        state.traceDecayAccMs = 0;
         state.missionProgress.general = state.missionProgress.general || { completed: {} };
         state.missionProgress.general.completed = state.missionProgress.general.completed || {};
 
@@ -3562,6 +4194,8 @@ button:hover {
         applySettings();
         syncSettingsUI();
         updateStatsUI();
+        updateServerMeta();
+        refreshActionButtonsState();
         log('저장된 데이터를 불러왔습니다.', 'system');
       } catch (e) {
         console.error(e);
@@ -3777,6 +4411,10 @@ button:hover {
       log(`위험 해킹 모드: ${state.riskMode ? 'ON' : 'OFF'}`, 'system');
     });
 
+    serverSelect.addEventListener('change', () => {
+      updateServerMeta();
+    });
+
     btnSaveLoadout.addEventListener('click', saveCurrentLoadout);
     btnLoadLoadout.addEventListener('click', loadLoadout);
 
@@ -3789,7 +4427,9 @@ button:hover {
       applySettings();
       syncSettingsUI();
       updateStatsUI();
-      log('HCSiG 초기화 완료. (v1.6.5 QoL)', 'system');
+      updateServerMeta();
+      refreshActionButtonsState();
+      log('HCSiG 초기화 완료. (v1.7 Trace Protocol)', 'system');
 
       if (localStorage.getItem(SAVE_KEY)) {
         loadGame();
@@ -3797,83 +4437,30 @@ button:hover {
         updateStatsUI();
       }
 
+      // seasonal + mailbox
+      ensureChristmasMails();
+      setupSnow();
+      updateMoreButtonBadge();
+
+      const btnClaimAllMail = document.getElementById('btnClaimAllMail');
+      if (btnClaimAllMail) {
+        btnClaimAllMail.addEventListener('click', () => {
+          claimAllMail();
+          renderMailbox();
+        });
+      }
+
+      window.addEventListener('resize', () => {
+        setupSnow();
+      });
+
       renderUpdateLog();
       maybeShowUpdateOnStart();
     }
 
     init();
-  </script>
-<script>
-// === MOBILE PATCH: disable resizers on touch devices ===
-(function(){
-  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  if(isTouch){
-    document.querySelectorAll('.resizer,.resize-bar').forEach(el=>el.remove());
-    window.addEventListener('load', ()=>{
-      const lp = document.getElementById('leftPanel');
-      const rp = document.getElementById('rightPanel');
-      if(lp) lp.style.flex = 'none';
-      if(rp) rp.style.flex = 'none';
-    });
-  }
-})();
-</script>
-<script>
-// === MOBILE UI MODE: Tabbed panels ===
-(function(){
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
+  
 
-  if(!document.body.classList.contains('mobile-tab-left') &&
-     !document.body.classList.contains('mobile-tab-center') &&
-     !document.body.classList.contains('mobile-tab-right')){
-    document.body.classList.add('mobile-tab-center');
-  }
-
-  function setTab(tab){
-    document.body.classList.remove('mobile-tab-left','mobile-tab-center','mobile-tab-right');
-    document.body.classList.add('mobile-tab-'+tab);
-    document.querySelectorAll('.mobile-tabs button').forEach(b=>{
-      b.classList.toggle('active', b.dataset.tab === tab);
-    });
-    const panelId = tab==='left'?'leftPanel':tab==='center'?'centerPanel':'rightPanel';
-    const p = document.getElementById(panelId);
-    if(p) p.scrollTop = 0;
-  }
-
-  const wrap = document.createElement('div');
-  wrap.className = 'mobile-tabs';
-  wrap.innerHTML = `
-    <button type="button" data-tab="left" aria-label="Status">STATUS</button>
-    <button type="button" data-tab="center" aria-label="Action">ACTION</button>
-    <button type="button" data-tab="right" aria-label="Log">LOG</button>
-  `;
-  document.body.appendChild(wrap);
-
-  wrap.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>setTab(btn.dataset.tab));
-  });
-
-  const btnMore = document.getElementById('btnMore');
-  if(btnMore){
-    btnMore.addEventListener('click', ()=>setTab('right'));
-  }
-
-  const initial = document.body.classList.contains('mobile-tab-left')?'left':
-                  document.body.classList.contains('mobile-tab-right')?'right':'center';
-  setTab(initial);
-
-  window.addEventListener('resize', ()=>{
-    const stillMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-    if(!stillMobile){
-      const mt = document.querySelector('.mobile-tabs');
-      if(mt) mt.remove();
-      document.body.classList.remove('mobile-tab-left','mobile-tab-center','mobile-tab-right');
-    }
-  });
-})();
-</script>
-<script>
 // === MOBILE VIEWS: split PC layout into mobile tabs ===
 (function(){
   const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
@@ -4036,136 +4623,20 @@ button:hover {
 
   // default view
   setView('status');
-})();
+})()
+
 </script>
+
 <script>
-// === SAFE-AREA / TABS HEIGHT CALIBRATION ===
-(function(){
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  function setTabsHeightVar(){
-    const tabs = document.querySelector('.mobile-tabs');
-    if(!tabs) return;
-    const h = Math.ceil(tabs.getBoundingClientRect().height);
-    document.documentElement.style.setProperty('--mobileTabsH', h + 'px');
+(function () {
+  function setAppHeight() {
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
   }
-
-  // Run now and after layout settles
-  window.addEventListener('load', ()=>{ setTabsHeightVar(); setTimeout(setTabsHeightVar, 250); setTimeout(setTabsHeightVar, 800); });
-  window.addEventListener('resize', ()=>{ setTabsHeightVar(); });
-  window.addEventListener('orientationchange', ()=>{ setTimeout(setTabsHeightVar, 300); });
-
-  // iOS Safari sometimes changes viewport when address bar hides/shows while scrolling
-  document.addEventListener('scroll', ()=>{
-    // light throttle
-    if(window.__tabsH_to) return;
-    window.__tabsH_to = setTimeout(()=>{ window.__tabsH_to = null; setTabsHeightVar(); }, 250);
-  }, {passive:true});
+  window.addEventListener('resize', setAppHeight);
+  window.addEventListener('orientationchange', setAppHeight);
+  setAppHeight();
 })();
 </script>
-<script>
-// === MOBILE TABS AUTO-HIDE on scroll ===
-(function(){
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
 
-  function activeViewEl(){
-    const ids = ['mobileViewStatus','mobileViewAction','mobileViewCodes','mobileViewShop','mobileViewLog'];
-    for(const id of ids){
-      const el = document.getElementById(id);
-      if(!el) continue;
-      const st = window.getComputedStyle(el);
-      if(st.display !== 'none') return el;
-    }
-    return null;
-  }
-
-  let lastTop = 0;
-  let hidden = false;
-  let ticking = false;
-
-  function showTabs(){
-    if(!hidden) return;
-    hidden = false;
-    document.body.classList.remove('mobile-tabs-hidden');
-  }
-  function hideTabs(){
-    if(hidden) return;
-    hidden = true;
-    document.body.classList.add('mobile-tabs-hidden');
-  }
-
-  function onScroll(){
-    if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(()=>{
-      const el = activeViewEl();
-      if(!el){ ticking=false; return; }
-      const top = el.scrollTop || 0;
-      const delta = top - lastTop;
-
-      if(top <= 4){ showTabs(); lastTop = top; ticking=false; return; }
-      if(Math.abs(delta) < 6){ ticking=false; return; }
-
-      if(delta > 0) hideTabs();
-      else showTabs();
-
-      lastTop = top;
-      ticking = false;
-    });
-  }
-
-  function attach(){
-    const ids = ['mobileViewStatus','mobileViewAction','mobileViewCodes','mobileViewShop','mobileViewLog'];
-    ids.forEach(id=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      if(el.__hcsigHideAttached) return;
-      el.__hcsigHideAttached = true;
-      el.addEventListener('scroll', onScroll, {passive:true});
-      el.addEventListener('touchstart', showTabs, {passive:true});
-    });
-  }
-
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.mobile-tabs button');
-    if(btn) showTabs();
-  });
-
-  window.addEventListener('load', attach);
-  window.addEventListener('resize', attach);
-  setTimeout(attach, 600);
-})();
-</script>
-<script>
-// === ANDROID: VisualViewport keyboard handling + UA class ===
-(function(){
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  const ua = navigator.userAgent || '';
-  if(/Android/i.test(ua)) document.body.classList.add('is-android');
-  if(/iPhone|iPad|iPod/i.test(ua)) document.body.classList.add('is-ios');
-
-  const vv = window.visualViewport;
-  if(!vv) return;
-
-  function update(){
-    // keyboard offset roughly equals viewport "missing" height
-    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-    document.documentElement.style.setProperty('--vvKeyboardOffset', kb + 'px');
-    if(kb > 40) document.body.classList.add('keyboard-open');
-    else document.body.classList.remove('keyboard-open');
-  }
-
-  vv.addEventListener('resize', update);
-  vv.addEventListener('scroll', update);
-  window.addEventListener('resize', update);
-  window.addEventListener('orientationchange', ()=>setTimeout(update, 250));
-  setTimeout(update, 250);
-  setTimeout(update, 900);
-})();
-</script>
 </body>
 </html>
