@@ -1632,3 +1632,219 @@ body.tutorial-open.tutorial-interactive{ overflow:auto; }
   .code-sort-inline{ width:100%; justify-content:flex-end; }
   #codeSortSelect{ min-width:110px; }
 }
+
+
+/* === v1.6.15-k1 cloud account panel === */
+.cloud-account-box{margin-top:10px;padding:12px;border:1px solid #243145;border-radius:14px;background:rgba(8,14,24,.88);display:flex;flex-direction:column;gap:8px;}
+.cloud-account-header{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.cloud-account-eyebrow{opacity:.72;letter-spacing:.12em;}
+.cloud-account-title{font-weight:700;font-size:14px;}
+.cloud-badge{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;border:1px solid #35506d;background:#122033;font-size:11px;font-weight:700;}
+.cloud-badge.is-ready{border-color:#2e6f54;background:#113326;color:#bdf6d4;}
+.cloud-badge.is-error{border-color:#7a3641;background:#31131b;color:#ffc8cf;}
+.cloud-account-status,.cloud-user-card{padding:10px 12px;border-radius:12px;background:#0b1220;border:1px solid #1f2b3d;}
+.cloud-user-card{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;}
+.cloud-user-name{font-weight:700;}
+.cloud-user-email,.cloud-user-meta{font-size:12px;opacity:.82;}
+.cloud-auth-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cloud-auth-form input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #243145;background:#0b1220;color:#e5e7eb;font-size:12px;}
+@media (max-width: 700px){.cloud-auth-form{grid-template-columns:1fr;}}
+
+
+.cloud-profile-grid {
+  margin-top: 10px;
+  border-top: 1px solid #1d2333;
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.cloud-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cloud-profile-row span {
+  opacity: 0.72;
+  font-size: 12px;
+}
+
+.cloud-profile-row strong {
+  font-size: 12px;
+  color: #f3f4f6;
+  text-align: right;
+  word-break: break-all;
+}
+
+.cloud-profile-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 320px);
+}
+
+#cloudNicknameInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #0b1020;
+  border: 1px solid #20263b;
+  color: #e5e7eb;
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+
+#cloudNicknameInput:focus {
+  outline: none;
+  border-color: #4b7fff;
+  box-shadow: 0 0 0 2px rgba(75,127,255,0.16);
+}
+
+
+.cloud-user-header-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.cloud-avatar-box {
+  flex:0 0 auto;
+}
+
+.cloud-avatar-preview {
+  width:56px;
+  height:56px;
+  border-radius:16px;
+  border:1px solid #2b3950;
+  background:linear-gradient(180deg,#0f172a,#111827);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+}
+
+.cloud-avatar-inline select {
+  min-width:170px;
+}
+
+.cloud-avatar-preset-wrap {
+  display:grid;
+  gap:8px;
+  margin-top:6px;
+}
+
+.cloud-avatar-preset-title {
+  opacity:0.85;
+}
+
+.cloud-avatar-preset-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+
+.cloud-avatar-preset-btn {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  justify-content:flex-start;
+  width:100%;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #2b3950;
+  background:#0f172a;
+  color:#e5e7eb;
+  cursor:pointer;
+}
+
+.cloud-avatar-preset-btn .emoji {
+  font-size:18px;
+  line-height:1;
+}
+
+.cloud-avatar-preset-btn .label {
+  font-size:12px;
+}
+
+.cloud-avatar-preset-btn.is-selected {
+  border-color:#60a5fa;
+  box-shadow:0 0 0 1px rgba(96,165,250,0.3) inset;
+  background:#111f38;
+}
+
+.cloud-avatar-preset-btn:disabled {
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+
+/* === v1.6.15-k6 cloud profile layout cleanup === */
+.cloud-account-layout{display:grid;grid-template-columns:minmax(280px,1.05fr) minmax(300px,1fr) minmax(260px,.95fr);gap:12px;align-items:start;}
+.cloud-section{padding:12px;border:1px solid #1f2b3d;border-radius:12px;background:#0b1220;display:flex;flex-direction:column;gap:10px;min-width:0;}
+.cloud-section-title{font-size:13px;font-weight:700;color:#eef2ff;letter-spacing:.02em;}
+.cloud-section-account .cloud-user-card{margin-top:4px;}
+.cloud-section-account .cloud-user-card,.cloud-section-profile,.cloud-section-stats{height:100%;}
+.cloud-user-card{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:10px;}
+.cloud-user-header-row{justify-content:flex-start;}
+.cloud-user-main{min-width:0;}
+.cloud-user-name,.cloud-user-email,.cloud-user-meta{word-break:break-all;}
+.cloud-profile-grid{margin-top:0;border-top:none;padding-top:0;}
+.cloud-profile-inline{width:100%;max-width:none;}
+.cloud-profile-row{align-items:flex-start;}
+.cloud-profile-row span{flex:0 0 86px;padding-top:9px;}
+.cloud-profile-row strong{padding-top:9px;max-width:100%;}
+.cloud-profile-row .cloud-profile-inline,.cloud-profile-row .cloud-avatar-actions{flex:1 1 auto;justify-content:flex-end;}
+.cloud-avatar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cloud-avatar-actions strong{padding-top:0;min-width:64px;text-align:left;color:#cfe0ff;}
+#btnOpenAvatarPicker{background:#0f172a;border:1px solid #2b3950;color:#e5e7eb;}
+.cloud-avatar-modal{position:fixed;inset:0;background:rgba(2,6,23,.7);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1200;}
+.cloud-avatar-modal[hidden]{display:none !important;}
+.cloud-avatar-modal-card{width:min(760px,100%);max-height:min(78vh,760px);overflow:auto;background:#08111f;border:1px solid #243145;border-radius:18px;padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:14px;}
+.cloud-avatar-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.cloud-avatar-modal-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+.cloud-stats-grid .cloud-profile-row span{padding-top:0;}
+.cloud-stats-grid .cloud-profile-row strong{padding-top:0;}
+@media (max-width: 1100px){.cloud-account-layout{grid-template-columns:1fr 1fr;}.cloud-section-account{grid-column:1/-1;}}
+@media (max-width: 760px){.cloud-account-layout{grid-template-columns:1fr;}.cloud-profile-row{flex-direction:column;align-items:stretch;}.cloud-profile-row span{flex:none;padding-top:0;}.cloud-profile-row strong{padding-top:0;text-align:left;}.cloud-profile-row .cloud-profile-inline,.cloud-profile-row .cloud-avatar-actions{justify-content:flex-start;}.cloud-avatar-modal{padding:10px;}.cloud-avatar-modal-card{padding:12px;max-height:84vh;}}
+
+.cloud-auth-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.cloud-auth-actions > button{min-width:0;}
+.cloud-profile-entry{margin-top:6px;padding:10px 12px;border:1px solid #1f2b3d;border-radius:12px;background:rgba(12,20,34,.86);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.cloud-profile-entry-copy{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.cloud-profile-entry-copy .small{opacity:.82;}
+.cloud-account-layout{grid-template-columns:minmax(320px,1.1fr) minmax(280px,.9fr);} 
+.cloud-section-account .cloud-user-card,.cloud-section-stats{height:100%;}
+.cloud-profile-modal{position:fixed;inset:0;background:rgba(2,6,23,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1180;}
+.cloud-profile-modal[hidden]{display:none !important;}
+.cloud-profile-modal-card{width:min(780px,100%);max-height:min(80vh,760px);overflow:auto;background:#08111f;border:1px solid #243145;border-radius:18px;padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:14px;}
+.cloud-profile-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.cloud-profile-modal-grid{padding-top:4px;}
+
+/* === v1.6.15-k6b4 mobile account panel fix === */
+.cloud-user-name,.cloud-user-email,.cloud-user-meta,
+#cloudProfileUid,.cloud-profile-row strong{overflow-wrap:anywhere;word-break:break-word;}
+
+@media (max-width: 1100px){
+  .cloud-account-layout{grid-template-columns:1fr 1fr;}
+  .cloud-section-account{grid-column:auto;}
+}
+@media (max-width: 760px){
+  .cloud-account-layout{grid-template-columns:1fr !important;}
+  .cloud-section{width:100%;}
+  .cloud-auth-form{grid-template-columns:1fr;}
+  .cloud-auth-actions{grid-template-columns:1fr;}
+  .cloud-user-card{padding:12px;}
+  .cloud-user-header-row{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;}
+  .cloud-user-name,.cloud-user-email,.cloud-user-meta{word-break:break-word;overflow-wrap:anywhere;}
+  .cloud-profile-entry{flex-direction:column;align-items:stretch;}
+  .cloud-profile-entry > button{width:100%;}
+  .cloud-profile-row{flex-direction:column;align-items:stretch;}
+  .cloud-profile-row span,.cloud-profile-row strong{padding-top:0;text-align:left;}
+  .cloud-profile-row .cloud-profile-inline,.cloud-profile-row .cloud-avatar-actions{justify-content:flex-start;}
+  .cloud-profile-modal{padding:10px;}
+  .cloud-profile-modal-card{padding:12px;max-height:84vh;}
+}

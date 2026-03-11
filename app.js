@@ -85,7 +85,7 @@
 
 
 
-    const CURRENT_VERSION = 'v1.6.14-k4';
+    const CURRENT_VERSION = 'v1.6.15-k6b4';
     const ENERGY_INTERVAL_MS = 120000; // 에너지 1칸당 120초
     const SAVE_KEY = 'HCSiG_SAVE_v16';
 const I18N = {
@@ -191,7 +191,7 @@ function localizeCodeDescription(def){
     overflow_inject: 'On success, grants +30% credits; on failure, consumes 1 extra energy.',
     fortress_breaker: 'Applies -25% target server security when hacking.',
     quantum_splice: 'Applies +12%p success chance and +20% credits on success.',
-    ghost_script: 'Triggers 1 additional level up on successful hacks.',
+    ghost_script: 'On successful hacks, has a 25% chance to grant +10 EXP.',
     singularity_root: 'Applies +10%p success chance and +40% credits on success.'
   };
   return map[def.id] || def.description || '';
@@ -266,7 +266,7 @@ function translateLogMessage(message){
     [/^로드아웃 슬롯 (\d+)을 불러왔습니다\.$/, 'Loaded loadout slot $1.']
     [/^\[Shop\] Not enough credits\. \(Need: (\d+)\)$/, '[Shop] Not enough credits. (Need: $1)'],
     [/^타겟 서버 선택에 실패했습니다\.$/, 'Failed to select a target server.'],
-    [/^Ghost_Script 효과: 추가 레벨 업 발생!$/, 'Ghost_Script effect: triggered an additional level up!'],
+    [/^Ghost_Script 효과: 해킹 성공으로 EXP \+10이 발동했습니다\.$/, 'Ghost_Script effect: EXP +10 triggered on success.'],
     [/^Overflow_Inject 페널티: 에너지가 추가로 1 소모되었습니다\.$/, 'Overflow_Inject penalty: consumed 1 additional energy.'],
     [/^AutoPatch\(\) 효과: 해킹 실패 보정으로 경험치 \+1\.$/, 'AutoPatch() effect: EXP +1 from failure compensation.'],
     [/^Fallback_Node 효과: 에너지 1을 즉시 회복했습니다\.$/, 'Fallback_Node effect: instantly recovered 1 energy.'],
@@ -509,6 +509,14 @@ function applyLanguageToUI(){
 
     // 업데이트 로그
     const updateLogs = [
+
+      {
+        version: 'v1.6.14(k5b3)',
+        lines: [
+          'Ghost_Script 능력을 확정 추가 레벨 업에서 해킹 성공 시 25% 확률 EXP +10으로 조정했습니다.',
+          '전설 코드의 성장 정체성은 유지하면서도 과도한 스노우볼을 줄이도록 밸런스를 재조정했습니다.'
+        ]
+      },
 
       {
         version: 'v1.6.13(k1)',
@@ -855,7 +863,7 @@ function applyLanguageToUI(){
         name: 'Ghost_Script',
         rarity: 'LEGENDARY',
         basePower: 30,
-        description: '해킹 성공 시 추가 레벨 업 1회를 발생시킵니다.'
+        description: '해킹 성공 시 25% 확률로 EXP +10을 획득합니다.'
       },
       singularity_root: {
         id: 'singularity_root',
@@ -2825,8 +2833,12 @@ function applyLanguageToUI(){
         }
 
         if (def && def.id === 'ghost_script') {
-          levelUp();
-          log(getLang()==='en' ? 'Ghost_Script effect: triggered an additional level up!' : 'Ghost_Script 효과: 추가 레벨 업 발생!', 'hack');
+          if (Math.random() < 0.25) {
+            state.exp += 10;
+            log(getLang()==='en' ? 'Ghost_Script effect: EXP +10 triggered on success.' : 'Ghost_Script 효과: 해킹 성공으로 EXP +10이 발동했습니다.', 'hack');
+            checkLevelUp();
+            renderAll();
+          }
         }
       } else {
         log(
@@ -3463,6 +3475,17 @@ function applyLanguageToUI(){
       localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
       localStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_VERSION);
 
+      try {
+        window.dispatchEvent(new CustomEvent('hcsig:save', {
+          detail: {
+            silent,
+            saveData: JSON.parse(JSON.stringify(saveData))
+          }
+        }));
+      } catch (e) {
+        console.warn('[CloudBridge] save event dispatch failed:', e);
+      }
+
       if (!silent) {
         log(t('saveStateSaved'), 'system');
         showToast(t('saveComplete'), 'save');
@@ -3472,8 +3495,8 @@ function applyLanguageToUI(){
       updateStatsUI();
     }
 
-    function loadGame() {
-      let raw = localStorage.getItem(SAVE_KEY);
+    function loadGame(rawOverride = null) {
+      let raw = typeof rawOverride === 'string' ? rawOverride : localStorage.getItem(SAVE_KEY);
       // v1.5.x 저장 데이터 자동 마이그레이션
       if (!raw) {
         raw = localStorage.getItem(OLD_SAVE_KEY);
@@ -3866,6 +3889,54 @@ function applyLanguageToUI(){
       setTimeout(() => {
         maybeStartTutorial();
       }, 180);
+
+      try {
+        window.HCSIG_BRIDGE = {
+          version: CURRENT_VERSION,
+          saveKey: SAVE_KEY,
+          oldSaveKey: OLD_SAVE_KEY,
+          getCurrentSaveData: () => ({
+            version: CURRENT_VERSION,
+            savedAt: state.lastSavedAt || Date.now(),
+            state: JSON.parse(JSON.stringify(state)),
+            ownedCodes: JSON.parse(JSON.stringify(ownedCodes)),
+            modifiers: JSON.parse(JSON.stringify(modifiers))
+          }),
+          saveLocal: (silent = true) => saveGame(silent),
+          loadFromRaw: (raw) => loadGame(raw),
+          loadFromObject: (obj) => {
+            if (!obj) return;
+            localStorage.setItem(SAVE_KEY, JSON.stringify(obj));
+            loadGame(JSON.stringify(obj));
+          },
+          getLanguage: () => getLang(),
+          getStateSummary: () => ({
+            level: state.level,
+            credits: state.credits,
+            energy: state.energy,
+            lastSavedAt: state.lastSavedAt || 0
+          }),
+          toast: (message, type = 'save') => showToast(message, type),
+          log: (message, type = 'system') => log(message, type),
+          refresh: () => {
+            applyLanguageToUI();
+            updateStatsUI();
+            renderCodeList();
+            renderCodeDetail();
+            renderMissions();
+            renderAchievements();
+            renderCodex();
+          }
+        };
+        window.dispatchEvent(new CustomEvent('hcsig:ready', {
+          detail: {
+            version: CURRENT_VERSION,
+            hasLocalSave: !!localStorage.getItem(SAVE_KEY)
+          }
+        }));
+      } catch (bridgeErr) {
+        console.warn('[CloudBridge] ready event dispatch failed:', bridgeErr);
+      }
     }
 
     init();
