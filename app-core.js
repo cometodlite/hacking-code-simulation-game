@@ -1,133 +1,48 @@
-// Split from 배포용 index.html on 2026-03-09
-// Original inline scripts concatenated in source order.
-
-
-// --- Early viewport/layout fix (iOS Safari first-paint jump) ---
-(function(){
-  try{
-    if('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    document.documentElement.style.setProperty('--appH', Math.ceil(window.innerHeight) + 'px');
-  }catch(e){}
-})();
-
-
-
-// --- Layout vars sync (header/tabs/viewport). Fixes initial "pushed up" until a UI event happens. ---
-(function(){
-  const root = document.documentElement;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-
-  function px(n){ return Math.max(0, Math.round(n)) + 'px'; }
-
-  function setAppH(){
-    const vv = window.visualViewport;
-    const h = vv ? vv.height : window.innerHeight;
-    root.style.setProperty('--appH', px(h));
-  }
-
-  function setHeaderTabs(){
-    const header = document.querySelector('header');
-    const tabs = document.querySelector('.mobile-tabs');
-
-    if(header){
-      root.style.setProperty('--headerH', px(header.getBoundingClientRect().height));
-    }
-    if(isMobile){
-      if(tabs){
-        const th = tabs.getBoundingClientRect().height;
-        root.style.setProperty('--tabsH', px(th));
-        // bottom space that content must avoid (tabs + gap + safe area)
-        root.style.setProperty('--tabsInset', `calc(${px(th)} + 20px + env(safe-area-inset-bottom))`);
-        root.style.setProperty('--tabsPad',   `calc(${px(th)} + 28px + env(safe-area-inset-bottom))`);
-      }else{
-        root.style.setProperty('--tabsH', '92px');
-        root.style.setProperty('--tabsInset', 'calc(92px + 20px + env(safe-area-inset-bottom))');
-        root.style.setProperty('--tabsPad',   'calc(92px + 28px + env(safe-area-inset-bottom))');
-      }
-    }
-  }
-
-  function kick(){
-    setAppH();
-    setHeaderTabs();
-    // remove tiny scroll offsets that look like the whole UI is shifted upward
-    try{ if(window.scrollY !== 0) window.scrollTo(0,0); }catch(e){}
-  }
-
-  // run ASAP
-  kick();
-  document.addEventListener('DOMContentLoaded', kick);
-  window.addEventListener('load', kick);
-
-  const vv = window.visualViewport;
-  if(vv){
-    vv.addEventListener('resize', kick);
-    vv.addEventListener('scroll', kick);
-  }
-  window.addEventListener('resize', kick);
-  window.addEventListener('orientationchange', ()=>setTimeout(kick, 250));
-  window.addEventListener('pageshow', ()=>setTimeout(kick, 60));
-
-  // ResizeObserver catches font-load/header wrap changes that happen AFTER first paint
-  try{
-    const ro = new ResizeObserver(()=>kick());
-    const header = document.querySelector('header');
-    if(header) ro.observe(header);
-    const tabs = document.querySelector('.mobile-tabs');
-    if(tabs) ro.observe(tabs);
-  }catch(e){}
-
-  // Last resort: re-kick a couple times shortly after first render
-  setTimeout(kick, 80);
-  setTimeout(kick, 220);
-  setTimeout(kick, 650);
-})();
-
-
-
-    const CURRENT_VERSION = 'v1.6.15-k6b4';
+const CURRENT_VERSION = '2.1.1';
+const TUTORIAL_VERSION = 3;
     const ENERGY_INTERVAL_MS = 120000; // 에너지 1칸당 120초
     const SAVE_KEY = 'HCSiG_SAVE_v16';
 const I18N = {
   ko: {
     appTitle: 'HCSiG - Hacking Code Simulator Game', subtitle: 'Hacking Code Simulator Game', more: '더보기 ▾', moreTitle: '더보기', status:'Status', shop:'Shop', actions:'Actions', codeInventory:'코드 인벤토리', codeDetail:'코드 상세',
-    level:'레벨', exp:'경험치', credits:'크레딧', cpuTier:'CPU 티어', energy:'에너지', nextRecovery:'다음 회복까지', energyPack:'에너지 팩', lastSave:'마지막 저장', use:'사용', sort:'정렬', category:'분류', all:'전체', system:'시스템', economy:'경제', utility:'유틸',
-    codeScan:'코드 스캔', serverHack:'서버 해킹', cpuUpgrade:'CPU 업그레이드', targetServer:'타겟 서버', loadout:'로드아웃', saveSlot:'슬롯 저장', loadSlot:'슬롯 불러오기', riskMode:'위험 해킹 모드 (성공 확률 -15%p + 보정, 보상 크레딧 ×2, 실패 시 에너지 추가 -1)',
-    actionsDesc1:'· 에너지 1칸 = 120초, 0.1초 단위로 카운트다운 표시', actionsDesc2:'· 코드 스캔: 에너지 1, 스캔 EXP 소량 (희귀도별 스캔 시간 차등)', actionsDesc3:'· 서버 해킹: 에너지 2, 성공 시 크레딧·EXP 획득', actionsDesc4:'· 레벨업 시 크레딧 +100, CPU 업그레이드 비용 = 500 × 티어 × 할인 계수',
+    level:'레벨', exp:'경험치', credits:'크레딧', cpuTier:'CPU 티어', gpuTier:'GPU 티어', energy:'에너지', nextRecovery:'다음 회복까지', energyPack:'에너지 팩', lastSave:'마지막 저장', use:'사용', sort:'정렬', category:'분류', all:'전체', system:'시스템', economy:'경제', utility:'유틸',
+    codeScan:'코드 스캔', serverHack:'서버 해킹', cpuUpgrade:'CPU 업그레이드', gpuUpgrade:'GPU 업그레이드', targetServer:'타겟 서버', loadout:'로드아웃', saveSlot:'슬롯 저장', loadSlot:'슬롯 불러오기', hackMode:'해킹 모드',
+    actionsDesc1:'· 에너지 1칸 = 120초, 0.1초 단위로 카운트다운 표시', actionsDesc2:'· 코드 스캔: 에너지 1, 스캔 EXP 소량 (희귀도별 스캔 시간 차등)', actionsDesc3:'· 서버 해킹: NORMAL/RISK/EXTREME 난이도 선택 가능', actionsDesc4:'· CPU는 성공률 안정, GPU는 반복/도전 보상 증폭을 담당합니다.',
     codeUpgrade:'코드 강화', codeSync:'코드 동기화', codeEvolve:'코드 진화', codeDesc1:'· 강화: 코드 레벨에 비례한 크레딧 소모, 파워 증가 (파괴 없음).', codeDesc2:'· 동기화: 중복 조각을 모아 성공률 보정과 파워를 함께 강화합니다.', codeDesc3:'· 진화: 일정 레벨 이상 시 희귀도 승급 (COMMON → UNCOMMON → … → LEGENDARY).',
-    mission:'미션', achievement:'업적', codex:'코드 도감', logs:'로그', settings:'설정', data:'데이터', quest:'퀘스트', records:'기록', envSettings:'환경 설정', dataManage:'데이터 관리', close:'닫기',
+    mission:'미션', achievement:'업적', codex:'코드 도감', logs:'로그', settings:'설정', data:'클라우드 계정', quest:'퀘스트', records:'기록', envSettings:'환경 설정', dataManage:'클라우드 계정', close:'닫기',
     logSearchHelp:'로그 검색 (로그 항목 클릭 → 핀/해제)', searchPlaceholder:'검색어 입력...', clearLogs:'로그 초기화', hideLogs:'로그 숨기기', showLogs:'로그 보이기', logFilter:'로그 필터',
-    language:'언어', fontScale:'폰트 크기', snow:'눈 이펙트', uiScale:'UI 스케일', animation:'애니메이션', toastTime:'토스트 시간', autosaveToast:'자동저장 알림', enabled:'사용', settingsHelp:'· 설정은 저장 데이터에 포함되며, 새로고침 후에도 유지됩니다.',
-    saveNow:'저장하기', loadNow:'불러오기', clearSave:'저장 데이터 삭제', exportSave:'내보내기', importFile:'파일 불러오기', importText:'텍스트로 불러오기', importTextPlaceholder:'여기에 JSON을 붙여넣고 불러오기를 누르세요.', importTextBtn:'텍스트 불러오기', saveHelp:'· 저장 위치: 브라우저 LocalStorage (이 브라우저, 이 기기 한정)<br/>· 자동 저장: 약 60초마다 한 번씩 백그라운드 저장',
+    language:'언어', fontScale:'폰트 크기', snow:'눈 이펙트', uiScale:'UI 스케일', animation:'애니메이션', sfx:'효과음', sfxVolume:'효과음 볼륨', toastTime:'토스트 시간', autosaveToast:'자동저장 알림', liveNetwork:'LIVE NET', liveNicknameMode:'네트워크 표시명', nickname:'닉네임', callsign:'Callsign', enabled:'사용', settingsHelp:'· 설정은 저장 데이터에 포함되며, 새로고침 후에도 유지됩니다.',
+    saveNow:'저장하기', loadNow:'불러오기', clearSave:'저장 데이터 삭제', exportSave:'내보내기', importFile:'파일 불러오기', importText:'텍스트로 불러오기', importTextPlaceholder:'여기에 JSON을 붙여넣고 불러오기를 누르세요.', importTextBtn:'텍스트 불러오기', saveHelp:'· 저장 위치: 클라우드 계정<br/>· 브라우저 내부 저장은 자동 캐시와 기존 세이브 이전에만 사용됩니다.',
     shopSortUpdate:'업데이트순', shopSortNew:'신규 우선', shopSortRarity:'희귀도순', shopSortPrice:'가격순', shopSortName:'이름순', codeSortRecent:'최신', codeSortRarity:'희귀도', codeSortPower:'파워', codeSortLevel:'레벨', codeSortName:'이름',
     codexSummary:'발견 {a} / {b}', discovered:'DISCOVERED', locked:'LOCKED', basePower:'기본 파워', ownedLvPwr:'보유 Lv.{lv} / PWR {pwr}', undiscoveredCode:'미발견 코드', undiscoveredDesc:'아직 발견하지 못한 코드입니다. 코드 스캔으로 해제하세요.', noCodes:'보유 코드 없음. [코드 스캔]으로 코드를 얻으세요.', selectCode:'보유 중인 코드를 선택하면 상세 정보가 표시됩니다.',
     levelLabel:'레벨: Lv.{v}', powerLabel:'파워: {v}', usageLabel:'사용 횟수: {v}', shardsLabel:'중복 조각: {v}', syncLabel:'동기화 단계: {v}', nextUpgrade:'다음 강화 비용: {v} 크레딧', nextSync:'다음 동기화 비용: 조각 {a} / 예상 성공률 보정 +{b}%', evolveReady:'진화 조건: 충족', evolveNeed:'진화 조건: Lv.5 이상 필요', ability:'능력', noDesc:'설명 없음.',
-    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'보상', none:'없음', complete:'완료', incomplete:'미완', achieved:'달성', notYet:'미달', hiddenAchievement:'히든 업적입니다. 달성 시 공개됩니다.', difficultyEasy:'일반', difficultyNormal:'보통', difficultyHard:'어려움', hidden:'HIDDEN',
+    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'보상', none:'없음', complete:'완료', incomplete:'미완', achieved:'달성', notYet:'미달', hiddenAchievement:'히든 업적입니다. 달성 시 공개됩니다.', difficultyEasy:'일반', difficultyNormal:'보통', difficultyHard:'어려움', hidden:'HIDDEN', achievementAll:'전체', achievementIncomplete:'미완료', achievementComplete:'완료', achievementShowHidden:'숨김 포함',
     full:'FULL', seconds:'초', minutes:'분', visible:'표시', on:'ON', off:'OFF',
-    saveStateSaved:'게임 상태가 저장되었습니다.', saveComplete:'저장 완료', autosaveComplete:'✅ 자동 저장 완료', noSavedData:'저장된 데이터가 없습니다.', saveLoaded:'저장된 데이터를 불러왔습니다.', saveLoadError:'저장 데이터를 불러오는 중 오류가 발생했습니다.', saveDeleted:'저장 데이터가 삭제되었습니다.', exportFail:'내보내기 실패 (콘솔 확인)', riskModeLog:'위험 해킹 모드: {state}', riskPenaltyLog:'위험 해킹 모드 페널티: 실패로 인해 에너지가 추가로 1 소모되었습니다.', loadoutSaved:'로드아웃 슬롯 {slot}에 현재 설정을 저장했습니다.', loadoutEmpty:'로드아웃 슬롯 {slot}에 저장된 설정이 없습니다.', loadoutLoaded:'로드아웃 슬롯 {slot}을 불러왔습니다.',
+    saveStateSaved:'게임 상태가 클라우드 캐시에 저장되었습니다.', saveComplete:'클라우드 캐시 저장 완료', autosaveComplete:'✅ 자동 캐시 저장 완료', noSavedData:'저장된 데이터가 없습니다.', saveLoaded:'저장된 데이터를 불러왔습니다.', saveLoadError:'저장 데이터를 불러오는 중 오류가 발생했습니다.', saveDeleted:'저장 데이터가 삭제되었습니다.', exportFail:'내보내기 실패 (콘솔 확인)', hackModeLog:'해킹 모드: {mode}', riskPenaltyLog:'RISK 실패 페널티: 에너지가 추가로 1 소모되었습니다.', extremePenaltyLog:'EXTREME 실패 페널티: 에너지가 추가로 2 소모되었습니다.', gpuUpgradeLog:'GPU 업그레이드 완료! 현재 티어: {tier} (소모 크레딧 {cost})', gpuUpgradeFail:'GPU 업그레이드 실패: 크레딧이 부족합니다. (필요: {cost})', loadoutSaved:'로드아웃 슬롯 {slot}에 현재 설정을 저장했습니다.', loadoutEmpty:'로드아웃 슬롯 {slot}에 저장된 설정이 없습니다.', loadoutLoaded:'로드아웃 슬롯 {slot}을 불러왔습니다.',
     toastAchievement:'업적 달성: {name}', achievementLog:'[업적 달성] {name}', activeCode:'활성 코드 변경: {name}', levelUpLog:'레벨 업! Lv.{lv} 달성. 크레딧 +50 지급.', noEnergyPack:'에너지 팩이 없습니다.', energyFull:'이미 에너지가 가득 찼습니다.', usedEnergyPack:'에너지 팩 1개를 사용해 에너지를 최대치까지 회복했습니다.',
     noCodeSync:'동기화할 코드가 없습니다.', syncFailShards:'코드 동기화 실패: 중복 조각이 부족합니다. (필요: {need}, 보유: {have})', syncDone:'코드 동기화 완료: {name} 동기화 {lv}단계 달성. 파워 +{pwr}, 성공률 보정 +{rate}%.', syncToast:'{name} 동기화 {lv}단계', noCodeUpgrade:'강화할 코드가 없습니다. 먼저 코드를 스캔하세요.', upgradeFailCredits:'코드 강화 실패: 크레딧이 부족합니다. (필요: {cost})', upgradeDone:'코드 강화: {name} Lv.{lv} (파워 +5 → {pwr}), 크레딧 -{cost}.', noCodeEvolve:'진화할 코드가 없습니다.', maxRarity:'이미 최상위 희귀도(LEGENDARY)입니다. 더 이상 진화할 수 없습니다.', evolveNeedLv:'코드 진화 실패: 진화에는 최소 Lv.5 이상이 필요합니다.', evolveCannot:'진화를 처리할 수 없습니다.', evolveDone:'코드 진화 성공: {name}가 {rarity} 등급으로 승급, 파워 +10 → {pwr}.',
-    noEnergyScan:'에너지가 부족하여 코드 스캔을 수행할 수 없습니다.', noEnergyHack:'에너지가 부족하여 서버 해킹을 수행할 수 없습니다.', energyPackToast:'에너지 팩 +1 (보유: {v})', offlineRecoverLog:'오프라인 동안 에너지 {v} 회복 ({label} 경과)', offlineRecoverToast:'오프라인 회복: 에너지 +{v}', exportDone:'저장 데이터 내보내기 완료', importDone:'저장 데이터 불러오기 완료', importFail:'불러오기 실패: JSON 형식을 확인하세요.', emptyText:'텍스트가 비어 있습니다.', logsHide:'로그 숨기기', logsShow:'로그 보이기', initLog:'HCSiG 초기화 완료. (언어 설정, 중복 조각/코드 동기화, 모바일 UI, 상점 분류 적용)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileComing:'COMING SOON', comingSoonToast:'Coming Soon - 준비 중인 기능입니다.', buy:'구매', buyDone:'구매 완료', buyUnavailable:'구매 불가', buySpendTitle:'구매하면 크레딧이 소모됩니다.', buyDailyLimit:'오늘 구매 제한에 도달했습니다.', buyOnceLimit:'이미 구매한 영구 아이템입니다.', notEnoughCredits:'크레딧이 부족합니다.', shopLog:'[상점] {msg}', shopBought:'{name} 구매 (💰 -{cost})', missionDoneToast:'미션 완료: {name} ({reward})', missionDoneCredits:'크레딧 +{v}', missionDoneEnergyPack:'에너지 팩 +{v}', missionDoneBoth:'크레딧 +{c} / 에너지 팩 +{e}', serverOption:'{name} (보안 {sec}, Lv{lv}+)', serverLevelNeed:'해당 서버를 해킹하려면 최소 Lv.{lv} 이상이어야 합니다.', noOwnedCodes:'보유 코드가 없습니다. 먼저 코드 스캔으로 코드를 확보하세요.', scanFound:'새 코드 발견! {name} [{rarity}]', scanDuplicate:'중복 코드 감지: {name} [{rarity}] → 중복 조각 +{gain} (보유 {have}).', scanDone:'코드 스캔 완료: 경험치 +{exp}.', hackSuccessLog:'서버 해킹 성공! [{server}] 성공 확률 {chance}%. 크레딧 +{credits}, EXP +{exp}.', hackFailLog:'서버 해킹 실패. [{server}] 성공 확률 {chance}%였음.', logDailyShopReset:'[시스템] 일일 상점 제한이 초기화되었습니다. (05:00 리셋)', loadoutSlot:'슬롯 {n}', logPinHint:'로그 항목 클릭 → 핀/해제', saveToLocal:'현재 상태를 브라우저 LocalStorage에 저장합니다.', loadFromLocal:'LocalStorage에서 저장된 데이터를 불러옵니다.', deleteSave:'저장 데이터를 삭제합니다.', exportJson:'현재 저장 데이터를 JSON 파일로 내보냅니다.', importJsonFile:'JSON 저장 파일을 불러옵니다.', importJsonText:'텍스트(JSON)로 저장 데이터를 불러옵니다.', languageTitle:'게임 언어를 선택합니다.', uiScaleTitle:'전체 UI 배율을 조정합니다.', toastTitle:'화면 알림(토스트) 표시 시간을 설정합니다.', shopSortTitle:'상점 아이템 정렬 기준을 선택합니다.', codeSortTitle:'코드 인벤토리 정렬 기준을 선택합니다.', dailyResetLabel:'05:00 리셋 ({n}회)', onceLabel:'1회', dailyShort:'일일', onceShort:'1회', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY'
+    noEnergyScan:'에너지가 부족하여 코드 스캔을 수행할 수 없습니다.', noEnergyHack:'에너지가 부족하여 서버 해킹을 수행할 수 없습니다.', energyPackToast:'에너지 팩 +1 (보유: {v})', offlineRecoverLog:'오프라인 동안 에너지 {v} 회복 ({label} 경과)', offlineRecoverToast:'오프라인 회복: 에너지 +{v}', exportDone:'저장 데이터 내보내기 완료', importDone:'저장 데이터 불러오기 완료', importFail:'불러오기 실패: JSON 형식을 확인하세요.', emptyText:'텍스트가 비어 있습니다.', logsHide:'로그 숨기기', logsShow:'로그 보이기', initLog:'HCSiG 초기화 완료. (언어 설정, 중복 조각/코드 동기화, 모바일 UI, 상점 분류 적용)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileMore:'MORE', mobileLab:'LAB', mobileStage:'데이터 타워', mobileComing:'COMING SOON', tutorialReplay:'튜토리얼 다시 보기', comingSoonToast:'Coming Soon - 준비 중인 기능입니다.', buy:'구매', buyDone:'구매 완료', buyUnavailable:'구매 불가', buySpendTitle:'구매하면 크레딧이 소모됩니다.', buyDailyLimit:'오늘 구매 제한에 도달했습니다.', buyOnceLimit:'이미 구매한 영구 아이템입니다.', notEnoughCredits:'크레딧이 부족합니다.', shopLog:'[상점] {msg}', shopBought:'{name} 구매 (💰 -{cost})', missionDoneToast:'미션 완료: {name} ({reward})', missionDoneCredits:'크레딧 +{v}', missionDoneEnergyPack:'에너지 팩 +{v}', missionDoneBoth:'크레딧 +{c} / 에너지 팩 +{e}', serverOption:'{name} (보안 {sec}, Lv{lv}+)', serverLevelNeed:'해당 서버를 해킹하려면 최소 Lv.{lv} 이상이어야 합니다.', noOwnedCodes:'보유 코드가 없습니다. 먼저 코드 스캔으로 코드를 확보하세요.', scanFound:'새 코드 발견! {name} [{rarity}]', scanDuplicate:'중복 코드 감지: {name} [{rarity}] → 중복 조각 +{gain} (보유 {have}).', scanDone:'코드 스캔 완료: 경험치 +{exp}.', hackSuccessLog:'서버 해킹 성공! [{server}] 성공 확률 {chance}%. 크레딧 +{credits}, EXP +{exp}.', hackFailLog:'서버 해킹 실패. [{server}] 성공 확률 {chance}%였음.', logDailyShopReset:'[시스템] 일일 상점 제한이 초기화되었습니다. (05:00 리셋)', loadoutSlot:'슬롯 {n}', logPinHint:'로그 항목 클릭 → 핀/해제', saveToLocal:'현재 상태를 브라우저 LocalStorage에 저장합니다.', loadFromLocal:'LocalStorage에서 저장된 데이터를 불러옵니다.', deleteSave:'저장 데이터를 삭제합니다.', exportJson:'현재 저장 데이터를 JSON 파일로 내보냅니다.', importJsonFile:'JSON 저장 파일을 불러옵니다.', importJsonText:'텍스트(JSON)로 저장 데이터를 불러옵니다.', languageTitle:'게임 언어를 선택합니다.', uiScaleTitle:'전체 UI 배율을 조정합니다.', toastTitle:'화면 알림(토스트) 표시 시간을 설정합니다.', shopSortTitle:'상점 아이템 정렬 기준을 선택합니다.', codeSortTitle:'코드 인벤토리 정렬 기준을 선택합니다.', dailyResetLabel:'05:00 리셋 ({n}회)', onceLabel:'1회', dailyShort:'일일', onceShort:'1회', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY'
   },
   en: {
     appTitle: 'HCSiG - Hacking Code Simulator Game', subtitle: 'Hacking Code Simulator Game', more: 'More ▾', moreTitle: 'More', status:'Status', shop:'Shop', actions:'Actions', codeInventory:'Code Inventory', codeDetail:'Code Detail',
-    level:'Level', exp:'EXP', credits:'Credits', cpuTier:'CPU Tier', energy:'Energy', nextRecovery:'Next Recovery', energyPack:'Energy Pack', lastSave:'Last Save', use:'Use', sort:'Sort', category:'Category', all:'All', system:'System', economy:'Economy', utility:'Utility',
-    codeScan:'Scan Code', serverHack:'Hack Server', cpuUpgrade:'Upgrade CPU', targetServer:'Target Server', loadout:'Loadout', saveSlot:'Save Slot', loadSlot:'Load Slot', riskMode:'Risk Hack Mode (success -15%p + modifiers, reward credits ×2, failure costs +1 energy)',
-    actionsDesc1:'· 1 energy = 120 seconds, shown with 0.1-second countdown', actionsDesc2:'· Scan Code: costs 1 energy, small scan EXP gain (scan time varies by rarity)', actionsDesc3:'· Hack Server: costs 2 energy, grants credits and EXP on success', actionsDesc4:'· Level up gives +50 credits, CPU upgrade cost = 500 × tier × discount factor',
+    level:'Level', exp:'EXP', credits:'Credits', cpuTier:'CPU Tier', gpuTier:'GPU Tier', energy:'Energy', nextRecovery:'Next Recovery', energyPack:'Energy Pack', lastSave:'Last Save', use:'Use', sort:'Sort', category:'Category', all:'All', system:'System', economy:'Economy', utility:'Utility',
+    codeScan:'Scan Code', serverHack:'Hack Server', cpuUpgrade:'Upgrade CPU', gpuUpgrade:'Upgrade GPU', targetServer:'Target Server', loadout:'Loadout', saveSlot:'Save Slot', loadSlot:'Load Slot', hackMode:'Hack Mode',
+    actionsDesc1:'· 1 energy = 120 seconds, shown with 0.1-second countdown', actionsDesc2:'· Scan Code: costs 1 energy and grants scan EXP', actionsDesc3:'· Hack Server: choose NORMAL / RISK / EXTREME difficulty', actionsDesc4:'· CPU stabilizes success, GPU amplifies repeat/challenge rewards.',
     codeUpgrade:'Upgrade Code', codeSync:'Sync Code', codeEvolve:'Evolve Code', codeDesc1:'· Upgrade: costs credits based on code level and raises power (no destruction).', codeDesc2:'· Sync: spend duplicate shards to raise success bonus and power together.', codeDesc3:'· Evolve: rank up at a required level (COMMON → UNCOMMON → … → LEGENDARY).',
-    mission:'Mission', achievement:'Achievements', codex:'Code Codex', logs:'Logs', settings:'Settings', data:'Data', quest:'Quests', records:'Records', envSettings:'Settings', dataManage:'Data Management', close:'Close',
+    mission:'Mission', achievement:'Achievements', codex:'Code Codex', logs:'Logs', settings:'Settings', data:'Cloud Account', quest:'Quests', records:'Records', envSettings:'Settings', dataManage:'Cloud Account', close:'Close',
     logSearchHelp:'Search logs (click a log entry to pin/unpin)', searchPlaceholder:'Type to search...', clearLogs:'Clear Logs', hideLogs:'Hide Logs', showLogs:'Show Logs', logFilter:'Log Filter',
-    language:'Language', fontScale:'Font Size', snow:'Snow Effect', uiScale:'UI Scale', animation:'Animation', toastTime:'Toast Duration', autosaveToast:'Autosave Toast', enabled:'Enabled', settingsHelp:'· Settings are stored with save data and remain after refresh.',
-    saveNow:'Save', loadNow:'Load', clearSave:'Delete Save Data', exportSave:'Export', importFile:'Import File', importText:'Import from Text', importTextPlaceholder:'Paste JSON here and press import.', importTextBtn:'Import Text', saveHelp:'· Save location: browser LocalStorage (this browser/device only)<br/>· Autosave: background save about once every 60 seconds',
+    language:'Language', fontScale:'Font Size', snow:'Snow Effect', uiScale:'UI Scale', animation:'Animation', sfx:'Sound Effects', sfxVolume:'SFX Volume', toastTime:'Toast Duration', autosaveToast:'Autosave Toast', liveNetwork:'LIVE NET', liveNicknameMode:'Network Name', nickname:'Nickname', callsign:'Callsign', enabled:'Enabled', settingsHelp:'· Settings are stored with save data and remain after refresh.',
+    saveNow:'Save', loadNow:'Load', clearSave:'Delete Save Data', exportSave:'Export', importFile:'Import File', importText:'Import from Text', importTextPlaceholder:'Paste JSON here and press import.', importTextBtn:'Import Text', saveHelp:'· Save location: cloud account<br/>· Browser storage is used only for automatic cache and migration.',
     shopSortUpdate:'By Update', shopSortNew:'Newest First', shopSortRarity:'By Rarity', shopSortPrice:'By Price', shopSortName:'By Name', codeSortRecent:'Recent', codeSortRarity:'Rarity', codeSortPower:'Power', codeSortLevel:'Level', codeSortName:'Name',
     codexSummary:'Discovered {a} / {b}', discovered:'DISCOVERED', locked:'LOCKED', basePower:'Base Power', ownedLvPwr:'Owned Lv.{lv} / PWR {pwr}', undiscoveredCode:'Undiscovered Code', undiscoveredDesc:'You have not discovered this code yet. Unlock it by scanning codes.', noCodes:'No codes owned. Use [Scan Code] to get one.', selectCode:'Select an owned code to view details.',
     levelLabel:'Level: Lv.{v}', powerLabel:'Power: {v}', usageLabel:'Uses: {v}', shardsLabel:'Duplicate Shards: {v}', syncLabel:'Sync Level: {v}', nextUpgrade:'Next upgrade cost: {v} credits', nextSync:'Next sync cost: {a} shards / expected success bonus +{b}%', evolveReady:'Evolution requirement: Met', evolveNeed:'Evolution requirement: Need Lv.5+', ability:'Ability', noDesc:'No description.',
-    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'Reward', none:'None', complete:'Complete', incomplete:'Incomplete', achieved:'Achieved', notYet:'Not Yet', hiddenAchievement:'This is a hidden achievement. It will be revealed when completed.', difficultyEasy:'Easy', difficultyNormal:'Normal', difficultyHard:'Hard', hidden:'HIDDEN',
+    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'Reward', none:'None', complete:'Complete', incomplete:'Incomplete', achieved:'Achieved', notYet:'Not Yet', hiddenAchievement:'This is a hidden achievement. It will be revealed when completed.', difficultyEasy:'Easy', difficultyNormal:'Normal', difficultyHard:'Hard', hidden:'HIDDEN', achievementAll:'All', achievementIncomplete:'Incomplete', achievementComplete:'Complete', achievementShowHidden:'Include Hidden',
     full:'FULL', seconds:'sec', minutes:'min', visible:'Visible', on:'ON', off:'OFF',
-    saveStateSaved:'Game state saved.', saveComplete:'Save complete', autosaveComplete:'✅ Autosave complete', noSavedData:'No saved data found.', saveLoaded:'Saved data loaded.', saveLoadError:'An error occurred while loading save data.', saveDeleted:'Save data deleted.', exportFail:'Export failed (check console)', riskModeLog:'Risk Hack Mode: {state}', riskPenaltyLog:'Risk Hack Mode penalty: failure consumed 1 additional energy.', loadoutSaved:'Saved current setup to loadout slot {slot}.', loadoutEmpty:'There is no saved setup in loadout slot {slot}.', loadoutLoaded:'Loaded loadout slot {slot}.',
+    saveStateSaved:'Game state saved to cloud cache.', saveComplete:'Cloud cache saved', autosaveComplete:'✅ Autosave cache complete', noSavedData:'No saved data found.', saveLoaded:'Saved data loaded.', saveLoadError:'An error occurred while loading save data.', saveDeleted:'Save data deleted.', exportFail:'Export failed (check console)', hackModeLog:'Hack Mode: {mode}', riskPenaltyLog:'RISK failure penalty consumed 1 additional energy.', extremePenaltyLog:'EXTREME failure penalty consumed 2 additional energy.', gpuUpgradeLog:'GPU upgrade complete! Current tier: {tier} (Credits -{cost})', gpuUpgradeFail:'GPU upgrade failed: not enough credits. (Need: {cost})', loadoutSaved:'Saved current setup to loadout slot {slot}.', loadoutEmpty:'There is no saved setup in loadout slot {slot}.', loadoutLoaded:'Loaded loadout slot {slot}.',
     toastAchievement:'Achievement unlocked: {name}', achievementLog:'[Achievement] {name}', activeCode:'Active code changed: {name}', levelUpLog:'Level up! Reached Lv.{lv}. Credits +50.', noEnergyPack:'No energy packs available.', energyFull:'Energy is already full.', usedEnergyPack:'Used 1 energy pack and fully restored energy.',
     noCodeSync:'There is no code to sync.', syncFailShards:'Code sync failed: not enough duplicate shards. (Need: {need}, Have: {have})', syncDone:'Code sync complete: {name} reached sync stage {lv}. Power +{pwr}, success bonus +{rate}%.', syncToast:'{name} sync stage {lv}', noCodeUpgrade:'There is no code to upgrade. Scan a code first.', upgradeFailCredits:'Code upgrade failed: not enough credits. (Need: {cost})', upgradeDone:'Code upgraded: {name} Lv.{lv} (Power +5 → {pwr}), Credits -{cost}.', noCodeEvolve:'There is no code to evolve.', maxRarity:'Already at the highest rarity (LEGENDARY). It cannot evolve further.', evolveNeedLv:'Code evolution failed: evolution requires at least Lv.5.', evolveCannot:'Cannot process evolution.', evolveDone:'Code evolution success: {name} advanced to {rarity}, Power +10 → {pwr}.',
     noEnergyScan:'Not enough energy to scan a code.', noEnergyHack:'Not enough energy to hack the server.', energyPackToast:'Energy Pack +1 (Owned: {v})', offlineRecoverLog:'Recovered {v} energy while offline ({label} elapsed)', offlineRecoverToast:'Offline recovery: Energy +{v}', exportDone:'Save data exported.', importDone:'Save data imported.', importFail:'Import failed: please check the JSON format.', emptyText:'The text box is empty.', logsHide:'Hide Logs', logsShow:'Show Logs', initLog:'HCSiG initialized. (language setting, duplicate shards/code sync, mobile UI, shop categories enabled)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileComing:'COMING SOON', comingSoonToast:'Coming Soon - This feature is in preparation.', buy:'Buy', buyDone:'Purchase complete', buyUnavailable:'Unavailable', buySpendTitle:'Buying this item will consume credits.', buyDailyLimit:'You have reached today\'s purchase limit.', buyOnceLimit:'This permanent item has already been purchased.', notEnoughCredits:'Not enough credits.', shopLog:'[Shop] {msg}', shopBought:'Purchased {name} (💰 -{cost})', missionDoneToast:'Mission complete: {name} ({reward})', missionDoneCredits:'Credits +{v}', missionDoneEnergyPack:'Energy Pack +{v}', missionDoneBoth:'Credits +{c} / Energy Pack +{e}', serverOption:'{name} (Security {sec}, Lv{lv}+)', serverLevelNeed:'You must be at least Lv.{lv} to hack this server.', noOwnedCodes:'You do not own any codes yet. Scan codes first.', scanFound:'New code discovered! {name} [{rarity}]', scanDuplicate:'Duplicate code detected: {name} [{rarity}] → Duplicate Shards +{gain} (Owned {have}).', scanDone:'Code scan complete: EXP +{exp}.', hackSuccessLog:'Server hack success! [{server}] Success chance {chance}%. Credits +{credits}, EXP +{exp}.', hackFailLog:'Server hack failed. [{server}] Success chance was {chance}%.', logDailyShopReset:'[System] Daily shop limits have been reset. (05:00 reset)', loadoutSlot:'Slot {n}', logPinHint:'Click a log entry to pin/unpin it', saveToLocal:'Save the current state to browser LocalStorage.', loadFromLocal:'Load saved data from LocalStorage.', deleteSave:'Delete the saved data.', exportJson:'Export the current save data as a JSON file.', importJsonFile:'Load a JSON save file.', importJsonText:'Load save data from text (JSON).', languageTitle:'Select the game language.', uiScaleTitle:'Adjust the overall UI scale.', toastTitle:'Set how long toast notifications remain on screen.', shopSortTitle:'Choose how shop items are sorted.', codeSortTitle:'Choose how the code inventory is sorted.', dailyResetLabel:'05:00 reset ({n})', onceLabel:'one-time', dailyShort:'daily', onceShort:'once', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY'
+    ,mobileMore:'MORE', mobileLab:'LAB', mobileStage:'DATA TOWER', tutorialReplay:'Replay Tutorial'
   }
 };
 function getLang(){ return (state && state.ui && state.ui.lang) ? state.ui.lang : 'ko'; }
@@ -463,10 +378,11 @@ function localizeAchievementDesc(def){
 }
 function refreshMobileTabTexts(){
   const selectors = [
-    ['[data-view="home"], [data-mobile-tab="home"]', t('mobileHome')],
-    ['[data-view="codes"], [data-mobile-tab="codes"]', t('mobileCodes')],
-    ['[data-view="shop"], [data-mobile-tab="shop"]', t('mobileShop')],
-    ['[data-view="soon"], [data-mobile-tab="coming"]', t('mobileComing')]
+    ['[data-view="home"], [data-main-view="home"], [data-mobile-tab="home"]', t('mobileHome')],
+    ['[data-view="codes"], [data-main-view="codes"], [data-mobile-tab="codes"]', t('mobileCodes')],
+    ['[data-view="shop"], [data-main-view="shop"], [data-mobile-tab="shop"]', t('mobileShop')],
+    ['[data-main-view="lab"]', t('mobileLab')],
+    ['[data-main-view="coming"]', t('mobileComing')]
   ];
   selectors.forEach(([sel, label]) => {
     document.querySelectorAll(sel).forEach(el => { el.textContent = label; });
@@ -474,25 +390,30 @@ function refreshMobileTabTexts(){
 }
 function applyLanguageToUI(){
   try{ document.documentElement.lang = getLang(); document.title = t('appTitle'); }catch(e){}
-  setText('subtitleText', t('subtitle')); setText('btnMore', t('more')); setText('moreTitle', t('moreTitle'));
+  setText('subtitleText', t('subtitle')); setText('btnMore', t('more')); setText('moreTitle', t('moreTitle')); setText('btnOpenTutorial', t('tutorialReplay'));
   setText('titleStatus', t('status')); setText('titleShop', t('shop')); setText('titleActions', t('actions')); setText('titleCodeInventory', t('codeInventory')); setText('titleCodeDetail', t('codeDetail'));
-  setText('labelLevel', t('level')); setText('labelExp', t('exp')); setText('labelCredits', t('credits')); setText('labelCpuTier', t('cpuTier')); setText('labelEnergy', t('energy')); setText('labelEnergyTimer', t('nextRecovery')); setText('labelEnergyPack', t('energyPack')); setText('labelLastSave', t('lastSave')); setText('btnUseEnergyPack', t('use'));
+  setText('labelLevel', t('level')); setText('labelExp', t('exp')); setText('labelCredits', t('credits')); setText('labelCpuTier', t('cpuTier')); setText('labelGpuTier', t('gpuTier')); setText('labelEnergy', t('energy')); setText('labelEnergyTimer', t('nextRecovery')); setText('labelEnergyPack', t('energyPack')); setText('labelLastSave', t('lastSave')); setText('btnUseEnergyPack', t('use'));
   setText('shopSortLabel', t('sort')); setText('shopCategoryLabel', t('category')); setText('shopCatAll', t('all')); setText('shopCatEnergy', t('energy')); setText('shopCatSystem', t('system')); setText('shopCatEconomy', t('economy')); setText('shopCatUtility', t('utility'));
-  setText('btnScan', t('codeScan')); setText('btnHack', t('serverHack')); setText('btnUpgradeCpu', t('cpuUpgrade')); setText('labelTargetServer', t('targetServer')); setText('labelLoadout', t('loadout')); setText('btnSaveLoadout', t('saveSlot')); setText('btnLoadLoadout', t('loadSlot')); setText('riskModeText', t('riskMode'));
+  setText('btnScan', t('codeScan')); setText('btnHack', t('serverHack')); setText('btnUpgradeCpu', t('cpuUpgrade')); setText('btnUpgradeGpu', t('gpuUpgrade')); setText('labelTargetServer', t('targetServer')); setText('labelLoadout', t('loadout')); setText('btnSaveLoadout', t('saveSlot')); setText('btnLoadLoadout', t('loadSlot')); setText('labelHackMode', t('hackMode'));
   setText('actionsDesc1', t('actionsDesc1')); setText('actionsDesc2', t('actionsDesc2')); setText('actionsDesc3', t('actionsDesc3')); setText('actionsDesc4', t('actionsDesc4'));
   setText('btnUpgradeCode', t('codeUpgrade')); setText('btnSyncCode', t('codeSync')); setText('btnEvolveCode', t('codeEvolve')); setText('codeDesc1', t('codeDesc1')); setText('codeDesc2', t('codeDesc2')); setText('codeDesc3', t('codeDesc3'));
   setText('tabBtnMission', t('mission')); setText('tabBtnAchievement', t('achievement')); setText('tabBtnCodex', t('codex')); setText('tabBtnLogs', t('logs')); setText('tabBtnSettings', t('settings')); setText('tabBtnSave', t('data'));
   setText('missionTabTitle', t('quest')); setText('achievementTabTitle', t('achievement')); setText('codexTabTitle', t('codex')); setText('logsTabTitle', t('records')); setText('settingsTabTitle', t('envSettings')); setText('saveTabTitle', t('dataManage')); setText('btnMoreClose2', t('close'));
   setText('logSearchHelp', t('logSearchHelp')); const lsi=document.getElementById('logSearchInput'); if(lsi) lsi.placeholder=t('searchPlaceholder'); setText('btnClearLogs', t('clearLogs')); const btnToggle=document.getElementById('btnToggleLogs'); if(btnToggle){ btnToggle.textContent = (window.logsHidden ? t('showLogs') : t('hideLogs')); } setText('logFilterTitle', t('logFilter'));
-  setText('labelLanguage', t('language')); setText('labelFontScale', t('fontScale')); setText('labelSnow', t('snow')); setText('labelUiScale', t('uiScale')); setText('labelAnim', t('animation')); setText('labelToastMs', t('toastTime')); setText('labelAutoSaveToast', t('autosaveToast')); setHtml('settingsHelp', t('settingsHelp'));
+  document.querySelectorAll('[data-achievement-filter="all"]').forEach(el => { el.textContent = t('achievementAll'); });
+  document.querySelectorAll('[data-achievement-filter="incomplete"]').forEach(el => { el.textContent = t('achievementIncomplete'); });
+  document.querySelectorAll('[data-achievement-filter="complete"]').forEach(el => { el.textContent = t('achievementComplete'); });
+  const showHiddenEl=document.getElementById('chkShowHiddenAchievements'); if(showHiddenEl && showHiddenEl.parentElement){ showHiddenEl.parentElement.lastChild.textContent = ' ' + t('achievementShowHidden'); }
+  setText('labelLanguage', t('language')); setText('labelFontScale', t('fontScale')); setText('labelSnow', t('snow')); setText('labelUiScale', t('uiScale')); setText('labelAnim', t('animation')); setText('labelSfx', t('sfx')); setText('labelSfxVolume', t('sfxVolume')); setText('labelToastMs', t('toastTime')); setText('labelAutoSaveToast', t('autosaveToast')); setText('labelLiveNetwork', t('liveNetwork')); setText('labelLiveNicknameMode', t('liveNicknameMode')); setHtml('settingsHelp', t('settingsHelp'));
   setText('btnSaveGame', t('saveNow')); setText('btnLoadGame', t('loadNow')); setText('btnClearSave', t('clearSave')); setText('btnExportSave', t('exportSave')); setText('btnImportSaveFile', t('importFile')); setText('importTextTitle', t('importText')); const ist=document.getElementById('importSaveText'); if(ist) ist.placeholder=t('importTextPlaceholder'); setText('btnImportSaveText', t('importTextBtn')); setHtml('saveHelp', t('saveHelp'));
   const shopSort=document.getElementById('shopSortSelect'); if(shopSort){ const map=['shopSortUpdate','shopSortNew','shopSortRarity','shopSortPrice','shopSortName']; [...shopSort.options].forEach((opt,i)=>opt.text=t(map[i])); shopSort.title=t('shopSortTitle'); }
   const codeSort=document.getElementById('codeSortSelect'); if(codeSort){ const map=['codeSortRecent','codeSortRarity','codeSortPower','codeSortLevel','codeSortName']; [...codeSort.options].forEach((opt,i)=>opt.text=t(map[i])); codeSort.title=t('codeSortTitle'); }
   const setLangEl=document.getElementById('setLanguage'); if(setLangEl){ setLangEl.title=t('languageTitle'); [...setLangEl.options].forEach(opt=>{ if(opt.value==='ko') opt.textContent = getLang()==='en' ? 'Korean' : '한국어'; if(opt.value==='en') opt.textContent = 'English'; }); }
   const setUiZoomEl=document.getElementById('setUiZoom'); if(setUiZoomEl) setUiZoomEl.title=t('uiScaleTitle');
   const setToastMsEl=document.getElementById('setToastMs'); if(setToastMsEl){ setToastMsEl.title=t('toastTitle'); [...setToastMsEl.options].forEach(opt=>{ const secs=Math.round(Number(opt.value||0)/1000); opt.textContent = `${secs}${getLang()==='en' ? ' sec' : '초'}`; }); }
-  ['setSnow','setAnim'].forEach(id=>{ const input=document.getElementById(id); if(input && input.parentElement){ input.parentElement.lastChild.textContent = ' ' + t('enabled'); } });
+  ['setSnow','setAnim','setSfx','setLiveNetwork'].forEach(id=>{ const input=document.getElementById(id); if(input && input.parentElement){ input.parentElement.lastChild.textContent = ' ' + t('enabled'); } });
   const ast=document.getElementById('setAutoSaveToast'); if(ast && ast.parentElement){ ast.parentElement.lastChild.textContent = ' ' + t('visible'); }
+  const liveNameModeEl=document.getElementById('setLiveNicknameMode'); if(liveNameModeEl){ [...liveNameModeEl.options].forEach(opt=>{ if(opt.value==='nickname') opt.textContent=t('nickname'); if(opt.value==='callsign') opt.textContent=t('callsign'); }); }
   const btnSaveGameEl=document.getElementById('btnSaveGame'); if(btnSaveGameEl) btnSaveGameEl.title=t('saveToLocal');
   const btnLoadGameEl=document.getElementById('btnLoadGame'); if(btnLoadGameEl) btnLoadGameEl.title=t('loadFromLocal');
   const btnClearSaveEl=document.getElementById('btnClearSave'); if(btnClearSaveEl) btnClearSaveEl.title=t('deleteSave');
@@ -500,6 +421,7 @@ function applyLanguageToUI(){
   const btnImportSaveFileEl=document.getElementById('btnImportSaveFile'); if(btnImportSaveFileEl) btnImportSaveFileEl.title=t('importJsonFile');
   const btnImportSaveTextEl=document.getElementById('btnImportSaveText'); if(btnImportSaveTextEl) btnImportSaveTextEl.title=t('importJsonText');
   const loadoutSelectEl=document.getElementById('loadoutSelect'); if(loadoutSelectEl){ [...loadoutSelectEl.options].forEach(opt=>{ opt.textContent=t('loadoutSlot',{n:opt.value}); }); }
+  try { renderHackModeUI(); } catch(e){}
   refreshMobileTabTexts();
   try { rerenderLogEntries(); } catch(e){}
   try { renderServers(); } catch(e){}
@@ -665,6 +587,78 @@ function applyLanguageToUI(){
           '특정 행동을 수행하면 다음 단계로 자동 진행되며, 건너뛰기 및 다시 보기를 지원합니다.',
           '튜토리얼 완료 여부와 진행 단계는 저장 데이터에 함께 보관됩니다.'
         ]
+      },
+      {
+        version: 'v1.7.0-priority1-lab',
+        lines: [
+          '메인 구조를 HOME / CODES / SHOP / MORE / LAB 5패널로 재구성했습니다.',
+          'COMING SOON을 LAB 내부 하위 패널로 이동하고 데이터 타워 프리뷰 셸을 추가했습니다.',
+          'MORE를 메인 패널로 승격하고, 튜토리얼 다시 보기를 MORE에서 실행할 수 있게 했습니다.',
+          '새 온보딩 튜토리얼 v2와 부드러운 패널 전환 스타일을 적용했습니다.'
+        ]
+      },
+      {
+        version: 'v1.8.0-stage-100',
+        lines: [
+          'LAB > 데이터 타워에 1~100 도전 구간을 정식 추가했습니다.',
+          '5개 챕터, 추천 레벨/파워/코드, 첫 클리어 보상과 반복 보상을 분리했습니다.',
+          '스테이지 클리어 기록과 최고 도달 구간을 기존 저장 데이터와 호환되도록 추가했습니다.',
+          '활성 코드, CPU 티어, 코드 동기화 보정이 데이터 타워 성공률에 반영됩니다.'
+        ]
+      },
+      {
+        version: 'v1.8.1-lab-coming',
+        lines: [
+          '중복되던 MORE 메인 패널을 제거하고 헤더 더보기 모달 전용으로 되돌렸습니다.',
+          '메인 탭 순서를 HOME / CODES / SHOP / LAB / COMING SOON으로 정리했습니다.',
+          'COMING SOON을 LAB 내부 하위 메뉴에서 독립 메인 패널로 이동했습니다.',
+          'LAB은 데이터 타워 1~100 도전 콘텐츠 중심으로 더 명확하게 정리했습니다.'
+        ]
+      },
+      {
+        version: '2.0.0',
+        lines: [
+          '숫자 버전 체계로 전환하고 HOME / CODES / SHOP / LAB / COMING SOON 구조를 2.0.0 기준으로 정리했습니다.',
+          'NORMAL / RISK / EXTREME 해킹 모드와 GPU 티어 업그레이드를 정식 추가했습니다.',
+          '데이터 타워 1~100을 10챕터 아코디언 구조로 재배치하고 첫 클리어, 반복, 챕터 보상을 분리했습니다.',
+          '신규 코드 30종과 신규 업적 100종, 업적 필터, Cloud-only 데이터 UI를 추가했습니다.'
+        ]
+      },
+      {
+        version: '2.0.1',
+        lines: [
+          'Dev 표기 없이 2.0.0 라인의 공식 패치로 효과음 시스템을 추가했습니다.',
+          '버튼, 스캔, 해킹 성공/실패, 업그레이드, 데이터 타워, 업적, 레벨업에 짧은 Web Audio 효과음을 연결했습니다.',
+          '설정 탭에서 효과음 ON/OFF와 볼륨을 저장할 수 있게 했습니다.',
+          '외부 음원 파일 없이 브라우저 내 합성음으로 처리해 GitHub Pages 로딩 부담을 줄였습니다.'
+        ]
+      },
+      {
+        version: '2.0.2',
+        lines: [
+          '모바일 화면 자동 확대를 줄이고 입력/선택 UI의 터치 안정성을 보강했습니다.',
+          '하단 메인 탭과 주요 버튼의 터치 판정을 정리해 클릭 씹힘을 줄였습니다.',
+          'LAB, COMING SOON, 튜토리얼 문구를 더 짧고 게임 안쪽 말투로 다듬었습니다.',
+          '모바일 버튼 누름 연출을 완화해 조작 중 레이아웃 흔들림을 줄였습니다.'
+        ]
+      },
+      {
+        version: '2.1.0',
+        lines: [
+          'LIVE NET 헤더, Network Pulse, Network Broadcast 허브를 추가했습니다.',
+          'Firebase 실시간 운영 문서로 공지, 노드 상태, 전역 피드, 소프트 랭킹을 표시합니다.',
+          '로그인 사용자의 presence heartbeat와 닉네임/Callsign 표시 모드를 추가했습니다.',
+          'Firebase 또는 로그인 상태가 준비되지 않으면 LOCAL MIRROR 모드로 안전하게 표시합니다.'
+        ]
+      },
+      {
+        version: '2.1.1',
+        lines: [
+          'HOME에서 ACTIONS와 Network Pulse가 겹치지 않도록 배치를 정리했습니다.',
+          'LIVE NET 기본 상태와 Firestore 권한 대기 안내를 더 명확하게 표시합니다.',
+          '모바일 터치/줌 방지 처리를 한 단계 더 보강했습니다.',
+          '데이터 타워 표시명을 정리했습니다.'
+        ]
       }
 
     ];
@@ -677,20 +671,25 @@ function applyLanguageToUI(){
       requiredExp: 20,
       credits: 0,
       cpuTier: 1,
+      gpuTier: 1,
       energy: 20,
       energyMax: 20,
       energyTimerMs: 0,
       items: { energyPack: 0 },
       lastSavedAt: null,
       lastSeenAt: null,
-      tutorial: { completed: true, step: 0, seen: true },
+      tutorial: { completed: false, step: 0, seen: false, version: TUTORIAL_VERSION },
+      stage: { selectedId: 'stage_001', chapterFilter: '1', highestCleared: 0, cleared: {}, chapterRewardsClaimed: {} },
       activeCodeId: null,
+      hackMode: 'normal',
       riskMode: false,
       missionProgress: {
         daily: {
           scans: 0,
           actions: 0,
           hackSuccess: 0,
+          riskHackSuccess: 0,
+          shopPurchases: 0,
           energySpent: 0,
           lastResetDay: null,
           completed: {}
@@ -698,6 +697,8 @@ function applyLanguageToUI(){
         weekly: {
           scans: 0,
           hackSuccess: 0,
+          riskHackSuccess: 0,
+          shopPurchases: 0,
           energySpent: 0,
           levelReached: 1,
           lastResetWeek: null,
@@ -706,6 +707,8 @@ function applyLanguageToUI(){
         month: {
           scans: 0,
           hackSuccess: 0,
+          riskHackSuccess: 0,
+          shopPurchases: 0,
           energySpent: 0,
           levelReached: 1,
           lastResetMonth: null,
@@ -717,9 +720,9 @@ function applyLanguageToUI(){
       },
       achievements: {},
       loadouts: {
-        1: { codeId: null, serverId: null, riskMode: false },
-        2: { codeId: null, serverId: null, riskMode: false },
-        3: { codeId: null, serverId: null, riskMode: false }
+        1: { codeId: null, serverId: null, hackMode: 'normal' },
+        2: { codeId: null, serverId: null, hackMode: 'normal' },
+        3: { codeId: null, serverId: null, hackMode: 'normal' }
       },
       logFilter: {
         system: true,
@@ -728,7 +731,7 @@ function applyLanguageToUI(){
         shop: true,
         level: true
       },
-      ui: { lang: 'ko', shopSortMode: 'update', shopCategory: 'all', codeSortMode: 'recent', toastDurationMs: 3000, uiZoom: 1, fontScale: 100, anim: true, autoSaveToast: false, logSearch: '', snowEnabled: null },
+      ui: { lang: 'ko', shopSortMode: 'update', shopCategory: 'all', codeSortMode: 'recent', toastDurationMs: 3000, uiZoom: 1, fontScale: 100, anim: true, sfxEnabled: true, sfxVolume: 35, autoSaveToast: false, logSearch: '', snowEnabled: null, achievementFilter: 'incomplete', showHiddenAchievements: false, liveNetworkEnabled: true, liveNicknameMode: 'nickname' },
       stats: {
         scanCount: 0,
         hackSuccessCount: 0,
@@ -737,11 +740,15 @@ function applyLanguageToUI(){
         creditsEarnedTotal: 0,
         missionsCompletedTotal: 0,
         riskHackSuccessCount: 0,
+        extremeHackSuccessCount: 0,
         codeShardsTotal: 0,
         codeUpgradeCount: 0,
         codeSyncCount: 0,
         codeEvolutionCount: 0,
-        energyPacksUsed: 0
+        energyPacksUsed: 0,
+        stageAttemptCount: 0,
+        stageClearCount: 0,
+        gpuUpgradeCount: 0
       }
     };
 
@@ -871,6 +878,246 @@ function applyLanguageToUI(){
         rarity: 'LEGENDARY',
         basePower: 34,
         description: '해킹 성공 확률 +10%p, 성공 시 크레딧 +40%를 적용합니다.'
+      },
+      scan_cache: {
+        id: 'scan_cache',
+        name: 'Scan_Cache',
+        rarity: 'COMMON',
+        basePower: 18,
+        description: '코드 스캔 시간이 8% 감소합니다.',
+        effect: { scanSpeed: 0.08 }
+      },
+      rarity_lens: {
+        id: 'rarity_lens',
+        name: 'Rarity_Lens',
+        rarity: 'UNCOMMON',
+        basePower: 20,
+        description: '코드 스캔 시 RARE 이상 보정이 소폭 증가합니다.',
+        effect: { scanRareBoost: 0.12 }
+      },
+      shard_magnet: {
+        id: 'shard_magnet',
+        name: 'Shard_Magnet',
+        rarity: 'UNCOMMON',
+        basePower: 19,
+        description: '중복 코드 조각 획득량 +1.',
+        effect: { scanShardBonus: 1 }
+      },
+      deep_indexer: {
+        id: 'deep_indexer',
+        name: 'Deep_Indexer',
+        rarity: 'RARE',
+        basePower: 23,
+        description: '코드 스캔 EXP +2, 스캔 시간이 10% 감소합니다.',
+        effect: { scanExpBonus: 2, scanSpeed: 0.1 }
+      },
+      prism_crawler: {
+        id: 'prism_crawler',
+        name: 'Prism_Crawler',
+        rarity: 'EPIC',
+        basePower: 27,
+        description: '코드 스캔 시 EPIC 이상 보정과 중복 조각 보너스를 제공합니다.',
+        effect: { scanRareBoost: 0.22, scanShardBonus: 2 }
+      },
+      oracle_spider: {
+        id: 'oracle_spider',
+        name: 'Oracle_Spider',
+        rarity: 'LEGENDARY',
+        basePower: 32,
+        description: '코드 스캔 시간이 18% 감소하고 LEGENDARY 탐색 보정이 증가합니다.',
+        effect: { scanSpeed: 0.18, scanRareBoost: 0.35, scanExpBonus: 3 }
+      },
+      signal_anchor: {
+        id: 'signal_anchor',
+        name: 'Signal_Anchor',
+        rarity: 'COMMON',
+        basePower: 18,
+        description: '해킹 성공 확률 +2%p.',
+        effect: { hackChance: 0.02 }
+      },
+      kernel_probe: {
+        id: 'kernel_probe',
+        name: 'Kernel_Probe',
+        rarity: 'UNCOMMON',
+        basePower: 21,
+        description: '대상 서버 보안 -7%.',
+        effect: { serverSecurityMult: 0.93 }
+      },
+      handshake_forge: {
+        id: 'handshake_forge',
+        name: 'Handshake_Forge',
+        rarity: 'UNCOMMON',
+        basePower: 20,
+        description: '해킹 성공 확률 +4%p.',
+        effect: { hackChance: 0.04 }
+      },
+      exploit_router: {
+        id: 'exploit_router',
+        name: 'Exploit_Router',
+        rarity: 'RARE',
+        basePower: 24,
+        description: '해킹 성공 확률 +7%p, 대상 서버 보안 -5%.',
+        effect: { hackChance: 0.07, serverSecurityMult: 0.95 }
+      },
+      zero_day_seed: {
+        id: 'zero_day_seed',
+        name: 'ZeroDay_Seed',
+        rarity: 'EPIC',
+        basePower: 29,
+        description: '해킹 성공 확률 +11%p.',
+        effect: { hackChance: 0.11 }
+      },
+      root_oracle: {
+        id: 'root_oracle',
+        name: 'Root_Oracle',
+        rarity: 'LEGENDARY',
+        basePower: 35,
+        description: '해킹 성공 확률 +14%p, CPU 보정 효율이 소폭 증가합니다.',
+        effect: { hackChance: 0.14, cpuPowerBonus: 0.02 }
+      },
+      coin_tap: {
+        id: 'coin_tap',
+        name: 'Coin_Tap',
+        rarity: 'COMMON',
+        basePower: 17,
+        description: '해킹 성공 시 크레딧 +10%.',
+        effect: { creditBonus: 0.1 }
+      },
+      bounty_hook: {
+        id: 'bounty_hook',
+        name: 'Bounty_Hook',
+        rarity: 'UNCOMMON',
+        basePower: 20,
+        description: '해킹 성공 시 크레딧 +18%.',
+        effect: { creditBonus: 0.18 }
+      },
+      exp_stream: {
+        id: 'exp_stream',
+        name: 'EXP_Stream',
+        rarity: 'UNCOMMON',
+        basePower: 19,
+        description: '해킹 성공 시 EXP +15%.',
+        effect: { expBonus: 0.15 }
+      },
+      vault_siphon: {
+        id: 'vault_siphon',
+        name: 'Vault_Siphon',
+        rarity: 'RARE',
+        basePower: 24,
+        description: '해킹 성공 시 크레딧 +25%, EXP +10%.',
+        effect: { creditBonus: 0.25, expBonus: 0.1 }
+      },
+      reward_kernel: {
+        id: 'reward_kernel',
+        name: 'Reward_Kernel',
+        rarity: 'EPIC',
+        basePower: 28,
+        description: '해킹 성공 시 크레딧 +35%, EXP +18%.',
+        effect: { creditBonus: 0.35, expBonus: 0.18 }
+      },
+      jackpot_daemon: {
+        id: 'jackpot_daemon',
+        name: 'Jackpot_Daemon',
+        rarity: 'LEGENDARY',
+        basePower: 33,
+        description: '해킹 성공 시 크레딧 +50%, EXP +25%.',
+        effect: { creditBonus: 0.5, expBonus: 0.25 }
+      },
+      risk_buffer: {
+        id: 'risk_buffer',
+        name: 'Risk_Buffer',
+        rarity: 'COMMON',
+        basePower: 18,
+        description: 'RISK/EXTREME 실패 페널티를 아주 조금 완화합니다.',
+        effect: { riskPenaltyReduction: 0.02, extremePenaltyReduction: 0.01 }
+      },
+      trace_anchor: {
+        id: 'trace_anchor',
+        name: 'Trace_Anchor',
+        rarity: 'UNCOMMON',
+        basePower: 21,
+        description: 'RISK 성공률 페널티 -4%p.',
+        effect: { riskPenaltyReduction: 0.04 }
+      },
+      extreme_buffer: {
+        id: 'extreme_buffer',
+        name: 'Extreme_Buffer',
+        rarity: 'UNCOMMON',
+        basePower: 20,
+        description: 'EXTREME 성공률 페널티 -3%p.',
+        effect: { extremePenaltyReduction: 0.03 }
+      },
+      overclock_guard: {
+        id: 'overclock_guard',
+        name: 'Overclock_Guard',
+        rarity: 'RARE',
+        basePower: 24,
+        description: 'RISK/EXTREME 성공률 페널티를 완화합니다.',
+        effect: { riskPenaltyReduction: 0.05, extremePenaltyReduction: 0.04 }
+      },
+      abyss_contract: {
+        id: 'abyss_contract',
+        name: 'Abyss_Contract',
+        rarity: 'EPIC',
+        basePower: 29,
+        description: 'EXTREME 성공 시 크레딧 +25%, EXP +15%.',
+        effect: { extremeCreditBonus: 0.25, extremeExpBonus: 0.15 }
+      },
+      singular_gambit: {
+        id: 'singular_gambit',
+        name: 'Singular_Gambit',
+        rarity: 'LEGENDARY',
+        basePower: 36,
+        description: 'EXTREME 페널티를 크게 줄이고 성공 보상을 증폭합니다.',
+        effect: { extremePenaltyReduction: 0.08, extremeCreditBonus: 0.35, extremeExpBonus: 0.2 }
+      },
+      stage_marker: {
+        id: 'stage_marker',
+        name: 'Tower_Marker',
+        rarity: 'COMMON',
+        basePower: 18,
+        description: '데이터 타워 성공률 +2%p.',
+        effect: { stageChance: 0.02 }
+      },
+      chapter_key: {
+        id: 'chapter_key',
+        name: 'Chapter_Key',
+        rarity: 'UNCOMMON',
+        basePower: 21,
+        description: '데이터 타워 반복 보상 크레딧 +10%.',
+        effect: { stageRepeatCreditBonus: 0.1 }
+      },
+      trial_compass: {
+        id: 'trial_compass',
+        name: 'Trial_Compass',
+        rarity: 'UNCOMMON',
+        basePower: 20,
+        description: '데이터 타워 성공률 +4%p.',
+        effect: { stageChance: 0.04 }
+      },
+      boss_keygen: {
+        id: 'boss_keygen',
+        name: 'Boss_Keygen',
+        rarity: 'RARE',
+        basePower: 25,
+        description: '보스 데이터 타워 성공률 +8%p.',
+        effect: { bossStageChance: 0.08 }
+      },
+      repeat_engine: {
+        id: 'repeat_engine',
+        name: 'Repeat_Engine',
+        rarity: 'EPIC',
+        basePower: 30,
+        description: '데이터 타워 반복 보상 크레딧 +20%, EXP +12%.',
+        effect: { stageRepeatCreditBonus: 0.2, stageRepeatExpBonus: 0.12 }
+      },
+      stage_sovereign: {
+        id: 'stage_sovereign',
+        name: 'Tower_Sovereign',
+        rarity: 'LEGENDARY',
+        basePower: 37,
+        description: '데이터 타워 성공률과 반복 보상을 크게 강화합니다.',
+        effect: { stageChance: 0.08, bossStageChance: 0.08, stageRepeatCreditBonus: 0.3, stageRepeatExpBonus: 0.18 }
       }
     };
 
@@ -1238,6 +1485,19 @@ function applyLanguageToUI(){
 ]
     };
 
+    missionDefs.general.push(
+      { id: 'gen_gpu_3', name: 'GPU 점화', type: 'gpuTier', target: 3, rewardCredits: 220, desc: 'GPU 티어 3 달성' },
+      { id: 'gen_gpu_5', name: '렌더 가속', type: 'gpuTier', target: 5, rewardCredits: 420, desc: 'GPU 티어 5 달성' },
+      { id: 'gen_gpu_10', name: '그래픽스 오버드라이브', type: 'gpuTier', target: 10, rewardCredits: 900, desc: 'GPU 티어 10 달성' },
+      { id: 'gen_hybrid_5', name: '듀얼 파이프라인', type: 'hybridTier', target: 5, rewardCredits: 700, desc: 'CPU와 GPU를 모두 티어 5 이상 달성' },
+      { id: 'gen_hybrid_10', name: '하이브리드 머신', type: 'hybridTier', target: 10, rewardCredits: 1400, desc: 'CPU와 GPU를 모두 티어 10 이상 달성' },
+      { id: 'gen_extreme_10', name: '익스트림 입문', type: 'extremeHackSuccess', target: 10, rewardCredits: 500, desc: 'EXTREME 해킹 성공 10회' },
+      { id: 'gen_extreme_25', name: '익스트림 러너', type: 'extremeHackSuccess', target: 25, rewardCredits: 850, desc: 'EXTREME 해킹 성공 25회' },
+      { id: 'gen_stage_25', name: '타워 러너', type: 'stageHighest', target: 25, rewardCredits: 650, desc: '데이터 타워 25까지 클리어' },
+      { id: 'gen_stage_50', name: '챕터 브레이커', type: 'stageHighest', target: 50, rewardCredits: 1100, desc: '데이터 타워 50까지 클리어' },
+      { id: 'gen_stage_100', name: '데이터 타워 정복자', type: 'stageHighest', target: 100, rewardCredits: 2200, desc: '데이터 타워 100까지 클리어' }
+    );
+
     // 경제/성장 너프 2차: 미션/업적 연계 보상 축소
     const missionRewardNerfByScope = { daily: 0.75, weekly: 0.7, month: 0.65, general: 0.6 };
     Object.entries(missionDefs).forEach(([scope, defs]) => {
@@ -1335,12 +1595,115 @@ function applyLanguageToUI(){
     ];
     achievementDefs.push(...extraAchievementDefs);
 
+    function createAchievementSeries(prefix, metric, targets, names, descTemplate, hiddenStart = targets.length, hardStart = Math.ceil(targets.length * 0.7)) {
+      return targets.map((target, index) => ({
+        id: `${prefix}_${index + 1}`,
+        name: names[index],
+        desc: descTemplate.replace('{v}', target),
+        difficulty: index >= hardStart ? 'hard' : (index >= Math.ceil(targets.length * 0.35) ? 'normal' : 'easy'),
+        hidden: index >= hiddenStart,
+        metric,
+        target
+      }));
+    }
+
+    const v200AchievementDefs = [
+      // 진행 8
+      ...createAchievementSeries('v200_progress', 'level', [5, 10, 15, 20, 25, 30, 40, 50],
+        ['새 셸 적응', '운영자 루틴', '성장 파형', '코어 숙련', '상위 접근자', '시스템 파일럿', '하이 레벨러', '메이저 러너'],
+        '플레이어 레벨 {v}에 도달했습니다.', 6),
+
+      // 스캔 8
+      ...createAchievementSeries('v200_scan', 'scans', [50, 100, 200, 350, 500, 800, 1200, 2000],
+        ['스캔 재개', '패턴 리더', '딥 크롤러', '희귀도 탐색자', '신호 수집가', '프리즘 분석가', '오라클 스캐너', '스캔 오버런'],
+        '코드 스캔을 {v}회 수행했습니다.', 6),
+
+      // 일반 해킹 8
+      ...createAchievementSeries('v200_hack', 'hackSuccess', [20, 50, 100, 200, 400, 700, 1000, 1500],
+        ['침투 재시동', '세션 브레이커', '루트 루틴', '서버 리퍼', '침입 아키텍트', '코어 침투자', '블랙박스 오퍼레이터', '시스템 체이서'],
+        '서버 해킹 성공 {v}회를 달성했습니다.', 6),
+
+      // RISK 8
+      ...createAchievementSeries('v200_risk', 'riskHackSuccess', [5, 15, 30, 60, 100, 150, 220, 300],
+        ['리스크 점화', '위험 감각', '레드 라인', '트레이스 워커', '위험 설계자', '고압 루틴', '불안정한 승부사', '리스크 코어'],
+        'RISK 해킹 성공 {v}회를 달성했습니다.', 5),
+
+      // EXTREME 10
+      ...createAchievementSeries('v200_extreme', 'extremeHackSuccess', [1, 5, 10, 25, 50, 80, 120, 180, 250, 350],
+        ['익스트림 진입', '극한 감각', '레드존 성공', '어비스 러너', '고위험 처리자', '한계 해킹', '익스트림 설계자', '딥 리스크', '오버드라이브 해커', '익스트림 코어'],
+        'EXTREME 해킹 성공 {v}회를 달성했습니다.', 6),
+
+      // 상점/경제 8
+      ...createAchievementSeries('v200_shop', 'shopPurchases', [5, 15, 30, 60],
+        ['조달 시작', '상점 루틴', '보급 설계', '경제 운영자'],
+        '상점에서 {v}회 구매했습니다.', 3),
+      ...createAchievementSeries('v200_economy', 'creditsEarnedTotal', [5000, 25000, 100000, 500000],
+        ['크레딧 점화', '보상 회로', '데이터 자본', '크레딧 아카이브'],
+        '누적 획득 크레딧 {v}을 달성했습니다.', 3),
+
+      // 코드 수집/성장 14
+      ...createAchievementSeries('v200_codex', 'codexCount', [10, 20, 30, 40, Object.keys(codeDefs).length],
+        ['도감 확장 I', '도감 확장 II', '도감 확장 III', '도감 확장 IV', '2.0.0 도감 완성'],
+        '코드 도감에서 {v}종을 발견했습니다.', 4),
+      ...createAchievementSeries('v200_power', 'highestPower', [60, 100, 160],
+        ['파워 라인', '고출력 코드', '코어 파워'],
+        '코드 파워 {v} 이상을 달성했습니다.', 2),
+      ...createAchievementSeries('v200_code_upgrade', 'codeUpgradeCount', [10, 30, 75],
+        ['강화 재개', '강화 회로', '강화 매니폴드'],
+        '코드를 누적 {v}회 강화했습니다.', 2),
+      ...createAchievementSeries('v200_code_sync', 'codeSyncCount', [10, 30, 60],
+        ['동기화 재개', '동기화 회로', '싱크 매니폴드'],
+        '코드를 누적 {v}회 동기화했습니다.', 2),
+
+      // CPU/GPU/하이브리드 12
+      ...createAchievementSeries('v200_cpu', 'cpuTier', [3, 5, 10, 15],
+        ['CPU 안정화', 'CPU 제어선', 'CPU 코어 확장', 'CPU 컨트롤러'],
+        'CPU 티어 {v}을 달성했습니다.', 3),
+      ...createAchievementSeries('v200_gpu', 'gpuTier', [3, 5, 10, 15],
+        ['GPU 점화', '렌더 가속', '그래픽스 오버드라이브', 'GPU 코어 확장'],
+        'GPU 티어 {v}을 달성했습니다.', 3),
+      ...createAchievementSeries('v200_hybrid', 'hybridTier', [3, 5, 10, 15],
+        ['듀얼 파이프라인 I', '듀얼 파이프라인 II', '하이브리드 머신', '하이브리드 코어'],
+        'CPU와 GPU를 모두 티어 {v} 이상으로 올렸습니다.', 3),
+
+      // Data Tower 16
+      ...createAchievementSeries('v200_stage', 'stageHighest', [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        ['챕터 1 클리어', '챕터 2 클리어', '챕터 3 클리어', '챕터 4 클리어', '챕터 5 클리어', '챕터 6 클리어', '챕터 7 클리어', '챕터 8 클리어', '챕터 9 클리어', '데이터 타워 100 클리어'],
+        '데이터 타워 {v}까지 클리어했습니다.', 8),
+      ...createAchievementSeries('v200_stage_repeat', 'stageClearCount', [25, 50, 100, 200],
+        ['타워 반복 I', '타워 반복 II', '타워 반복 III', '타워 반복 IV'],
+        '데이터 타워를 누적 {v}회 클리어했습니다.', 3),
+      ...createAchievementSeries('v200_chapter_reward', 'chapterRewardCount', [5, 10],
+        ['챕터 보상 수집가', '챕터 보상 완성'],
+        '챕터 클리어 보상을 {v}개 수령했습니다.', 1),
+
+      // 히든/특수 8
+      ...createAchievementSeries('v200_hidden_energy', 'energySpentTotal', [2000],
+        ['숨은 과열'], '에너지를 누적 {v} 소모했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_pack', 'energyPacksUsed', [10],
+        ['비상 보급 전문가'], '에너지 팩을 {v}회 사용했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_legend', 'legendaryCount', [3],
+        ['전설의 회로'], 'LEGENDARY 코드를 {v}종 확보했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_epic', 'epicPlusCount', [10],
+        ['고등급 컬렉터'], 'EPIC 이상 코드를 {v}종 확보했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_codex', 'codexCount', [Object.keys(codeDefs).length],
+        ['완전한 도감'], '현재 코드 도감 전체를 발견했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_stage_repeat', 'stageClearCount', [500],
+        ['반복의 미학'], '데이터 타워를 누적 {v}회 클리어했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_extreme', 'extremeHackSuccess', [500],
+        ['극한의 끝'], 'EXTREME 해킹 성공 {v}회를 달성했습니다.', 0),
+      ...createAchievementSeries('v200_hidden_mission', 'missionsCompleted', [200],
+        ['퀘스트 아카이브'], '퀘스트를 누적 {v}개 완료했습니다.', 0)
+    ].map(def => def.id.startsWith('v200_hidden_') ? { ...def, hidden: true, difficulty: 'hard' } : def);
+
+    achievementDefs.push(...v200AchievementDefs);
+
     function applyAchievementRetune() {
       const overrides = {
         first_hack_success: ['처음으로 서버 해킹에 성공했습니다.', 'easy'],
         reach_level3: ['플레이어 레벨 9에 도달했습니다.', 'normal'],
         scan_10: ['코드 스캔을 30회 수행했습니다.', 'normal'],
-        shop_first_buy: ['상점에서 3회 구매했습니다.', 'normal'],
+        shop_first_buy: ['상점에서 처음으로 아이템을 구매했습니다.', 'easy'],
         energy_zero: ['에너지를 0까지 모두 소모했습니다.', 'easy'],
         collector_beginner: ['서로 다른 코드를 9개 이상 보유했습니다.', 'hard'],
         daily_mission_clear1: ['데일리 퀘스트를 3개 이상 완료했습니다.', 'normal'],
@@ -1410,21 +1773,26 @@ function applyLanguageToUI(){
         achievement_total_: '업적 {v}개를 달성했습니다.'
       };
 
+      function getThresholdRetune(defId) {
+        for (const [prefix, values] of Object.entries(thresholdGroups)) {
+          if (!defId.startsWith(prefix)) continue;
+          const matchingDefs = extraAchievementDefs.filter(x => x.id.startsWith(prefix));
+          const pos = matchingDefs.findIndex(x => x.id === defId);
+          if (pos < 0) return null;
+          return { prefix, value: values[pos] };
+        }
+        return null;
+      }
+
       achievementDefs.forEach(def => {
         if (overrides[def.id]) {
           def.desc = overrides[def.id][0];
           def.difficulty = overrides[def.id][1];
           return;
         }
-        for (const [prefix, values] of Object.entries(thresholdGroups)) {
-          const idx = values.findIndex((_, i) => def.id === `${prefix}${def.id.slice(prefix.length)}`);
-          if (def.id.startsWith(prefix)) {
-            const suffix = def.id.slice(prefix.length);
-            const pos = (thresholdGroups[prefix] || []).findIndex((_, i) => String(extraAchievementDefs.filter(x => x.id.startsWith(prefix))[i]?.id.slice(prefix.length) || '') === suffix);
-            const newValue = pos >= 0 ? thresholdGroups[prefix][pos] : null;
-            if (newValue != null && labelMap[prefix]) def.desc = labelMap[prefix].replace('{v}', newValue);
-            break;
-          }
+        const retune = getThresholdRetune(def.id);
+        if (retune && retune.value != null && labelMap[retune.prefix]) {
+          def.desc = labelMap[retune.prefix].replace('{v}', retune.value);
         }
       });
       const codexAll = achievementDefs.find(def => def.id === 'codex_total_6');
@@ -1438,6 +1806,7 @@ function applyLanguageToUI(){
     const statExp = document.getElementById('statExp');
     const statCredits = document.getElementById('statCredits');
     const statCpuTier = document.getElementById('statCpuTier');
+    const statGpuTier = document.getElementById('statGpuTier');
     const statEnergyValue = document.getElementById('statEnergyValue');
     const statEnergyTimer = document.getElementById('statEnergyTimer');
     const statEnergyPack = document.getElementById('statEnergyPack');
@@ -1450,6 +1819,7 @@ function applyLanguageToUI(){
     const btnScan = document.getElementById('btnScan');
     const btnHack = document.getElementById('btnHack');
     const btnUpgradeCpu = document.getElementById('btnUpgradeCpu');
+    const btnUpgradeGpu = document.getElementById('btnUpgradeGpu');
     const btnUpgradeCode = document.getElementById('btnUpgradeCode');
     const btnSyncCode = document.getElementById('btnSyncCode');
     const btnEvolveCode = document.getElementById('btnEvolveCode');
@@ -1488,10 +1858,14 @@ function applyLanguageToUI(){
 
     const missionListEl = document.getElementById('missionList');
     const achievementListEl = document.getElementById('achievementList');
+    const achievementFilterButtons = document.querySelectorAll('[data-achievement-filter]');
+    const chkShowHiddenAchievements = document.getElementById('chkShowHiddenAchievements');
     const codexListEl = document.getElementById('codexList');
     const codexSummaryEl = document.getElementById('codexSummary');
 
     const chkRiskMode = document.getElementById('chkRiskMode');
+    const hackModeButtons = document.querySelectorAll('[data-hack-mode]');
+    const hackModeHint = document.getElementById('hackModeHint');
     const loadoutSelect = document.getElementById('loadoutSelect');
     const btnSaveLoadout = document.getElementById('btnSaveLoadout');
     const btnLoadLoadout = document.getElementById('btnLoadLoadout');
@@ -1530,8 +1904,13 @@ function applyLanguageToUI(){
     const setSnow = document.getElementById('setSnow');
     const setUiZoom = document.getElementById('setUiZoom');
     const setAnim = document.getElementById('setAnim');
+    const setSfx = document.getElementById('setSfx');
+    const setSfxVolume = document.getElementById('setSfxVolume');
+    const setSfxVolumeLabel = document.getElementById('setSfxVolumeLabel');
     const setToastMs = document.getElementById('setToastMs');
     const setAutoSaveToast = document.getElementById('setAutoSaveToast');
+    const setLiveNetwork = document.getElementById('setLiveNetwork');
+    const setLiveNicknameMode = document.getElementById('setLiveNicknameMode');
 
     const tutorialBackdrop = document.getElementById('tutorialBackdrop');
     const tutorialStepLabel = document.getElementById('tutorialStepLabel');
@@ -1550,50 +1929,52 @@ function applyLanguageToUI(){
     const importSaveText = document.getElementById('importSaveText');
     const btnImportSaveText = document.getElementById('btnImportSaveText');
 
+    function bind(el, type, handler, options) {
+      if (el && typeof el.addEventListener === 'function') {
+        el.addEventListener(type, handler, options);
+      }
+    }
+
+    function setNodeText(el, value) {
+      if (el) el.textContent = value;
+    }
+
+    function setNodeDisabled(el, disabled) {
+      if (el) el.disabled = !!disabled;
+    }
+
+    function setNodeDisplay(el, value) {
+      if (el) el.style.display = value;
+    }
+
     // 상태
     let missionScopeActive = 'daily';
     let logsHidden = false;
     let scanRunning = false;
     let tutorialOpenedOnce = false;
 
-    const tutorialSteps = [
-      {
-        title: '환영합니다',
-        text: 'HCSiG에 오신 것을 환영합니다. 이 튜토리얼은 첫 플레이에서 필요한 핵심 루프만 짧게 안내합니다.',
-        hint: '다음 버튼을 눌러 진행하세요.',
-        waitAction: false
-      },
-      {
-        title: 'HOME 확인',
-        text: '여기서는 레벨, 경험치, 크레딧, 에너지, CPU 상태를 확인하고 주요 행동을 실행할 수 있습니다.',
-        hint: '상태를 확인했다면 다음 단계로 이동하세요.',
-        waitAction: false
-      },
-      {
-        title: '코드 스캔 실행',
-        text: '먼저 코드 스캔을 1회 실행해 보세요. 스캔은 새로운 코드를 찾거나 기존 코드를 강화하는 출발점입니다.',
-        hint: 'HOME의 [코드 스캔] 버튼을 눌러 주세요. 완료되면 자동으로 다음 단계로 넘어갑니다.',
-        waitAction: true
-      },
-      {
-        title: '코드 선택',
-        text: '획득한 코드는 코드 인벤토리에서 확인할 수 있습니다. 코드를 눌러 활성 코드로 바꾸고 상세 정보를 확인해 보세요.',
-        hint: '코드 인벤토리의 항목을 한 번 클릭하면 자동으로 다음 단계로 넘어갑니다.',
-        waitAction: true
-      },
-      {
-        title: '서버 해킹',
-        text: '선택한 코드와 CPU 성능을 바탕으로 서버 해킹을 시도할 수 있습니다. 해킹은 크레딧과 성장의 핵심 루프입니다.',
-        hint: 'HOME의 [서버 해킹] 버튼을 눌러 1회 시도해 보세요. 성공 여부와 관계없이 다음 단계로 진행됩니다.',
-        waitAction: true
-      },
-      {
-        title: '성장과 상점',
-        text: '크레딧을 모아 CPU를 업그레이드하고, 상점을 활용해 성장 속도를 조절할 수 있습니다. 이제 기본 흐름을 모두 익혔습니다.',
-        hint: '시작하기를 누르면 튜토리얼이 종료되고 자유 플레이로 전환됩니다.',
-        waitAction: false
+    function getTutorialSteps() {
+      if (getLang() === 'en') {
+        return [
+          { title: 'Start', text: 'Scan a code, pick it, then hack. Data Tower starts from LAB.', hint: 'Tap Next.' },
+          { title: 'HOME', text: 'Check energy, choose a server, set NORMAL/RISK/EXTREME, and upgrade CPU or GPU.', hint: 'CPU helps control. GPU boosts repeat rewards.' },
+          { title: 'CODES', text: 'Manage code upgrades, sync, evolution, and the active code.', hint: 'The active code drives hacking and Data Tower.' },
+          { title: 'SHOP', text: 'Buy energy, system, economy, and utility items.', hint: 'Use filters when the list gets long.' },
+          { title: 'LAB', text: 'Open Data Tower 1-100 here. Each chapter can be folded.', hint: 'First clear, repeat clear, and chapter rewards are separate.' },
+          { title: 'COMING SOON', text: 'Future modes and season content will land here.', hint: 'Cloud account tools are in More.' },
+          { title: 'Ready', text: 'NORMAL is steady. RISK pays more. EXTREME opens at Lv.5.', hint: 'Tap Start.' }
+        ];
       }
-    ];
+      return [
+        { title: '시작', text: '코드를 스캔하고, 하나를 고른 뒤 서버를 해킹합니다. 데이터 타워는 LAB에서 시작합니다.', hint: '다음을 누르세요.' },
+        { title: 'HOME', text: '에너지, 서버, 해킹 난이도, CPU/GPU 업그레이드를 관리합니다.', hint: 'CPU는 제어, GPU는 반복 보상입니다.' },
+        { title: 'CODES', text: '코드 강화, 동기화, 진화, 활성 코드를 관리합니다.', hint: '활성 코드가 해킹과 데이터 타워에 쓰입니다.' },
+        { title: 'SHOP', text: '에너지, 시스템, 경제, 유틸 아이템을 구매합니다.', hint: '목록이 길면 분류를 쓰세요.' },
+        { title: 'LAB', text: '데이터 타워 1~100을 진행합니다. 챕터는 접고 펼칠 수 있습니다.', hint: '첫 클리어, 반복, 챕터 보상은 따로 계산됩니다.' },
+        { title: 'COMING SOON', text: '다음 모드와 시즌 콘텐츠가 이곳에 들어옵니다.', hint: '클라우드 계정은 더보기에서 관리합니다.' },
+        { title: '준비 완료', text: 'NORMAL은 안정적입니다. RISK는 보상이 큽니다. EXTREME은 Lv.5부터 열립니다.', hint: '시작하기를 누르세요.' }
+      ];
+    }
 
     function getDayKey() {
       return new Date().toISOString().slice(0, 10);
@@ -1608,11 +1989,18 @@ function applyLanguageToUI(){
 
     function ensureTutorialDefaults() {
       state.tutorial = state.tutorial || {};
-      if (typeof state.tutorial.completed !== 'boolean') state.tutorial.completed = true;
+      if (state.tutorial.version !== TUTORIAL_VERSION) {
+        state.tutorial.version = TUTORIAL_VERSION;
+        state.tutorial.completed = false;
+        state.tutorial.seen = false;
+        state.tutorial.step = 0;
+      }
+      if (typeof state.tutorial.completed !== 'boolean') state.tutorial.completed = false;
       if (!Number.isInteger(state.tutorial.step)) state.tutorial.step = 0;
       if (state.tutorial.step < 0) state.tutorial.step = 0;
+      const tutorialSteps = getTutorialSteps();
       if (state.tutorial.step >= tutorialSteps.length) state.tutorial.step = tutorialSteps.length - 1;
-      if (typeof state.tutorial.seen !== 'boolean') state.tutorial.seen = true;
+      if (typeof state.tutorial.seen !== 'boolean') state.tutorial.seen = false;
     }
 
     function isTutorialOpen() {
@@ -1622,41 +2010,55 @@ function applyLanguageToUI(){
     function renderTutorial() {
       if (!tutorialBackdrop) return;
       ensureTutorialDefaults();
+      const tutorialSteps = getTutorialSteps();
       const idx = Math.min(Math.max(0, state.tutorial.step || 0), tutorialSteps.length - 1);
       const step = tutorialSteps[idx];
-      tutorialStepLabel.textContent = `STEP ${idx + 1} / ${tutorialSteps.length}`;
-      tutorialStepTitle.textContent = step.title;
-      tutorialStepText.textContent = step.text;
-      tutorialStepHint.textContent = step.hint || '';
-      tutorialStepHint.style.display = step.hint ? '' : 'none';
+      setNodeText(tutorialStepLabel, `STEP ${idx + 1} / ${tutorialSteps.length}`);
+      setNodeText(tutorialStepTitle, step.title);
+      setNodeText(tutorialStepText, step.text);
+      setNodeText(tutorialStepHint, step.hint || '');
+      setNodeText(btnTutorialPrev, getLang() === 'en' ? 'Back' : '이전');
+      setNodeText(btnTutorialNext, getLang() === 'en' ? 'Next' : '다음');
+      setNodeText(btnTutorialFinish, getLang() === 'en' ? 'Start' : '시작하기');
+      setNodeText(btnTutorialSkip, getLang() === 'en' ? 'Skip' : '건너뛰기');
+      setNodeDisplay(tutorialStepHint, step.hint ? '' : 'none');
       const interactive = !!step.waitAction;
       tutorialBackdrop.classList.toggle('interactive', interactive);
       document.body.classList.toggle('tutorial-interactive', interactive && isTutorialOpen());
-      btnTutorialPrev.disabled = idx <= 0;
+      setNodeDisabled(btnTutorialPrev, idx <= 0);
       const waiting = interactive;
-      btnTutorialNext.style.display = idx === tutorialSteps.length - 1 ? 'none' : '';
-      btnTutorialNext.disabled = waiting;
-      btnTutorialFinish.style.display = idx === tutorialSteps.length - 1 ? '' : 'none';
+      setNodeDisplay(btnTutorialNext, idx === tutorialSteps.length - 1 ? 'none' : '');
+      setNodeDisabled(btnTutorialNext, waiting);
+      setNodeDisplay(btnTutorialFinish, idx === tutorialSteps.length - 1 ? '' : 'none');
     }
 
     function openTutorial(forceRestart = false) {
       state.tutorial = state.tutorial || {};
-      state.tutorial.completed = true;
+      ensureTutorialDefaults();
+      if (forceRestart) {
+        state.tutorial.step = 0;
+        state.tutorial.completed = false;
+      }
       state.tutorial.seen = true;
       if (tutorialBackdrop) {
-        tutorialBackdrop.classList.remove('show');
+        tutorialBackdrop.classList.add('show');
         tutorialBackdrop.classList.remove('interactive');
-        tutorialBackdrop.setAttribute('aria-hidden', 'true');
+        tutorialBackdrop.setAttribute('aria-hidden', 'false');
       }
-      document.body.classList.remove('tutorial-open');
+      document.body.classList.add('tutorial-open');
       document.body.classList.remove('tutorial-interactive');
+      tutorialOpenedOnce = true;
+      renderTutorial();
+      saveGame(true);
     }
 
     function closeTutorial(markCompleted = false) {
       if (!tutorialBackdrop) return;
       if (markCompleted) {
         state.tutorial.completed = true;
-        state.tutorial.step = tutorialSteps.length - 1;
+        state.tutorial.seen = true;
+        state.tutorial.version = TUTORIAL_VERSION;
+        state.tutorial.step = getTutorialSteps().length - 1;
       }
       tutorialBackdrop.classList.remove('show');
       tutorialBackdrop.classList.remove('interactive');
@@ -1668,6 +2070,7 @@ function applyLanguageToUI(){
 
     function nextTutorialStep() {
       ensureTutorialDefaults();
+      const tutorialSteps = getTutorialSteps();
       if (state.tutorial.step < tutorialSteps.length - 1) {
         state.tutorial.step += 1;
         renderTutorial();
@@ -1684,42 +2087,107 @@ function applyLanguageToUI(){
     }
 
     function onTutorialAction(action) {
-      state.tutorial = state.tutorial || {};
-      state.tutorial.completed = true;
-      return;
+      if (!isTutorialOpen()) return;
+      ensureTutorialDefaults();
+      const step = getTutorialSteps()[state.tutorial.step || 0];
+      if (step && step.waitAction === action) nextTutorialStep();
     }
 
     function maybeStartTutorial() {
-      state.tutorial = state.tutorial || {};
-      state.tutorial.completed = true;
-      state.tutorial.seen = true;
-      return;
+      ensureTutorialDefaults();
+      if (!tutorialOpenedOnce && !state.tutorial.completed && !state.tutorial.seen) {
+        openTutorial(false);
+      }
+    }
+
+    function normalizeHackMode(mode) {
+      if (mode === 'risk' || mode === 'extreme' || mode === 'normal') return mode;
+      return state.riskMode ? 'risk' : 'normal';
+    }
+
+    function getHackModeInfo(mode = state.hackMode) {
+      const current = normalizeHackMode(mode);
+      if (current === 'extreme') {
+        return {
+          id: 'extreme',
+          label: 'EXTREME',
+          minLevel: 5,
+          chancePenalty: 0.35,
+          creditMultiplier: 3,
+          expMultiplier: 1.5,
+          failEnergyPenalty: 2,
+          hintKo: 'EXTREME: Lv.5+, 성공률 -35%p, 크레딧 ×3, EXP ×1.5, 실패 시 에너지 추가 -2',
+          hintEn: 'EXTREME: Lv.5+, success -35%p, credits ×3, EXP ×1.5, failure costs +2 energy'
+        };
+      }
+      if (current === 'risk') {
+        return {
+          id: 'risk',
+          label: 'RISK',
+          minLevel: 1,
+          chancePenalty: 0.15,
+          creditMultiplier: 2,
+          expMultiplier: 1,
+          failEnergyPenalty: 1,
+          hintKo: 'RISK: 성공률 -15%p, 크레딧 ×2, 실패 시 에너지 추가 -1',
+          hintEn: 'RISK: success -15%p, credits ×2, failure costs +1 energy'
+        };
+      }
+      return {
+        id: 'normal',
+        label: 'NORMAL',
+        minLevel: 1,
+        chancePenalty: 0,
+        creditMultiplier: 1,
+        expMultiplier: 1,
+        failEnergyPenalty: 0,
+        hintKo: 'NORMAL: 안정적인 기본 해킹 모드',
+        hintEn: 'NORMAL: stable default hacking mode'
+      };
+    }
+
+    function renderHackModeUI() {
+      state.hackMode = normalizeHackMode(state.hackMode);
+      if (state.hackMode === 'extreme' && state.level < 5) state.hackMode = 'risk';
+      hackModeButtons.forEach(btn => {
+        const mode = btn.dataset.hackMode || 'normal';
+        const locked = mode === 'extreme' && state.level < 5;
+        btn.classList.toggle('active', mode === state.hackMode);
+        btn.disabled = locked;
+        btn.title = locked
+          ? (getLang() === 'en' ? 'Unlocks at Lv.5' : 'Lv.5 이상에서 해금됩니다.')
+          : getHackModeInfo(mode)[getLang() === 'en' ? 'hintEn' : 'hintKo'];
+      });
+      const info = getHackModeInfo();
+      if (hackModeHint) hackModeHint.textContent = getLang() === 'en' ? info.hintEn : info.hintKo;
+      if (chkRiskMode) chkRiskMode.checked = state.hackMode === 'risk';
     }
 
     function updateStatsUI() {
-      statLevel.textContent = state.level;
-      statExp.textContent = state.exp + ' / ' + state.requiredExp;
-      statCredits.textContent = state.credits;
-      statCpuTier.textContent = state.cpuTier;
-      statEnergyValue.textContent = `${state.energy} / ${state.energyMax}`;
+      setNodeText(statLevel, state.level);
+      setNodeText(statExp, state.exp + ' / ' + state.requiredExp);
+      setNodeText(statCredits, state.credits);
+      setNodeText(statCpuTier, state.cpuTier);
+      setNodeText(statGpuTier, state.gpuTier || 1);
+      setNodeText(statEnergyValue, `${state.energy} / ${state.energyMax}`);
 
       if (state.energy >= state.energyMax) {
-        statEnergyTimer.textContent = t('full');
+        setNodeText(statEnergyTimer, t('full'));
       } else {
         const sec = state.energyTimerMs / 1000;
-        statEnergyTimer.textContent = sec.toFixed(1) + ' ' + t('seconds');
+        setNodeText(statEnergyTimer, sec.toFixed(1) + ' ' + t('seconds'));
       }
 
       const ratio = state.energy / state.energyMax;
-      energyBarInner.style.width = (ratio * 100) + '%';
+      if (energyBarInner) energyBarInner.style.width = (ratio * 100) + '%';
 
-      chkRiskMode.checked = state.riskMode;
+      renderHackModeUI();
 
       // 에너지 팩 UI
       const packCount = state.items && typeof state.items.energyPack === 'number' ? state.items.energyPack : 0;
-      statEnergyPack.textContent = packCount;
+      setNodeText(statEnergyPack, packCount);
       const canUsePack = packCount > 0 && state.energy < state.energyMax;
-      btnUseEnergyPack.disabled = !canUsePack;
+      setNodeDisabled(btnUseEnergyPack, !canUsePack);
 
       // 마지막 저장 시각 UI
       if (statLastSave) {
@@ -1797,6 +2265,14 @@ function applyLanguageToUI(){
       applyLogFilter();
     }
 
+    function emitActivity(type, detail = {}) {
+      try {
+        window.dispatchEvent(new CustomEvent('hcsig:activity', {
+          detail: Object.assign({ type, createdAt: Date.now() }, detail || {})
+        }));
+      } catch (e) {}
+    }
+
     function applyLogFilter() {
       const show = state.logFilter;
       const children = logList.children;
@@ -1832,6 +2308,138 @@ function applyLanguageToUI(){
       }
     }
 
+    const sfxState = {
+      ctx: null,
+      unlocked: false,
+      lastTapAt: 0
+    };
+
+    function getSfxVolume() {
+      const raw = state.ui && Number.isFinite(Number(state.ui.sfxVolume)) ? Number(state.ui.sfxVolume) : 35;
+      return Math.max(0, Math.min(1, raw / 100));
+    }
+
+    function isSfxEnabled() {
+      return !!(state.ui && state.ui.sfxEnabled !== false && getSfxVolume() > 0);
+    }
+
+    function getAudioContext() {
+      if (sfxState.ctx) return sfxState.ctx;
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return null;
+      try {
+        sfxState.ctx = new AudioContextCtor();
+      } catch (e) {
+        sfxState.ctx = null;
+      }
+      return sfxState.ctx;
+    }
+
+    function unlockSfx() {
+      if (!isSfxEnabled()) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      sfxState.unlocked = true;
+    }
+
+    function playTone(ctx, start, freq, duration, type, gainValue, endFreq = null) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      if (endFreq) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), start + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainValue), start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.02);
+    }
+
+    function playNoise(ctx, start, duration, gainValue, filterFreq = 1200) {
+      const sampleRate = ctx.sampleRate || 44100;
+      const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(sampleRate * duration)), sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      const source = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(filterFreq, start);
+      filter.Q.setValueAtTime(1.4, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainValue), start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      source.buffer = buffer;
+      source.connect(filter).connect(gain).connect(ctx.destination);
+      source.start(start);
+      source.stop(start + duration + 0.02);
+    }
+
+    function playSfx(name) {
+      if (!isSfxEnabled()) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime + 0.005;
+      const v = getSfxVolume();
+
+      switch (name) {
+        case 'tap':
+          if (Date.now() - sfxState.lastTapAt < 55) return;
+          sfxState.lastTapAt = Date.now();
+          playTone(ctx, now, 520, 0.045, 'triangle', 0.035 * v, 760);
+          break;
+        case 'scanStart':
+          playNoise(ctx, now, 0.11, 0.028 * v, 1800);
+          playTone(ctx, now + 0.04, 440, 0.08, 'sawtooth', 0.018 * v, 880);
+          break;
+        case 'scanComplete':
+          playTone(ctx, now, 660, 0.07, 'sine', 0.04 * v, 990);
+          playTone(ctx, now + 0.065, 990, 0.08, 'sine', 0.032 * v, 1320);
+          break;
+        case 'success':
+          playTone(ctx, now, 523.25, 0.08, 'triangle', 0.045 * v, 659.25);
+          playTone(ctx, now + 0.07, 783.99, 0.11, 'triangle', 0.04 * v, 1046.5);
+          break;
+        case 'fail':
+          playTone(ctx, now, 260, 0.12, 'sawtooth', 0.04 * v, 140);
+          playNoise(ctx, now + 0.03, 0.10, 0.016 * v, 360);
+          break;
+        case 'upgrade':
+          playTone(ctx, now, 392, 0.07, 'square', 0.026 * v, 587);
+          playTone(ctx, now + 0.065, 784, 0.10, 'triangle', 0.042 * v, 1175);
+          break;
+        case 'achievement':
+          playTone(ctx, now, 660, 0.08, 'sine', 0.038 * v, 880);
+          playTone(ctx, now + 0.07, 990, 0.09, 'sine', 0.036 * v, 1320);
+          playTone(ctx, now + 0.15, 1320, 0.12, 'triangle', 0.03 * v, 1760);
+          break;
+        case 'level':
+          playTone(ctx, now, 392, 0.10, 'triangle', 0.035 * v, 523);
+          playTone(ctx, now + 0.09, 659, 0.11, 'triangle', 0.04 * v, 880);
+          playTone(ctx, now + 0.19, 1046, 0.13, 'sine', 0.032 * v, 1318);
+          break;
+        case 'mode':
+          playTone(ctx, now, 330, 0.06, 'triangle', 0.028 * v, 660);
+          playTone(ctx, now + 0.05, 440, 0.07, 'square', 0.018 * v, 880);
+          break;
+        case 'stage':
+          playNoise(ctx, now, 0.08, 0.018 * v, 900);
+          playTone(ctx, now + 0.035, 220, 0.09, 'sawtooth', 0.026 * v, 440);
+          break;
+        default:
+          playTone(ctx, now, 600, 0.06, 'sine', 0.025 * v, 720);
+      }
+    }
+
 
     function requiredExp(level) {
       const base = 20 + (level - 1) * 10;
@@ -1860,6 +2468,7 @@ function applyLanguageToUI(){
       state.requiredExp = requiredExp(state.level);
       state.credits += 50;
       state.stats.creditsEarnedTotal += 50;
+      playSfx('level');
       log(t('levelUpLog', { lv: state.level }), 'level');
 
       state.missionProgress.weekly.levelReached = Math.max(
@@ -1875,6 +2484,23 @@ function applyLanguageToUI(){
       checkMissions('general');
       checkAchievements('levelUp');
       updateStatsUI();
+    }
+
+    function checkLevelUp() {
+      let leveledUp = false;
+      while (state.exp >= state.requiredExp) {
+        state.exp -= state.requiredExp;
+        levelUp();
+        leveledUp = true;
+      }
+      if (!leveledUp) updateStatsUI();
+    }
+
+    function renderAll() {
+      renderServers();
+      renderShop();
+      updateStatsUI();
+      renderStagePanel();
     }
 
     function consumeEnergy(amount) {
@@ -1926,6 +2552,7 @@ function applyLanguageToUI(){
 
       log(t('usedEnergyPack'), 'system');
       updateStatsUI();
+      renderStagePanel();
       saveGame();
     }
 
@@ -1940,6 +2567,7 @@ function applyLanguageToUI(){
         state.energyTimerMs = Math.max(0, state.energyTimerMs - 100);
         if (state.energyTimerMs <= 0) {
           state.energy++;
+          renderStagePanel();
           if (state.energy < state.energyMax) {
             state.energyTimerMs = ENERGY_INTERVAL_MS;
           } else {
@@ -2086,6 +2714,7 @@ function applyLanguageToUI(){
     }
 
     function renderCodeList() {
+      if (!codeListEl) return;
       codeListEl.innerHTML = '';
       if (ownedCodes.length === 0) {
         const li = document.createElement('li');
@@ -2129,6 +2758,7 @@ function applyLanguageToUI(){
     }
 
     function renderCodeDetail() {
+      if (!codeDetailEl) return;
       const code = getActiveCodeInstance();
       if (!code) {
         codeDetailEl.innerHTML = `<div class="small">${t('selectCode')}</div>`;
@@ -2201,6 +2831,407 @@ function applyLanguageToUI(){
       return Math.min(0.12, syncLevel * 0.02);
     }
 
+    function getCodeEffect(codeOrDef) {
+      if (!codeOrDef) return {};
+      const def = codeOrDef.effect ? codeOrDef : codeDefs[codeOrDef.id];
+      return (def && def.effect) ? def.effect : {};
+    }
+
+    function getGpuCreditMultiplier() {
+      return 1 + 0.08 * Math.max(0, Number(state.gpuTier || 1) - 1);
+    }
+
+    function getGpuExpMultiplier() {
+      return 1 + 0.04 * Math.max(0, Number(state.gpuTier || 1) - 1);
+    }
+
+    function applyGpuReward(reward) {
+      return {
+        credits: Math.max(1, Math.round((reward.credits || 0) * getGpuCreditMultiplier())),
+        exp: Math.max(1, Math.round((reward.exp || 0) * getGpuExpMultiplier())),
+        energyPack: reward.energyPack || 0
+      };
+    }
+
+    const stageChapters = [
+      { index: 1, from: 1, to: 10, title: '기초 침투 훈련', titleEn: 'Entry Intrusion', theme: 'SCAN', hint: 'Basic_Probe / Port_Scanner' },
+      { index: 2, from: 11, to: 20, title: '스캔 심화 구간', titleEn: 'Scan Deepening', theme: 'SCAN+', hint: 'Scan_Cache / Rarity_Lens' },
+      { index: 3, from: 21, to: 30, title: '보안망 적응', titleEn: 'Security Mesh', theme: 'ADAPT', hint: 'Shield_Bypass / Kernel_Probe' },
+      { index: 4, from: 31, to: 40, title: '성공률 교전', titleEn: 'Signal Combat', theme: 'SIGNAL', hint: 'Stack_Tracer / Exploit_Router' },
+      { index: 5, from: 41, to: 50, title: '추적 회피전', titleEn: 'Trace Evasion', theme: 'EVADE', hint: 'Trace_Scrambler / Data_Phantom' },
+      { index: 6, from: 51, to: 60, title: '보상 증폭 테스트', titleEn: 'Reward Amplifier', theme: 'REWARD', hint: 'Vault_Siphon / Reward_Kernel' },
+      { index: 7, from: 61, to: 70, title: '고위험 서버전', titleEn: 'Risk Serverline', theme: 'RISK', hint: 'Overclock_Guard / Quantum_Splice' },
+      { index: 8, from: 71, to: 80, title: '익스트림 프리즘', titleEn: 'Extreme Prism', theme: 'EXTREME', hint: 'Abyss_Contract / Singular_Gambit' },
+      { index: 9, from: 81, to: 90, title: '데이터 타워 코어', titleEn: 'Data Tower Core', theme: 'TOWER', hint: 'Repeat_Engine / Boss_Keygen' },
+      { index: 10, from: 91, to: 100, title: '최종 코어 챌린지', titleEn: 'Final Core Challenge', theme: 'CORE', hint: 'Tower_Sovereign / Singularity_Root' }
+    ];
+
+    function stageCopy(ko, en) {
+      return getLang() === 'en' ? en : ko;
+    }
+
+    function getStageChapter(stageNumber) {
+      return stageChapters.find(ch => stageNumber >= ch.from && stageNumber <= ch.to) || stageChapters[0];
+    }
+
+    function buildStageDefs() {
+      return Array.from({ length: 100 }, (_, idx) => {
+        const number = idx + 1;
+        const chapter = getStageChapter(number);
+        const boss = number % 10 === 0;
+        const security = 18 + number * 3 + (chapter.index - 1) * 10 + (boss ? 22 : 0);
+        const firstCredits = 45 + number * 8 + chapter.index * 20 + (boss ? 75 : 0);
+        const firstExp = 3 + Math.ceil(number / 12) + (boss ? 3 : 0);
+        return {
+          id: `stage_${String(number).padStart(3, '0')}`,
+          number,
+          chapter,
+          boss,
+          name: `데이터 타워 ${String(number).padStart(3, '0')}`,
+          security,
+          recommendedLevel: Math.max(1, Math.ceil(number / 4)),
+          recommendedPower: Math.max(18, Math.round(security * 0.78)),
+          energyCost: boss ? 3 : 2,
+          firstReward: {
+            credits: firstCredits,
+            exp: firstExp,
+            energyPack: boss ? 1 : 0
+          },
+          repeatReward: {
+            credits: Math.max(12, Math.round(firstCredits * 0.38)),
+            exp: Math.max(2, Math.round(firstExp * 0.5)),
+            energyPack: 0
+          }
+        };
+      });
+    }
+
+    const stageDefs = buildStageDefs();
+
+    function ensureStageDefaults() {
+      state.stage = state.stage || {};
+      state.stage.selectedId = state.stage.selectedId || 'stage_001';
+      state.stage.chapterFilter = String(state.stage.chapterFilter || '1');
+      state.stage.highestCleared = Number(state.stage.highestCleared || 0) || 0;
+      state.stage.cleared = (state.stage.cleared && typeof state.stage.cleared === 'object') ? state.stage.cleared : {};
+      state.stage.chapterRewardsClaimed = (state.stage.chapterRewardsClaimed && typeof state.stage.chapterRewardsClaimed === 'object') ? state.stage.chapterRewardsClaimed : {};
+      if (!stageDefs.some(stage => stage.id === state.stage.selectedId)) state.stage.selectedId = 'stage_001';
+      const selected = getStageById(state.stage.selectedId);
+      if (state.stage.chapterFilter === 'all' || !stageChapters.some(ch => String(ch.index) === String(state.stage.chapterFilter))) {
+        state.stage.chapterFilter = String(selected.chapter.index);
+      }
+      state.stats = state.stats || {};
+      state.stats.stageAttemptCount = state.stats.stageAttemptCount || 0;
+      state.stats.stageClearCount = state.stats.stageClearCount || 0;
+    }
+
+    function getStageById(id) {
+      return stageDefs.find(stage => stage.id === id) || stageDefs[0];
+    }
+
+    function getStageClearInfo(stage) {
+      ensureStageDefaults();
+      return state.stage.cleared[stage.id] || null;
+    }
+
+    function getStageAdjustedSecurity(stage, def) {
+      let security = stage.security;
+      if (def) {
+        const effect = getCodeEffect(def);
+        if (def.id === 'port_scanner') security = Math.floor(security * 0.92);
+        if (def.id === 'shield_bypass') security = Math.floor(security * 0.88);
+        if (def.id === 'fortress_breaker') security = Math.floor(security * 0.80);
+        if (effect.serverSecurityMult) security = Math.floor(security * Number(effect.serverSecurityMult));
+      }
+      return Math.max(8, security);
+    }
+
+    function getStageSuccessInfo(stage, code) {
+      if (!stage || !code) return { chance: 0, effectivePower: 0, security: stage ? stage.security : 0, bonus: 0 };
+      const def = codeDefs[code.id];
+      const effect = getCodeEffect(def);
+      const adjustedSecurity = getStageAdjustedSecurity(stage, def);
+      let successChanceBonus = getSyncSuccessBonus(code.syncLevel || 0);
+      if (def) {
+        if (def.id === 'pulse_ping') successChanceBonus += 0.03;
+        if (def.id === 'stack_tracer') successChanceBonus += 0.05;
+        if (def.id === 'data_phantom') successChanceBonus += 0.1;
+        if (def.id === 'quantum_splice') successChanceBonus += 0.12;
+        if (def.id === 'singularity_root') successChanceBonus += 0.1;
+        if (def.id === 'trace_scrambler' && stage.chapter.index >= 3) successChanceBonus += 0.04;
+      }
+      successChanceBonus += Number(effect.stageChance || 0);
+      if (stage.boss) successChanceBonus += Number(effect.bossStageChance || 0);
+      const effectivePower = code.power * (1 + (0.08 + Number(effect.cpuPowerBonus || 0)) * (state.cpuTier - 1));
+      let chance = effectivePower / (effectivePower + adjustedSecurity);
+      chance += successChanceBonus;
+      chance = Math.max(0.08, Math.min(0.95, chance));
+      return { chance, effectivePower, security: adjustedSecurity, bonus: successChanceBonus };
+    }
+
+    function getStageRewardText(reward) {
+      const parts = [`${t('credits')} +${reward.credits}`, `EXP +${reward.exp}`];
+      if (reward.energyPack) parts.push(`${t('energyPack')} +${reward.energyPack}`);
+      return parts.join(' / ');
+    }
+
+    function getStageChapterReward(chapterIndex) {
+      return {
+        credits: 300 + chapterIndex * 100,
+        exp: 5 + chapterIndex,
+        shards: Math.ceil(chapterIndex / 2),
+        energyPack: (chapterIndex === 5 || chapterIndex === 10) ? 1 : 0
+      };
+    }
+
+    function getStageChapterRewardText(chapterIndex) {
+      const reward = getStageChapterReward(chapterIndex);
+      const parts = [`${t('credits')} +${reward.credits}`, `EXP +${reward.exp}`, `${stageCopy('활성 코드 조각', 'Active Code Shards')} +${reward.shards}`];
+      if (reward.energyPack) parts.push(`${t('energyPack')} +${reward.energyPack}`);
+      return parts.join(' / ');
+    }
+
+    function isStageChapterComplete(chapter) {
+      return stageDefs
+        .filter(stage => stage.chapter.index === chapter.index)
+        .every(stage => !!getStageClearInfo(stage));
+    }
+
+    function applyStageChapterReward(chapter) {
+      ensureStageDefaults();
+      if (!chapter || !isStageChapterComplete(chapter)) return;
+      const key = String(chapter.index);
+      if (state.stage.chapterRewardsClaimed[key]) return;
+      const reward = getStageChapterReward(chapter.index);
+      state.stage.chapterRewardsClaimed[key] = Date.now();
+      state.credits += reward.credits;
+      state.stats.creditsEarnedTotal += reward.credits;
+      addExp(reward.exp);
+      const activeCode = getActiveCodeInstance();
+      if (activeCode && reward.shards) {
+        activeCode.shards = (activeCode.shards || 0) + reward.shards;
+        state.stats.codeShardsTotal = (state.stats.codeShardsTotal || 0) + reward.shards;
+      }
+      if (reward.energyPack) {
+        state.items = state.items || { energyPack: 0 };
+        state.items.energyPack = (state.items.energyPack || 0) + reward.energyPack;
+      }
+      playSfx('achievement');
+      log(stageCopy(`CH.${chapter.index} 클리어 보상 지급: ${getStageChapterRewardText(chapter.index)}`, `CH.${chapter.index} reward claimed: ${getStageChapterRewardText(chapter.index)}`), 'system');
+      showToast(stageCopy(`CH.${chapter.index} 보상 지급`, `CH.${chapter.index} reward claimed`), 'achievement');
+    }
+
+    function renderStagePanel() {
+      ensureStageDefaults();
+      const summaryEl = document.getElementById('stageSummary');
+      const chapterListEl = document.getElementById('stageChapterList');
+      const detailEl = document.getElementById('stageDetail');
+      if (!summaryEl || !chapterListEl || !detailEl) return;
+
+      const selectedStage = getStageById(state.stage.selectedId);
+      const filter = state.stage.chapterFilter || 'all';
+      const completedCount = Object.keys(state.stage.cleared || {}).length;
+
+      summaryEl.innerHTML = `
+        <div><span>HIGHEST</span><strong>${state.stage.highestCleared || 0} / 100</strong></div>
+        <div><span>CLEARED</span><strong>${completedCount} / 100</strong></div>
+        <div><span>ATTEMPTS</span><strong>${state.stats.stageAttemptCount || 0}</strong></div>
+      `;
+
+      const clearInfo = getStageClearInfo(selectedStage);
+      const activeCode = getActiveCodeInstance();
+      const successInfo = getStageSuccessInfo(selectedStage, activeCode);
+      const chancePct = Math.round(successInfo.chance * 100);
+      const enoughEnergy = state.energy >= selectedStage.energyCost;
+      const canAttempt = !!activeCode && enoughEnergy;
+      const activeEffect = getCodeEffect(activeCode);
+      const repeatPreview = applyGpuReward({
+        credits: Math.max(1, Math.round(selectedStage.repeatReward.credits * (1 + Number(activeEffect.stageRepeatCreditBonus || 0)))),
+        exp: Math.max(1, Math.round(selectedStage.repeatReward.exp * (1 + Number(activeEffect.stageRepeatExpBonus || 0)))),
+        energyPack: selectedStage.repeatReward.energyPack
+      });
+      const statusText = clearInfo
+        ? stageCopy(`클리어 ${clearInfo.clears || 1}회`, `Cleared ${clearInfo.clears || 1} time(s)`)
+        : stageCopy('첫 클리어 대기', 'First clear pending');
+      const buttonText = clearInfo ? stageCopy('반복 도전', 'Repeat Data Tower') : stageCopy('첫 클리어 도전', 'Attempt First Clear');
+      const disabledHint = !activeCode
+        ? t('noOwnedCodes')
+        : (!enoughEnergy ? stageCopy(`에너지 ${selectedStage.energyCost} 필요`, `Need ${selectedStage.energyCost} energy`) : stageCopy('도전 준비 완료', 'Ready to attempt'));
+
+      detailEl.innerHTML = `
+        <div class="stage-detail-head">
+          <div>
+            <span class="badge">${selectedStage.boss ? 'BOSS' : 'DATA TOWER'}</span>
+            <h4>${selectedStage.name}</h4>
+            <p>${getLang() === 'en' ? selectedStage.chapter.titleEn : selectedStage.chapter.title} · ${selectedStage.chapter.from}-${selectedStage.chapter.to}</p>
+          </div>
+          <div class="stage-status-pill">${statusText}</div>
+        </div>
+        <div class="stage-meta-grid">
+          <div><span>${stageCopy('추천 레벨', 'Recommended Level')}</span><strong>Lv.${selectedStage.recommendedLevel}</strong></div>
+          <div><span>${stageCopy('추천 파워', 'Recommended Power')}</span><strong>${selectedStage.recommendedPower}</strong></div>
+          <div><span>${stageCopy('보안값', 'Security')}</span><strong>${successInfo.security}</strong></div>
+          <div><span>${stageCopy('에너지', 'Energy')}</span><strong>${selectedStage.energyCost}</strong></div>
+          <div><span>${stageCopy('추천 코드', 'Suggested Code')}</span><strong>${selectedStage.chapter.hint}</strong></div>
+          <div><span>${stageCopy('예상 성공률', 'Estimated Chance')}</span><strong>${activeCode ? `${chancePct}%` : '-'}</strong></div>
+        </div>
+        <div class="stage-reward-grid">
+          <div>
+            <span>${stageCopy('첫 클리어 보상', 'First Clear Reward')}</span>
+            <strong>${getStageRewardText(selectedStage.firstReward)}</strong>
+          </div>
+          <div>
+            <span>${stageCopy('반복 보상', 'Repeat Reward')}</span>
+            <strong>${getStageRewardText(repeatPreview)}</strong>
+          </div>
+        </div>
+        <div class="stage-action-row">
+          <button type="button" id="btnAttemptStage" ${canAttempt ? '' : 'disabled'}>${buttonText}</button>
+          <span class="small">${disabledHint}${activeCode ? ` · ${activeCode.name} PWR ${Math.round(successInfo.effectivePower)}` : ''}</span>
+        </div>
+        <p class="stage-note">${clearInfo ? stageCopy('반복 보상에는 GPU 보너스가 적용됩니다. 첫 클리어와 챕터 보상은 고정 보상입니다.', 'GPU bonuses apply to repeat rewards. First-clear and chapter rewards are fixed.') : stageCopy('첫 클리어 보상은 고정 보상입니다. 같은 데이터 타워를 반복 클리어하면 GPU 보너스가 적용됩니다.', 'First-clear rewards are fixed. Repeat Data Tower clears apply GPU bonuses.')}</p>
+      `;
+
+      const btnAttemptStage = document.getElementById('btnAttemptStage');
+      bind(btnAttemptStage, 'click', attemptStage);
+
+      chapterListEl.innerHTML = stageChapters.map(chapter => {
+        const open = String(chapter.index) === String(filter);
+        const stages = stageDefs.filter(stage => stage.chapter.index === chapter.index);
+        const clearedInChapter = stages.filter(stage => !!getStageClearInfo(stage)).length;
+        const complete = clearedInChapter === stages.length;
+        const claimed = !!state.stage.chapterRewardsClaimed[String(chapter.index)];
+        return `
+          <section class="stage-chapter ${open ? 'open' : ''} ${complete ? 'is-complete' : ''}" data-stage-chapter="${chapter.index}">
+            <button type="button" class="stage-chapter-head" data-stage-chapter-toggle="${chapter.index}">
+              <span><strong>CH.${chapter.index}</strong> ${getLang() === 'en' ? chapter.titleEn : chapter.title}</span>
+              <em>${chapter.from}-${chapter.to} · ${clearedInChapter}/10 · ${claimed ? stageCopy('보상 수령', 'Reward claimed') : getStageChapterRewardText(chapter.index)}</em>
+            </button>
+            <div class="stage-list" ${open ? '' : 'hidden'}>
+              ${stages.map(stage => {
+                const cleared = !!getStageClearInfo(stage);
+                const active = stage.id === selectedStage.id;
+                const status = cleared ? stageCopy('CLEAR', 'CLEAR') : stageCopy('READY', 'READY');
+                return `
+                  <button type="button" class="stage-card ${active ? 'active' : ''} ${cleared ? 'is-cleared' : ''} ${stage.boss ? 'is-boss' : ''}" data-stage-id="${stage.id}">
+                    <span class="stage-card-top"><strong>${String(stage.number).padStart(3, '0')}</strong><em>${stage.boss ? 'BOSS' : chapter.theme}</em></span>
+                    <span class="stage-card-meta">Lv.${stage.recommendedLevel} · PWR ${stage.recommendedPower}</span>
+                    <span class="stage-card-status">${status}</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </section>
+        `;
+      }).join('');
+
+      chapterListEl.querySelectorAll('[data-stage-chapter-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const chapterIndex = btn.dataset.stageChapterToggle || '1';
+          state.stage.chapterFilter = chapterIndex;
+          const stages = stageDefs.filter(stage => String(stage.chapter.index) === String(chapterIndex));
+          const firstReady = stages.find(stage => !getStageClearInfo(stage)) || stages[0];
+          if (firstReady) state.stage.selectedId = firstReady.id;
+          renderStagePanel();
+          scheduleSilentSave();
+        });
+      });
+
+      chapterListEl.querySelectorAll('[data-stage-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.stage.selectedId = btn.dataset.stageId;
+          const stage = getStageById(state.stage.selectedId);
+          state.stage.chapterFilter = String(stage.chapter.index);
+          renderStagePanel();
+          scheduleSilentSave();
+        });
+      });
+    }
+
+    function attemptStage() {
+      ensureStageDefaults();
+      const stage = getStageById(state.stage.selectedId);
+      const code = getActiveCodeInstance();
+      if (!code) {
+        log(t('noOwnedCodes'), 'hack');
+        showToast(t('noOwnedCodes'), 'warn');
+        renderStagePanel();
+        return;
+      }
+      if (!consumeEnergy(stage.energyCost)) {
+        const msg = stageCopy('에너지가 부족해 데이터 타워를 시작할 수 없습니다.', 'Not enough energy to start Data Tower.');
+        log(msg, 'hack');
+        showToast(msg, 'warn');
+        renderStagePanel();
+        return;
+      }
+
+      state.stats.stageAttemptCount = (state.stats.stageAttemptCount || 0) + 1;
+      const successInfo = getStageSuccessInfo(stage, code);
+      const success = Math.random() < successInfo.chance;
+      code.usage = (code.usage || 0) + 1;
+
+      if (success) {
+        const previous = getStageClearInfo(stage);
+        const firstClear = !previous;
+        const effect = getCodeEffect(code);
+        const baseRepeatReward = {
+          credits: Math.max(1, Math.round(stage.repeatReward.credits * (1 + Number(effect.stageRepeatCreditBonus || 0)))),
+          exp: Math.max(1, Math.round(stage.repeatReward.exp * (1 + Number(effect.stageRepeatExpBonus || 0)))),
+          energyPack: stage.repeatReward.energyPack
+        };
+        const reward = firstClear ? stage.firstReward : applyGpuReward(baseRepeatReward);
+        const now = Date.now();
+        state.credits += reward.credits;
+        state.stats.creditsEarnedTotal += reward.credits;
+        if (reward.energyPack) {
+          state.items = state.items || { energyPack: 0 };
+          state.items.energyPack = (state.items.energyPack || 0) + reward.energyPack;
+        }
+        addExp(reward.exp);
+
+        state.stage.cleared[stage.id] = {
+          firstAt: previous && previous.firstAt ? previous.firstAt : now,
+          lastAt: now,
+          clears: (previous && previous.clears ? previous.clears : 0) + 1,
+          bestChance: Math.max(previous && previous.bestChance ? previous.bestChance : 0, successInfo.chance),
+          bestCodeId: code.id
+        };
+        state.stage.highestCleared = Math.max(state.stage.highestCleared || 0, stage.number);
+        state.stats.stageClearCount = (state.stats.stageClearCount || 0) + 1;
+        applyStageChapterReward(stage.chapter);
+        emitActivity('stage_clear', {
+          stageId: stage.id,
+          refId: stage.id,
+          value: stage.number,
+          codeId: code.id
+        });
+
+        const rewardText = getStageRewardText(reward);
+        playSfx('stage');
+        const msg = stageCopy(
+          `${stage.name} 클리어! 성공률 ${Math.round(successInfo.chance * 100)}%. ${rewardText}`,
+          `${stage.name} cleared! Chance ${Math.round(successInfo.chance * 100)}%. ${rewardText}`
+        );
+        log(msg, 'hack');
+        showToast(firstClear ? stageCopy(`${stage.name} 첫 클리어`, `${stage.name} first clear`) : stageCopy(`${stage.name} 반복 클리어`, `${stage.name} repeat clear`), 'achievement');
+        checkMissions('general');
+        checkAchievements('stage');
+      } else {
+        playSfx('fail');
+        const msg = stageCopy(
+          `${stage.name} 실패. 예상 성공률 ${Math.round(successInfo.chance * 100)}%였습니다.`,
+          `${stage.name} failed. Estimated chance was ${Math.round(successInfo.chance * 100)}%.`
+        );
+        log(msg, 'hack');
+        showToast(stageCopy('데이터 타워 실패', 'Data Tower failed'), 'warn');
+      }
+
+      updateStatsUI();
+      renderStagePanel();
+      saveGame(true);
+    }
+
     function syncSelectedCode() {
       const code = getActiveCodeInstance();
       if (!code) {
@@ -2223,9 +3254,11 @@ function applyLanguageToUI(){
       code.power += powerBonus;
       state.stats.codeSyncCount = (state.stats.codeSyncCount || 0) + 1;
 
+      playSfx('upgrade');
       log(t('syncDone', { name: code.name, lv: code.syncLevel, pwr: powerBonus, rate: Math.round(getSyncSuccessBonus(code.syncLevel) * 100) }), 'system');
       showToast(t('syncToast', { name: code.name, lv: code.syncLevel }), 'system');
       updateStatsUI();
+      renderStagePanel();
     }
 
     function upgradeSelectedCode() {
@@ -2243,8 +3276,10 @@ function applyLanguageToUI(){
       code.level++;
       code.power += 5;
       state.stats.codeUpgradeCount = (state.stats.codeUpgradeCount || 0) + 1;
+      playSfx('upgrade');
       log(t('upgradeDone', { name: code.name, lv: code.level, pwr: code.power, cost }), 'system');
       updateStatsUI();
+      renderStagePanel();
       checkMissions('general');
     }
 
@@ -2271,16 +3306,19 @@ function applyLanguageToUI(){
       code.rarity = nextRarity;
       code.power += 10;
       state.stats.codeEvolutionCount = (state.stats.codeEvolutionCount || 0) + 1;
+      playSfx('upgrade');
       log(t('evolveDone', { name: code.name, rarity: nextRarity, pwr: code.power }), 'system');
 
       if (nextRarity === 'EPIC' || nextRarity === 'LEGENDARY') {
         unlockAchievement('get_epic_code');
       }
       updateStatsUI();
+      renderStagePanel();
       checkMissions('general');
     }
 
     function renderServers() {
+      if (!serverSelect) return;
       serverSelect.innerHTML = '';
       servers.forEach(s => {
         const option = document.createElement('option');
@@ -2401,6 +3439,7 @@ function applyLanguageToUI(){
 
 
     function renderShop() {
+      if (!shopList) return;
       shopList.innerHTML = '';
 
       const categoryLabel = {
@@ -2424,15 +3463,18 @@ function applyLanguageToUI(){
       const mode = (state.ui && state.ui.shopSortMode) ? state.ui.shopSortMode : 'update';
       const categoryMode = (state.ui && state.ui.shopCategory) ? state.ui.shopCategory : 'all';
       if (codeSortSelect) {
-      codeSortSelect.value = (state.ui && state.ui.codeSortMode) ? state.ui.codeSortMode : 'recent';
-      codeSortSelect.addEventListener('change', () => {
-        state.ui = state.ui || { shopSortMode: 'update', shopCategory: 'all', codeSortMode: 'recent' };
-        state.ui.codeSortMode = codeSortSelect.value;
-        renderCodeList();
-      });
-    }
+        codeSortSelect.value = (state.ui && state.ui.codeSortMode) ? state.ui.codeSortMode : 'recent';
+        if (!codeSortSelect.__hcsigSortBound) {
+          codeSortSelect.__hcsigSortBound = true;
+          codeSortSelect.addEventListener('change', () => {
+            state.ui = state.ui || { shopSortMode: 'update', shopCategory: 'all', codeSortMode: 'recent' };
+            state.ui.codeSortMode = codeSortSelect.value;
+            renderCodeList();
+          });
+        }
+      }
 
-    if (shopCategoryTabButtons && shopCategoryTabButtons.length) {
+      if (shopCategoryTabButtons && shopCategoryTabButtons.length) {
         shopCategoryTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.category === categoryMode));
       }
       const items = shopItems.filter(item => categoryMode === 'all' ? true : item.category === categoryMode);
@@ -2551,13 +3593,20 @@ function applyLanguageToUI(){
           markShopPurchase(item.id);
 
           state.stats.shopPurchaseCount++;
+          state.missionProgress.daily.shopPurchases = (state.missionProgress.daily.shopPurchases || 0) + 1;
+          state.missionProgress.weekly.shopPurchases = (state.missionProgress.weekly.shopPurchases || 0) + 1;
+          state.missionProgress.month.shopPurchases = (state.missionProgress.month.shopPurchases || 0) + 1;
+          checkMissions('daily');
+          checkMissions('weekly');
+          checkMissions('month');
+          checkMissions('general');
           log(t('shopLog', { msg: t('shopBought', { name: itemName, cost: item.cost }) }), 'shop');
           if (item.id === 'energy_pack') {
             showToast(t('energyPackToast', { v: state.items.energyPack }), 'shop');
           } else {
             showToast(`${itemName} ${t('buyDone')}`, 'shop');
           }
-          if (state.stats.shopPurchaseCount >= 3) unlockAchievement('shop_first_buy');
+          if (state.stats.shopPurchaseCount >= 1) unlockAchievement('shop_first_buy');
           updateStatsUI();
           renderShop();
         });
@@ -2573,31 +3622,42 @@ function applyLanguageToUI(){
         shopList.appendChild(wrapper);
       });
     }
-    function rollRarity() {
+    function rollRarity(effect = {}) {
+      const rareBoost = Math.max(0, Number(effect.scanRareBoost || 0));
+      const weights = {
+        COMMON: rarityWeights.COMMON,
+        UNCOMMON: rarityWeights.UNCOMMON,
+        RARE: rarityWeights.RARE * (1 + rareBoost),
+        EPIC: rarityWeights.EPIC * (1 + rareBoost * 1.4),
+        LEGENDARY: rarityWeights.LEGENDARY * (1 + rareBoost * 1.8)
+      };
       const total =
-        rarityWeights.COMMON +
-        rarityWeights.UNCOMMON +
-        rarityWeights.RARE +
-        rarityWeights.EPIC +
-        rarityWeights.LEGENDARY;
+        weights.COMMON +
+        weights.UNCOMMON +
+        weights.RARE +
+        weights.EPIC +
+        weights.LEGENDARY;
       let r = Math.random() * total;
       for (const rar of rarityOrder) {
-        const w = rarityWeights[rar];
+        const w = weights[rar];
         if (r < w) return rar;
         r -= w;
       }
       return 'COMMON';
     }
 
-    function getScanDurationForRarity(rarity) {
+    function getScanDurationForRarity(rarity, effect = {}) {
+      let base;
       switch (rarity) {
-        case 'COMMON': return 500;
-        case 'UNCOMMON': return 650;
-        case 'RARE': return 800;
-        case 'EPIC': return 1000;
-        case 'LEGENDARY': return 1200;
-        default: return 600;
+        case 'COMMON': base = 500; break;
+        case 'UNCOMMON': base = 650; break;
+        case 'RARE': base = 800; break;
+        case 'EPIC': base = 1000; break;
+        case 'LEGENDARY': base = 1200; break;
+        default: base = 600;
       }
+      const speedBonus = Math.max(0, Math.min(0.45, Number(effect.scanSpeed || 0)));
+      return Math.max(260, Math.round(base * (1 - speedBonus)));
     }
 
     function randomScanLine(length) {
@@ -2648,6 +3708,8 @@ function applyLanguageToUI(){
     function scanForCode() {
       ensureMissionResets();
 
+      if (scanRunning) return;
+
       const energyCost = 1;
       if (!consumeEnergy(energyCost)) {
         log(t('noEnergyScan'), 'scan');
@@ -2657,22 +3719,27 @@ function applyLanguageToUI(){
       state.missionProgress.daily.scans++;
       state.missionProgress.daily.actions++;
       state.missionProgress.weekly.scans++;
+      state.missionProgress.weekly.actions = (state.missionProgress.weekly.actions || 0) + 1;
       state.missionProgress.month.scans++;
+      state.missionProgress.month.actions = (state.missionProgress.month.actions || 0) + 1;
       checkMissions('daily');
       checkMissions('weekly');
       checkMissions('month');
       checkMissions('general');
 
-      if (scanRunning) return;
+      const activeCode = getActiveCodeInstance();
+      const activeEffect = getCodeEffect(activeCode);
+      const rarity = rollRarity(activeEffect);
+      const duration = getScanDurationForRarity(rarity, activeEffect);
 
-      const rarity = rollRarity();
-      const duration = getScanDurationForRarity(rarity);
-
-      btnScan.disabled = true;
-      btnHack.disabled = true;
-      btnUpgradeCpu.disabled = true;
+      playSfx('scanStart');
+      setNodeDisabled(btnScan, true);
+      setNodeDisabled(btnHack, true);
+      setNodeDisabled(btnUpgradeCpu, true);
+      setNodeDisabled(btnUpgradeGpu, true);
 
       runScanAnimation(duration, () => {
+        playSfx('scanComplete');
         const templates = Object.values(codeDefs).filter(d => d.rarity === rarity);
         let chosen = null;
 
@@ -2692,10 +3759,16 @@ function applyLanguageToUI(){
           log(t('scanFound', { name: chosen.name, rarity: chosen.rarity }), 'scan');
           const def = codeDefs[chosen.id];
           if (def && (def.rarity === 'EPIC' || def.rarity === 'LEGENDARY')) {
+            emitActivity('epic_code_found', {
+              codeId: chosen.id,
+              refId: chosen.id,
+              rarity: def.rarity,
+              value: def.rarity === 'LEGENDARY' ? 2 : 1
+            });
             unlockAchievement('get_epic_code');
           }
         } else {
-          const shardGain = getShardGainByRarity(rarity);
+          const shardGain = getShardGainByRarity(rarity) + Math.max(0, Number(activeEffect.scanShardBonus || 0));
           existing.shards = (existing.shards || 0) + shardGain;
           state.stats.codeShardsTotal = (state.stats.codeShardsTotal || 0) + shardGain;
           log(t('scanDuplicate', { name: chosen.name, rarity, gain: shardGain, have: existing.shards }), 'scan');
@@ -2706,7 +3779,7 @@ function applyLanguageToUI(){
           }
         }
 
-        const expGain = 2 + modifiers.scanExtraExp;
+        const expGain = 2 + modifiers.scanExtraExp + Math.max(0, Number(activeEffect.scanExpBonus || 0));
         addExp(expGain);
         log(t('scanDone', { exp: expGain }), 'scan');
         onTutorialAction('scan');
@@ -2714,9 +3787,11 @@ function applyLanguageToUI(){
         checkAchievements('scan');
         checkMissions('general');
 
-        btnScan.disabled = false;
-        btnHack.disabled = false;
-        btnUpgradeCpu.disabled = false;
+        setNodeDisabled(btnScan, false);
+        setNodeDisabled(btnHack, false);
+        setNodeDisabled(btnUpgradeCpu, false);
+        setNodeDisabled(btnUpgradeGpu, false);
+        renderStagePanel();
       });
     }
 
@@ -2743,6 +3818,14 @@ function applyLanguageToUI(){
         log(t('serverLevelNeed', { lv: server.minLevel }), 'hack');
         return;
       }
+      state.hackMode = normalizeHackMode(state.hackMode);
+      if (state.hackMode === 'extreme' && state.level < 5) {
+        state.hackMode = 'risk';
+        renderHackModeUI();
+        log(getLang()==='en' ? 'EXTREME unlocks at Lv.5.' : 'EXTREME은 Lv.5 이상에서 해금됩니다.', 'hack');
+        return;
+      }
+      const modeInfo = getHackModeInfo();
 
       const energyCost = 2;
       if (!consumeEnergy(energyCost)) {
@@ -2751,39 +3834,55 @@ function applyLanguageToUI(){
       }
 
       state.missionProgress.daily.actions++;
+      state.missionProgress.weekly.actions = (state.missionProgress.weekly.actions || 0) + 1;
+      state.missionProgress.month.actions = (state.missionProgress.month.actions || 0) + 1;
       onTutorialAction('hack');
 
       let serverSec = server.security;
       let creditMultiplier = modifiers.creditMultiplierSession * modifiers.creditMultiplierPermanent;
       let successChanceBonus = getSyncSuccessBonus(code.syncLevel || 0);
+      let expMultiplier = modeInfo.expMultiplier;
+      const effect = getCodeEffect(def);
 
       if (def) {
         if (def.id === 'port_scanner') serverSec = Math.floor(serverSec * 0.9);
         if (def.id === 'shield_bypass') serverSec = Math.floor(serverSec * 0.85);
         if (def.id === 'fortress_breaker') serverSec = Math.floor(serverSec * 0.75);
+        if (effect.serverSecurityMult) serverSec = Math.floor(serverSec * Number(effect.serverSecurityMult));
 
         if (def.id === 'pulse_ping') successChanceBonus += 0.03;
         if (def.id === 'stack_tracer') successChanceBonus += 0.05;
         if (def.id === 'data_phantom') successChanceBonus += 0.1;
         if (def.id === 'quantum_splice') successChanceBonus += 0.12;
         if (def.id === 'singularity_root') successChanceBonus += 0.1;
+        successChanceBonus += Number(effect.hackChance || 0);
 
         if (def.id === 'credit_siphon') creditMultiplier *= 1.15;
         if (def.id === 'null_rewriter') creditMultiplier *= 1.25;
         if (def.id === 'overflow_inject') creditMultiplier *= 1.3;
         if (def.id === 'quantum_splice') creditMultiplier *= 1.2;
         if (def.id === 'singularity_root') creditMultiplier *= 1.4;
+        if (effect.creditBonus) creditMultiplier *= (1 + Number(effect.creditBonus));
+        if (effect.expBonus) expMultiplier *= (1 + Number(effect.expBonus));
       }
 
-      if (state.riskMode) {
-        let riskPenalty = 0.15;
-        if (def && def.id === 'trace_scrambler') riskPenalty -= 0.05;
-        successChanceBonus -= riskPenalty;
-        successChanceBonus += modifiers.riskSuccessBonus;
-        creditMultiplier *= 2.0;
+      if (modeInfo.id !== 'normal') {
+        let modePenalty = modeInfo.chancePenalty;
+        if (def && def.id === 'trace_scrambler') modePenalty -= modeInfo.id === 'extreme' ? 0.025 : 0.05;
+        if (modeInfo.id === 'risk') {
+          modePenalty -= Number(effect.riskPenaltyReduction || 0);
+          successChanceBonus += modifiers.riskSuccessBonus;
+        } else {
+          modePenalty -= Number(effect.extremePenaltyReduction || 0);
+          successChanceBonus += modifiers.riskSuccessBonus * 0.5;
+          if (effect.extremeCreditBonus) creditMultiplier *= (1 + Number(effect.extremeCreditBonus));
+          if (effect.extremeExpBonus) expMultiplier *= (1 + Number(effect.extremeExpBonus));
+        }
+        successChanceBonus -= Math.max(0, modePenalty);
+        creditMultiplier *= modeInfo.creditMultiplier;
       }
 
-      const effectivePower = code.power * (1 + 0.1 * (state.cpuTier - 1));
+      const effectivePower = code.power * (1 + (0.1 + Number(effect.cpuPowerBonus || 0)) * (state.cpuTier - 1));
       let successChance = effectivePower / (effectivePower + serverSec);
       successChance += successChanceBonus;
       successChance = Math.max(0.05, Math.min(0.95, successChance));
@@ -2792,13 +3891,15 @@ function applyLanguageToUI(){
       code.usage = (code.usage || 0) + 1;
 
       if (success) {
+        playSfx('success');
         const rawReward =
           server.minReward + Math.random() * (server.maxReward - server.minReward);
-        const economyNerf = state.riskMode ? 0.8 : 0.65;
-        let rewardCredits = Math.max(1, Math.round(rawReward * creditMultiplier * economyNerf));
+        const economyNerf = modeInfo.id === 'normal' ? 0.65 : 0.8;
+        let rewardCredits = Math.max(1, Math.round(rawReward * creditMultiplier * economyNerf * getGpuCreditMultiplier()));
         let gainedExp = 6;
         if (def && def.id === 'cache_sniffer') rewardCredits += 5;
         if (def && def.id === 'rapid_exploit') gainedExp += 3;
+        gainedExp = Math.max(1, Math.round(gainedExp * expMultiplier * getGpuExpMultiplier()));
 
         state.credits += rewardCredits;
         state.stats.creditsEarnedTotal += rewardCredits;
@@ -2813,9 +3914,24 @@ function applyLanguageToUI(){
         state.missionProgress.daily.hackSuccess++;
         state.missionProgress.weekly.hackSuccess++;
         state.missionProgress.month.hackSuccess++;
-        if (state.riskMode) {
+        if (modeInfo.id === 'risk') {
           state.stats.riskHackSuccessCount++;
+          state.missionProgress.daily.riskHackSuccess = (state.missionProgress.daily.riskHackSuccess || 0) + 1;
+          state.missionProgress.weekly.riskHackSuccess = (state.missionProgress.weekly.riskHackSuccess || 0) + 1;
+          state.missionProgress.month.riskHackSuccess = (state.missionProgress.month.riskHackSuccess || 0) + 1;
+        } else if (modeInfo.id === 'extreme') {
+          state.stats.extremeHackSuccessCount = (state.stats.extremeHackSuccessCount || 0) + 1;
+          state.missionProgress.daily.extremeHackSuccess = (state.missionProgress.daily.extremeHackSuccess || 0) + 1;
+          state.missionProgress.weekly.extremeHackSuccess = (state.missionProgress.weekly.extremeHackSuccess || 0) + 1;
+          state.missionProgress.month.extremeHackSuccess = (state.missionProgress.month.extremeHackSuccess || 0) + 1;
         }
+        emitActivity(modeInfo.id === 'extreme' ? 'extreme_success' : 'hack_success', {
+          mode: modeInfo.id,
+          serverId: server.id,
+          refId: server.id,
+          codeId: code.id,
+          value: rewardCredits
+        });
 
         checkMissions('daily');
         checkMissions('weekly');
@@ -2841,6 +3957,7 @@ function applyLanguageToUI(){
           }
         }
       } else {
+        playSfx('fail');
         log(
           t('hackFailLog', { server: localizeServerName(server), chance: Math.round(successChance * 100) }),
           'hack'
@@ -2855,13 +3972,13 @@ function applyLanguageToUI(){
           log(getLang()==='en' ? 'Overflow_Inject penalty: consumed 1 additional energy.' : 'Overflow_Inject 페널티: 에너지가 추가로 1 소모되었습니다.', 'hack');
         }
 
-        if (state.riskMode) {
-          state.energy = Math.max(0, state.energy - 1);
-          state.stats.energySpentTotal += 1;
+        if (modeInfo.failEnergyPenalty > 0) {
+          state.energy = Math.max(0, state.energy - modeInfo.failEnergyPenalty);
+          state.stats.energySpentTotal += modeInfo.failEnergyPenalty;
           if (state.energy < state.energyMax && state.energyTimerMs <= 0) {
             state.energyTimerMs = ENERGY_INTERVAL_MS;
           }
-          log(t('riskPenaltyLog'), 'hack');
+          log(t(modeInfo.id === 'extreme' ? 'extremePenaltyLog' : 'riskPenaltyLog'), 'hack');
           if (state.energy === 0) unlockAchievement('energy_zero');
         }
 
@@ -2892,12 +4009,37 @@ function applyLanguageToUI(){
       }
       state.credits -= cost;
       state.cpuTier += 1;
+      playSfx('upgrade');
       log(`CPU 업그레이드 완료! 현재 티어: ${state.cpuTier} (소모 크레딧 ${cost})`, 'system');
+      emitActivity('cpu_tier_up', { value: state.cpuTier, refId: 'cpu' });
       if (state.cpuTier >= 15) {
         unlockAchievement('cpu_tier_5');
       }
       updateStatsUI();
+      renderStagePanel();
       checkMissions('general');
+    }
+
+    function upgradeGpu() {
+      const tier = Math.max(1, Number(state.gpuTier || 1));
+      const cost = 650 * tier;
+      if (state.credits < cost) {
+        log(t('gpuUpgradeFail', { cost }), 'system');
+        showToast(t('gpuUpgradeFail', { cost }), 'warn');
+        return;
+      }
+      state.credits -= cost;
+      state.gpuTier = tier + 1;
+      state.stats.gpuUpgradeCount = (state.stats.gpuUpgradeCount || 0) + 1;
+      playSfx('upgrade');
+      log(t('gpuUpgradeLog', { tier: state.gpuTier, cost }), 'system');
+      showToast(t('gpuUpgradeLog', { tier: state.gpuTier, cost }), 'system');
+      emitActivity('gpu_tier_up', { value: state.gpuTier, refId: 'gpu' });
+      updateStatsUI();
+      renderStagePanel();
+      checkMissions('general');
+      checkAchievements('gpu');
+      saveGame(true);
     }
 
     function ensureMissionResets() {
@@ -2910,6 +4052,9 @@ function applyLanguageToUI(){
         state.missionProgress.daily.scans = 0;
         state.missionProgress.daily.actions = 0;
         state.missionProgress.daily.hackSuccess = 0;
+        state.missionProgress.daily.riskHackSuccess = 0;
+        state.missionProgress.daily.extremeHackSuccess = 0;
+        state.missionProgress.daily.shopPurchases = 0;
         state.missionProgress.daily.energySpent = 0;
         state.missionProgress.daily.completed = {};
       }
@@ -2917,7 +4062,11 @@ function applyLanguageToUI(){
       if (state.missionProgress.weekly.lastResetWeek !== weekKey) {
         state.missionProgress.weekly.lastResetWeek = weekKey;
         state.missionProgress.weekly.scans = 0;
+        state.missionProgress.weekly.actions = 0;
         state.missionProgress.weekly.hackSuccess = 0;
+        state.missionProgress.weekly.riskHackSuccess = 0;
+        state.missionProgress.weekly.extremeHackSuccess = 0;
+        state.missionProgress.weekly.shopPurchases = 0;
         state.missionProgress.weekly.energySpent = 0;
         state.missionProgress.weekly.levelReached = state.level;
         state.missionProgress.weekly.completed = {};
@@ -2926,7 +4075,11 @@ function applyLanguageToUI(){
       if (state.missionProgress.month.lastResetMonth !== monthKey) {
         state.missionProgress.month.lastResetMonth = monthKey;
         state.missionProgress.month.scans = 0;
+        state.missionProgress.month.actions = 0;
         state.missionProgress.month.hackSuccess = 0;
+        state.missionProgress.month.riskHackSuccess = 0;
+        state.missionProgress.month.extremeHackSuccess = 0;
+        state.missionProgress.month.shopPurchases = 0;
         state.missionProgress.month.energySpent = 0;
         state.missionProgress.month.levelReached = state.level;
         state.missionProgress.month.completed = {};
@@ -2949,7 +4102,10 @@ function applyLanguageToUI(){
         if (type === 'hackSuccess') return prog.hackSuccess;
         if (type === 'energySpent') return prog.energySpent;
         if (type === 'level') return prog.levelReached;
-        if (type === 'riskHackSuccess') return state.stats.riskHackSuccessCount;
+        if (type === 'riskHackSuccess') return prog.riskHackSuccess || 0;
+        if (type === 'extremeHackSuccess') return prog.extremeHackSuccess || 0;
+        if (type === 'shopPurchases') return prog.shopPurchases || 0;
+        if (type === 'creditsEarnedTotal') return state.stats.creditsEarnedTotal || 0;
         return 0;
       }
 
@@ -2965,6 +4121,11 @@ function applyLanguageToUI(){
         if (type === 'achievements') return Object.keys(state.achievements).length;
         if (type === 'missionsCompleted') return state.stats.missionsCompletedTotal;
         if (type === 'riskHackSuccess') return state.stats.riskHackSuccessCount;
+        if (type === 'extremeHackSuccess') return state.stats.extremeHackSuccessCount || 0;
+        if (type === 'gpuTier') return state.gpuTier || 1;
+        if (type === 'hybridTier') return Math.min(state.cpuTier || 1, state.gpuTier || 1);
+        if (type === 'stageHighest') return (state.stage && state.stage.highestCleared) || 0;
+        if (type === 'stageClearCount') return state.stats.stageClearCount || 0;
         if (type === 'energy0Flag') return state.stats.energySpentTotal > 0 && state.energy === 0 ? 1 : 0;
       }
       return 0;
@@ -3044,6 +4205,7 @@ function applyLanguageToUI(){
     }
 
     function renderMissions() {
+      if (!missionListEl) return;
       missionListEl.innerHTML = '';
       const scope = missionScopeActive;
       const titleMap = {
@@ -3094,10 +4256,45 @@ function applyLanguageToUI(){
       if (!def) return;
       state.achievements[id] = true;
       const achName = localizeAchievementName(def);
+      playSfx('achievement');
       log(t('achievementLog', { name: achName }), 'system');
       showToast(t('toastAchievement', { name: achName }), 'achievement');
       renderAchievements();
       checkMissions('general'); // 업적 기반 GENERAL QUEST 체크
+    }
+
+    function getAchievementMetricValue(metric) {
+      const discoveredCodes = getCodexDiscoveredCount();
+      const legendaryCount = countCodesByRarity('LEGENDARY');
+      const epicPlusCount = countCodesByRarity('EPIC') + legendaryCount;
+      const map = {
+        level: state.level || 1,
+        scans: state.stats.scanCount || 0,
+        hackSuccess: state.stats.hackSuccessCount || 0,
+        riskHackSuccess: state.stats.riskHackSuccessCount || 0,
+        extremeHackSuccess: state.stats.extremeHackSuccessCount || 0,
+        creditsEarnedTotal: state.stats.creditsEarnedTotal || 0,
+        shopPurchases: state.stats.shopPurchaseCount || 0,
+        codexCount: discoveredCodes,
+        highestPower: getHighestCodePower(),
+        highestCodeLevel: getHighestCodeLevel(),
+        codeUpgradeCount: state.stats.codeUpgradeCount || 0,
+        codeSyncCount: state.stats.codeSyncCount || 0,
+        codeEvolutionCount: state.stats.codeEvolutionCount || 0,
+        codeShardsTotal: state.stats.codeShardsTotal || 0,
+        cpuTier: state.cpuTier || 1,
+        gpuTier: state.gpuTier || 1,
+        hybridTier: Math.min(state.cpuTier || 1, state.gpuTier || 1),
+        stageHighest: (state.stage && state.stage.highestCleared) || 0,
+        stageClearCount: state.stats.stageClearCount || 0,
+        chapterRewardCount: Object.keys((state.stage && state.stage.chapterRewardsClaimed) || {}).length,
+        energySpentTotal: state.stats.energySpentTotal || 0,
+        energyPacksUsed: state.stats.energyPacksUsed || 0,
+        legendaryCount,
+        epicPlusCount,
+        missionsCompleted: state.stats.missionsCompletedTotal || 0
+      };
+      return map[metric] || 0;
     }
 
     function checkAchievements(reason) {
@@ -3115,7 +4312,6 @@ function applyLanguageToUI(){
       if (state.stats.creditsEarnedTotal >= 60000) unlockAchievement('credits_20000');
       if (state.stats.missionsCompletedTotal >= 30) unlockAchievement('mission_10');
 
-      const completedAchievements = Object.keys(state.achievements).length;
       const discoveredCodes = getCodexDiscoveredCount();
       const highestPower = getHighestCodePower();
       const highestLevel = getHighestCodeLevel();
@@ -3130,44 +4326,115 @@ function applyLanguageToUI(){
       const packsUsed = state.stats.energyPacksUsed || 0;
 
       const thresholds = {
-        scan: [225, 360, 600, 1050, 1500, 2400, 3600, 6000],
-        hack: [30, 180, 360, 750, 1200, 2100],
-        level: [15, 45, 60, 75, 90, 120, 150],
-        credits: [3000, 30000, 150000, 300000, 750000],
-        missions: [75, 150, 300, 480],
-        purchases: [30, 75, 150, 240, 360],
-        energySpent: [300, 1500, 3000, 7500, 12000],
-        risk: [15, 75, 150, 300, 540],
-        codex: [4, 8, 12, 18],
-        power: [90, 150, 240, 360],
-        codeLevel: [9, 15, 30, 45],
-        upgrades: [3, 15, 45, 90],
-        sync: [3, 9, 24, 45],
-        syncLevel: [3, 9, 15],
-        evolves: [3, 9, 18],
-        shards: [30, 90, 180, 360],
-        packs: [3, 15],
-        achievement: [15, 30, 45, 60, 75]
+        scan: [
+          ['scan_total_75', 225],
+          ['scan_total_120', 360],
+          ['scan_total_200', 600],
+          ['scan_total_350', 1050],
+          ['scan_total_500', 1500]
+        ],
+        hack: [
+          ['hack_total_10', 30],
+          ['hack_total_60', 180],
+          ['hack_total_120', 360],
+          ['hack_total_250', 750]
+        ],
+        level: [
+          ['level_total_5', 15],
+          ['level_total_15', 45],
+          ['level_total_20', 60],
+          ['level_total_25', 75]
+        ],
+        credits: [
+          ['credits_total_1000', 3000],
+          ['credits_total_10000', 30000],
+          ['credits_total_50000', 150000]
+        ],
+        missions: [
+          ['missions_total_25', 75],
+          ['missions_total_50', 150],
+          ['missions_total_100', 300]
+        ],
+        purchases: [
+          ['shop_total_10', 30],
+          ['shop_total_25', 75],
+          ['shop_total_50', 150]
+        ],
+        energySpent: [
+          ['energy_spent_100', 300],
+          ['energy_spent_500', 1500],
+          ['energy_spent_1000', 3000]
+        ],
+        risk: [
+          ['risk_total_5', 15],
+          ['risk_total_25', 75]
+        ],
+        codex: [
+          ['codex_total_1', 4],
+          ['codex_total_3', 8],
+          ['codex_total_5', 12],
+          ['codex_total_6', Object.keys(codeDefs).length]
+        ],
+        power: [
+          ['code_power_30', 90],
+          ['code_power_50', 150],
+          ['code_power_80', 240]
+        ],
+        codeLevel: [
+          ['code_level_3', 9],
+          ['code_level_5', 15],
+          ['code_level_10', 30]
+        ],
+        upgrades: [
+          ['code_upgrade_1', 3],
+          ['code_upgrade_5', 15],
+          ['code_upgrade_15', 45]
+        ],
+        sync: [
+          ['code_sync_1', 3],
+          ['code_sync_3', 9],
+          ['code_sync_8', 24]
+        ],
+        syncLevel: [
+          ['sync_level_1', 3],
+          ['sync_level_3', 9]
+        ],
+        evolves: [
+          ['code_evolve_1', 3],
+          ['code_evolve_3', 9]
+        ],
+        shards: [
+          ['shards_total_10', 30],
+          ['shards_total_30', 90]
+        ],
+        packs: [
+          ['energy_pack_1', 3]
+        ]
       };
 
-      thresholds.scan.forEach(v => { if (state.stats.scanCount >= v) unlockAchievement(`scan_total_${Math.round(v / 3)}`); });
-      thresholds.hack.forEach(v => { if (state.stats.hackSuccessCount >= v) unlockAchievement(`hack_total_${Math.round(v / 3)}`); });
-      thresholds.level.forEach(v => { if (state.level >= v) unlockAchievement(`level_total_${Math.round(v / 3)}`); });
-      thresholds.credits.forEach(v => { if (state.stats.creditsEarnedTotal >= v) unlockAchievement(`credits_total_${Math.round(v / 3)}`); });
-      thresholds.missions.forEach(v => { if (state.stats.missionsCompletedTotal >= v) unlockAchievement(`missions_total_${Math.round(v / 3)}`); });
-      thresholds.purchases.forEach(v => { if (state.stats.shopPurchaseCount >= v) unlockAchievement(`shop_total_${Math.round(v / 3)}`); });
-      thresholds.energySpent.forEach(v => { if (state.stats.energySpentTotal >= v) unlockAchievement(`energy_spent_${Math.round(v / 3)}`); });
-      thresholds.risk.forEach(v => { if (state.stats.riskHackSuccessCount >= v) unlockAchievement(`risk_total_${Math.round(v / 3)}`); });
-      thresholds.codex.forEach(v => { if (discoveredCodes >= v) unlockAchievement(`codex_total_${Math.round(v / 3)}`); });
-      thresholds.power.forEach(v => { if (highestPower >= v) unlockAchievement(`code_power_${Math.round(v / 3)}`); });
-      thresholds.codeLevel.forEach(v => { if (highestLevel >= v) unlockAchievement(`code_level_${Math.round(v / 3)}`); });
-      thresholds.upgrades.forEach(v => { if (upgrades >= v) unlockAchievement(`code_upgrade_${Math.round(v / 3)}`); });
-      thresholds.sync.forEach(v => { if (syncs >= v) unlockAchievement(`code_sync_${Math.round(v / 3)}`); });
-      thresholds.syncLevel.forEach(v => { if (highestSync >= v) unlockAchievement(`sync_level_${Math.round(v / 3)}`); });
-      thresholds.evolves.forEach(v => { if (evolves >= v) unlockAchievement(`code_evolve_${Math.round(v / 3)}`); });
-      thresholds.shards.forEach(v => { if (totalShards >= v) unlockAchievement(`shards_total_${Math.round(v / 3)}`); });
-      thresholds.packs.forEach(v => { if (packsUsed >= v) unlockAchievement(`energy_pack_${Math.round(v / 3)}`); });
-      thresholds.achievement.forEach(v => { if (completedAchievements >= v) unlockAchievement(`achievement_total_${Math.round(v / 3)}`); });
+      function unlockByThreshold(list, value) {
+        list.forEach(([id, threshold]) => {
+          if (value >= threshold) unlockAchievement(id);
+        });
+      }
+
+      unlockByThreshold(thresholds.scan, state.stats.scanCount);
+      unlockByThreshold(thresholds.hack, state.stats.hackSuccessCount);
+      unlockByThreshold(thresholds.level, state.level);
+      unlockByThreshold(thresholds.credits, state.stats.creditsEarnedTotal);
+      unlockByThreshold(thresholds.missions, state.stats.missionsCompletedTotal);
+      unlockByThreshold(thresholds.purchases, state.stats.shopPurchaseCount);
+      unlockByThreshold(thresholds.energySpent, state.stats.energySpentTotal);
+      unlockByThreshold(thresholds.risk, state.stats.riskHackSuccessCount);
+      unlockByThreshold(thresholds.codex, discoveredCodes);
+      unlockByThreshold(thresholds.power, highestPower);
+      unlockByThreshold(thresholds.codeLevel, highestLevel);
+      unlockByThreshold(thresholds.upgrades, upgrades);
+      unlockByThreshold(thresholds.sync, syncs);
+      unlockByThreshold(thresholds.syncLevel, highestSync);
+      unlockByThreshold(thresholds.evolves, evolves);
+      unlockByThreshold(thresholds.shards, totalShards);
+      unlockByThreshold(thresholds.packs, packsUsed);
 
       if (countCodesByRarity('COMMON') >= 6) unlockAchievement('rarity_common_2');
       if (countCodesByRarity('RARE') >= 6) unlockAchievement('rarity_rare_2');
@@ -3179,9 +4446,15 @@ function applyLanguageToUI(){
       if (state.cpuTier >= 30) unlockAchievement('cpu_tier_10_plus');
       if (state.energyMax >= 90) unlockAchievement('energy_max_30_plus');
       if (state.energyMax >= 120) unlockAchievement('energy_max_40_plus');
+
+      achievementDefs.forEach(def => {
+        if (!def.metric || !def.target) return;
+        if (getAchievementMetricValue(def.metric) >= def.target) unlockAchievement(def.id);
+      });
     }
 
     function renderAchievements() {
+      if (!achievementListEl) return;
       achievementListEl.innerHTML = '';
 
       const diffLabel = {
@@ -3190,8 +4463,18 @@ function applyLanguageToUI(){
         hard: t('difficultyHard')
       };
 
+      const filter = (state.ui && state.ui.achievementFilter) || 'incomplete';
+      const showHidden = !!(state.ui && state.ui.showHiddenAchievements);
+      achievementFilterButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.achievementFilter === filter);
+      });
+      if (chkShowHiddenAchievements) chkShowHiddenAchievements.checked = showHidden;
+
       achievementDefs.forEach(def => {
         const completed = !!state.achievements[def.id];
+        if (filter === 'incomplete' && completed) return;
+        if (filter === 'complete' && !completed) return;
+        if (def.hidden && !completed && !showHidden) return;
 
         const item = document.createElement('div');
         item.className = 'achievement-item';
@@ -3234,7 +4517,7 @@ function applyLanguageToUI(){
       state.loadouts[slot] = {
         codeId: code ? code.id : null,
         serverId: server ? server.id : null,
-        riskMode: state.riskMode
+        hackMode: normalizeHackMode(state.hackMode)
       };
       log(t('loadoutSaved', { slot }), 'system');
     }
@@ -3255,8 +4538,9 @@ function applyLanguageToUI(){
           serverSelect.value = data.serverId;
         }
       }
-      state.riskMode = !!data.riskMode;
-      chkRiskMode.checked = state.riskMode;
+      state.hackMode = normalizeHackMode(data.hackMode || (data.riskMode ? 'risk' : 'normal'));
+      state.riskMode = state.hackMode === 'risk';
+      renderHackModeUI();
       log(t('loadoutLoaded', { slot }), 'system');
       updateStatsUI();
     }
@@ -3276,11 +4560,13 @@ function applyLanguageToUI(){
       e.preventDefault();
     }
     function onMouseMove(e) {
-      if (!isResizing) return;
+      if (!isResizing || !main) return;
       const rect = main.getBoundingClientRect();
       const totalWidth = rect.width;
+      if (!totalWidth) return;
 
       if (currentResizer === 'left') {
+        if (!leftPanel) return;
         let newLeftWidth = ((e.clientX - rect.left) / totalWidth) * 100;
         newLeftWidth = Math.max(10, Math.min(40, newLeftWidth));
         leftPanel.style.flex = `0 0 ${newLeftWidth}%`;
@@ -3297,10 +4583,10 @@ function applyLanguageToUI(){
       currentResizer = null;
     }
 
-    resizerLeft.addEventListener('mousedown', onMouseDownResizerLeft);
-    if (resizerRight && rightPanel) resizerRight.addEventListener('mousedown', onMouseDownResizerRight);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+    bind(resizerLeft, 'mousedown', onMouseDownResizerLeft);
+    if (rightPanel) bind(resizerRight, 'mousedown', onMouseDownResizerRight);
+    bind(window, 'mousemove', onMouseMove);
+    bind(window, 'mouseup', onMouseUp);
 
     // 더보기 모달 / 탭
     function setActiveTab(tabName) {
@@ -3322,7 +4608,7 @@ function applyLanguageToUI(){
     }
 
     moreTabButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+      bind(btn, 'click', () => {
         const tab = btn.dataset.tab;
         setActiveTab(tab);
       });
@@ -3342,21 +4628,22 @@ function applyLanguageToUI(){
       updateIndexLabel.textContent = `${activeUpdateIndex + 1} / ${updateLogs.length}`;
     }
 
-    if (btnUpdatePrev) btnUpdatePrev.addEventListener('click', () => {
+    bind(btnUpdatePrev, 'click', () => {
       activeUpdateIndex = (activeUpdateIndex - 1 + updateLogs.length) % updateLogs.length;
       renderUpdateLog();
     });
-    if (btnUpdateNext) btnUpdateNext.addEventListener('click', () => {
+    bind(btnUpdateNext, 'click', () => {
       activeUpdateIndex = (activeUpdateIndex + 1) % updateLogs.length;
       renderUpdateLog();
     });
 
-        function openMoreModal(defaultTab = 'mission', showDontShowButton = false) {
+    function openMoreModal(defaultTab = 'mission', showDontShowButton = false) {
       try {
-        moreModalBackdrop.classList.add('active');
         setActiveTab(defaultTab);
         renderUpdateLog();
         if (btnUpdateDontShow) btnUpdateDontShow.style.display = showDontShowButton ? 'inline-block' : 'none';
+        if (!moreModalBackdrop) return;
+        moreModalBackdrop.classList.add('active');
       } catch (err) {
         console.error('[MoreModal] open failed:', err);
         try { showToast('더보기를 여는 중 오류가 발생했습니다. (콘솔 확인)', 'warn'); } catch(e) {}
@@ -3365,18 +4652,19 @@ function applyLanguageToUI(){
 
 
     function closeMoreModal() {
+      if (!moreModalBackdrop) return;
       moreModalBackdrop.classList.remove('active');
     }
 
-        // v1.6.2: 더보기 버튼 클릭 이슈 방지 (가드 + 이벤트 위임)
-    if (btnMore) btnMore.addEventListener('click', () => openMoreModal('mission', false));
-    document.addEventListener('click', (e) => {
+    // v1.6.2: 더보기 버튼 클릭 이슈 방지 (가드 + 이벤트 위임)
+    bind(btnMore, 'click', () => openMoreModal('mission', false));
+    bind(document, 'click', (e) => {
       const t = e.target.closest && e.target.closest('#btnMore');
       if (t) openMoreModal('mission', false);
     });
-    if (btnMoreClose) btnMoreClose.addEventListener('click', closeMoreModal);
-        if (btnMoreClose2) btnMoreClose2.addEventListener('click', closeMoreModal);
-    moreModalBackdrop.addEventListener('click', (e) => {
+    bind(btnMoreClose, 'click', closeMoreModal);
+    bind(btnMoreClose2, 'click', closeMoreModal);
+    bind(moreModalBackdrop, 'click', (e) => {
       if (e.target === moreModalBackdrop) closeMoreModal();
     });
 
@@ -3384,7 +4672,7 @@ function applyLanguageToUI(){
       return;
     }
 
-    if (btnUpdateDontShow) btnUpdateDontShow.addEventListener('click', () => {
+    bind(btnUpdateDontShow, 'click', () => {
       localStorage.setItem(LAST_SEEN_VERSION_KEY, CURRENT_VERSION);
       closeMoreModal();
     });
@@ -3462,9 +4750,35 @@ function applyLanguageToUI(){
       }
     }
 
+
+    function refreshUiAfterStateRestore() {
+      ensureStageDefaults();
+      applySettings();
+      syncSettingsUI();
+      applyLanguageToUI();
+      renderServers();
+      renderShop();
+      renderMissions();
+      renderAchievements();
+      renderCodex();
+      renderCodeList();
+      renderCodeDetail();
+      renderUpdateLog();
+      renderStagePanel();
+      updateStatsUI();
+      if (btnToggleLogs) {
+        btnToggleLogs.textContent = logsHidden ? t('showLogs') : t('hideLogs');
+      }
+      try {
+        window.dispatchEvent(new CustomEvent('hcsig:language-applied', { detail: { lang: getLang() } }));
+      } catch (e) {}
+    }
+
     function saveGame(silent = false) {
       state.lastSavedAt = Date.now();
       state.lastSeenAt = state.lastSavedAt;
+      state.hackMode = normalizeHackMode(state.hackMode);
+      state.riskMode = state.hackMode === 'risk';
       const saveData = {
         version: CURRENT_VERSION,
         savedAt: state.lastSavedAt,
@@ -3493,6 +4807,15 @@ function applyLanguageToUI(){
         showToast(t('autosaveComplete'), 'save');
       }
       updateStatsUI();
+    }
+
+    let scheduledSilentSaveTimer = null;
+    function scheduleSilentSave(delay = 180) {
+      clearTimeout(scheduledSilentSaveTimer);
+      scheduledSilentSaveTimer = setTimeout(() => {
+        scheduledSilentSaveTimer = null;
+        saveGame(true);
+      }, delay);
     }
 
     function loadGame(rawOverride = null) {
@@ -3527,11 +4850,34 @@ function applyLanguageToUI(){
           Object.assign(modifiers, data.modifiers);
         }
         // 새 필드 기본값 보정
+        state.stats = state.stats || {};
         state.stats.energySpentTotal ||= 0;
         state.stats.creditsEarnedTotal ||= 0;
         state.stats.missionsCompletedTotal ||= 0;
         state.stats.riskHackSuccessCount ||= 0;
+        state.stats.extremeHackSuccessCount ||= 0;
+        state.stats.gpuUpgradeCount ||= 0;
         state.stats.codeShardsTotal ||= 0;
+        state.stats.stageAttemptCount ||= 0;
+        state.stats.stageClearCount ||= 0;
+        state.gpuTier = Math.max(1, Number(state.gpuTier || 1));
+        state.hackMode = normalizeHackMode(state.hackMode || (state.riskMode ? 'risk' : 'normal'));
+        state.riskMode = state.hackMode === 'risk';
+        state.missionProgress.daily = state.missionProgress.daily || {};
+        state.missionProgress.weekly = state.missionProgress.weekly || {};
+        state.missionProgress.month = state.missionProgress.month || {};
+        state.missionProgress.daily.actions ||= 0;
+        state.missionProgress.daily.riskHackSuccess ||= 0;
+        state.missionProgress.daily.extremeHackSuccess ||= 0;
+        state.missionProgress.daily.shopPurchases ||= 0;
+        state.missionProgress.weekly.actions ||= 0;
+        state.missionProgress.weekly.riskHackSuccess ||= 0;
+        state.missionProgress.weekly.extremeHackSuccess ||= 0;
+        state.missionProgress.weekly.shopPurchases ||= 0;
+        state.missionProgress.month.actions ||= 0;
+        state.missionProgress.month.riskHackSuccess ||= 0;
+        state.missionProgress.month.extremeHackSuccess ||= 0;
+        state.missionProgress.month.shopPurchases ||= 0;
         state.missionProgress.general = state.missionProgress.general || { completed: {} };
         state.missionProgress.general.completed = state.missionProgress.general.completed || {};
 
@@ -3552,17 +4898,30 @@ function applyLanguageToUI(){
         state.ui.fontScale = state.ui.fontScale || 100;
         state.ui.snowEnabled = (typeof state.ui.snowEnabled === 'boolean') ? state.ui.snowEnabled : null;
         state.ui.anim = (typeof state.ui.anim === 'boolean') ? state.ui.anim : true;
+        state.ui.sfxEnabled = (typeof state.ui.sfxEnabled === 'boolean') ? state.ui.sfxEnabled : true;
+        state.ui.sfxVolume = Number.isFinite(Number(state.ui.sfxVolume)) ? Math.max(0, Math.min(100, Number(state.ui.sfxVolume))) : 35;
         state.ui.autoSaveToast = !!state.ui.autoSaveToast;
         state.ui.logSearch = state.ui.logSearch || '';
+        state.ui.achievementFilter = ['all', 'incomplete', 'complete'].includes(state.ui.achievementFilter) ? state.ui.achievementFilter : 'incomplete';
+        state.ui.showHiddenAchievements = !!state.ui.showHiddenAchievements;
+        state.ui.liveNetworkEnabled = state.ui.liveNetworkEnabled !== false;
+        state.ui.liveNicknameMode = state.ui.liveNicknameMode === 'callsign' ? 'callsign' : 'nickname';
+
+        state.loadouts = state.loadouts || {};
+        ['1', '2', '3'].forEach(slot => {
+          const loadout = state.loadouts[slot] || { codeId: null, serverId: null, hackMode: 'normal' };
+          loadout.hackMode = normalizeHackMode(loadout.hackMode || (loadout.riskMode ? 'risk' : 'normal'));
+          delete loadout.riskMode;
+          state.loadouts[slot] = loadout;
+        });
 
         ensureTutorialDefaults();
+        ensureStageDefaults();
         state.lastSeenAt = Number(state.lastSeenAt || data.savedAt || 0) || null;
         state.energy = Math.min(state.energy, state.energyMax);
         applyOfflineEnergyRecovery();
         ensureMissionResets();
-        applySettings();
-        syncSettingsUI();
-        updateStatsUI();
+        refreshUiAfterStateRestore();
         log(t('saveLoaded'), 'system');
       } catch (e) {
         console.error(e);
@@ -3575,24 +4934,30 @@ function applyLanguageToUI(){
       log(t('saveDeleted'), 'system');
     }
 
-    btnSaveGame.addEventListener('click', saveGame);
-    btnLoadGame.addEventListener('click', loadGame);
-    btnClearSave.addEventListener('click', clearSave);
+    bind(btnSaveGame, 'click', saveGame);
+    bind(btnLoadGame, 'click', loadGame);
+    bind(btnClearSave, 'click', clearSave);
 
-    if (btnTutorialPrev) btnTutorialPrev.addEventListener('click', prevTutorialStep);
-    if (btnTutorialNext) btnTutorialNext.addEventListener('click', nextTutorialStep);
-    if (btnTutorialFinish) btnTutorialFinish.addEventListener('click', () => closeTutorial(true));
-    if (btnTutorialSkip) btnTutorialSkip.addEventListener('click', () => closeTutorial(true));
-    if (btnOpenTutorial) btnOpenTutorial.addEventListener('click', () => openTutorial(true));
+    bind(btnTutorialPrev, 'click', prevTutorialStep);
+    bind(btnTutorialNext, 'click', nextTutorialStep);
+    bind(btnTutorialFinish, 'click', () => closeTutorial(true));
+    bind(btnTutorialSkip, 'click', () => closeTutorial(true));
+    bind(btnOpenTutorial, 'click', () => openTutorial(true));
 
-    document.addEventListener('visibilitychange', () => {
+    bind(document, 'visibilitychange', () => {
       if (document.visibilityState === 'hidden') persistLastSeenAt(Date.now());
     });
-    window.addEventListener('pagehide', () => {
+    bind(window, 'pagehide', () => {
       persistLastSeenAt(Date.now());
     });
-    window.addEventListener('beforeunload', () => {
+    bind(window, 'beforeunload', () => {
       persistLastSeenAt(Date.now());
+    });
+    bind(document, 'pointerdown', unlockSfx, { passive: true });
+    bind(document, 'keydown', unlockSfx);
+    bind(document, 'click', (e) => {
+      const target = e.target && e.target.closest ? e.target.closest('button,[role="button"],select') : null;
+      if (target && !target.disabled) playSfx('tap');
     });
 
     setInterval(() => {
@@ -3601,7 +4966,7 @@ function applyLanguageToUI(){
 
     // 로그 필터
     function bindLogFilterCheckbox(checkbox, key) {
-      checkbox.addEventListener('change', () => {
+      bind(checkbox, 'change', () => {
         state.logFilter[key] = checkbox.checked;
         applyLogFilter();
       });
@@ -3613,19 +4978,19 @@ function applyLanguageToUI(){
     bindLogFilterCheckbox(filterLevel, 'level');
 
     // 로그 초기화 / 숨기기
-    btnClearLogs.addEventListener('click', () => {
-      logList.innerHTML = '';
+    bind(btnClearLogs, 'click', () => {
+      if (logList) logList.innerHTML = '';
     });
 
-    btnToggleLogs.addEventListener('click', () => {
+    bind(btnToggleLogs, 'click', () => {
       logsHidden = !logsHidden;
-      logPanelBody.style.display = logsHidden ? 'none' : '';
-      btnToggleLogs.textContent = logsHidden ? t('showLogs') : t('hideLogs');
+      setNodeDisplay(logPanelBody, logsHidden ? 'none' : '');
+      setNodeText(btnToggleLogs, logsHidden ? t('showLogs') : t('hideLogs'));
     });
 
     // 미션 스코프 버튼
     missionScopeButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+      bind(btn, 'click', () => {
         missionScopeButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         missionScopeActive = btn.dataset.scope;
@@ -3688,17 +5053,22 @@ function applyLanguageToUI(){
       if (!setFontScale) return;
       const ui = state.ui || {};
       setFontScale.value = ui.fontScale || 100;
-      setFontScaleLabel.textContent = `${setFontScale.value}%`;
+      setNodeText(setFontScaleLabel, `${setFontScale.value}%`);
       if (setSnow) {
         const snowOn = (typeof ui.snowEnabled === 'boolean') ? ui.snowEnabled : isChristmasSeason();
         setSnow.checked = !!snowOn;
         // 자동 모드(null)일 땐 체크박스에 미세한 힌트(회색 표시)
         setSnow.indeterminate = (typeof ui.snowEnabled !== 'boolean');
       }
-      setUiZoom.value = String(ui.uiZoom || 1);
-      setAnim.checked = ui.anim !== false;
-      setToastMs.value = String(ui.toastDurationMs || 3000);
-      setAutoSaveToast.checked = !!ui.autoSaveToast;
+      if (setUiZoom) setUiZoom.value = String(ui.uiZoom || 1);
+      if (setAnim) setAnim.checked = ui.anim !== false;
+      if (setSfx) setSfx.checked = ui.sfxEnabled !== false;
+      if (setSfxVolume) setSfxVolume.value = String(Number.isFinite(Number(ui.sfxVolume)) ? Number(ui.sfxVolume) : 35);
+      if (setSfxVolumeLabel) setNodeText(setSfxVolumeLabel, `${setSfxVolume ? setSfxVolume.value : 35}%`);
+      if (setToastMs) setToastMs.value = String(ui.toastDurationMs || 3000);
+      if (setAutoSaveToast) setAutoSaveToast.checked = !!ui.autoSaveToast;
+      if (setLiveNetwork) setLiveNetwork.checked = ui.liveNetworkEnabled !== false;
+      if (setLiveNicknameMode) setLiveNicknameMode.value = ui.liveNicknameMode === 'callsign' ? 'callsign' : 'nickname';
       if (setLanguage) setLanguage.value = ui.lang || 'ko';
       if (logSearchInput) logSearchInput.value = ui.logSearch || '';
     }
@@ -3707,26 +5077,17 @@ function applyLanguageToUI(){
     if (setLanguage) {
       setLanguage.addEventListener('change', () => {
         state.ui.lang = setLanguage.value || 'ko';
-        applyLanguageToUI();
-        updateStatsUI();
-        renderServers();
-        renderShop();
-        renderMissions();
-        renderAchievements();
-        renderCodex();
-        renderCodeList();
-        renderCodeDetail();
-        syncSettingsUI();
-        saveGame(true);
+        refreshUiAfterStateRestore();
+        scheduleSilentSave(60);
       });
     }
 
     if (setFontScale) {
       setFontScale.addEventListener('input', () => {
         state.ui.fontScale = Number(setFontScale.value);
-        setFontScaleLabel.textContent = `${setFontScale.value}%`;
+        setNodeText(setFontScaleLabel, `${setFontScale.value}%`);
         applySettings();
-        saveGame(true);
+        scheduleSilentSave();
       });
     }
 
@@ -3737,33 +5098,67 @@ function applyLanguageToUI(){
         // indeterminate(자동) 해제
         setSnow.indeterminate = false;
         applySettings();
-        saveGame(true);
+        scheduleSilentSave();
       });
     }
     if (setUiZoom) {
       setUiZoom.addEventListener('change', () => {
         state.ui.uiZoom = Number(setUiZoom.value);
         applySettings();
-        saveGame(true);
+        scheduleSilentSave();
       });
     }
     if (setAnim) {
       setAnim.addEventListener('change', () => {
         state.ui.anim = !!setAnim.checked;
         applySettings();
-        saveGame(true);
+        scheduleSilentSave();
+      });
+    }
+    if (setSfx) {
+      setSfx.addEventListener('change', () => {
+        state.ui.sfxEnabled = !!setSfx.checked;
+        if (state.ui.sfxEnabled) {
+          unlockSfx();
+          playSfx('success');
+        }
+        scheduleSilentSave();
+      });
+    }
+    if (setSfxVolume) {
+      setSfxVolume.addEventListener('input', () => {
+        state.ui.sfxVolume = Number(setSfxVolume.value);
+        setNodeText(setSfxVolumeLabel, `${setSfxVolume.value}%`);
+      });
+      setSfxVolume.addEventListener('change', () => {
+        state.ui.sfxVolume = Number(setSfxVolume.value);
+        unlockSfx();
+        playSfx('tap');
+        scheduleSilentSave();
       });
     }
     if (setToastMs) {
       setToastMs.addEventListener('change', () => {
         state.ui.toastDurationMs = Number(setToastMs.value);
-        saveGame(true);
+        scheduleSilentSave();
       });
     }
     if (setAutoSaveToast) {
       setAutoSaveToast.addEventListener('change', () => {
         state.ui.autoSaveToast = !!setAutoSaveToast.checked;
-        saveGame(true);
+        scheduleSilentSave();
+      });
+    }
+    if (setLiveNetwork) {
+      setLiveNetwork.addEventListener('change', () => {
+        state.ui.liveNetworkEnabled = !!setLiveNetwork.checked;
+        scheduleSilentSave(80);
+      });
+    }
+    if (setLiveNicknameMode) {
+      setLiveNicknameMode.addEventListener('change', () => {
+        state.ui.liveNicknameMode = setLiveNicknameMode.value === 'callsign' ? 'callsign' : 'nickname';
+        scheduleSilentSave(80);
       });
     }
 
@@ -3772,7 +5167,7 @@ function applyLanguageToUI(){
       logSearchInput.addEventListener('input', () => {
         state.ui.logSearch = logSearchInput.value || '';
         applyLogFilter();
-        saveGame(true);
+        scheduleSilentSave(240);
       });
     }
     if (logList) {
@@ -3822,11 +5217,11 @@ function applyLanguageToUI(){
       }
     }
 
-    if (btnExportSave) btnExportSave.addEventListener('click', exportSaveFile);
+    bind(btnExportSave, 'click', exportSaveFile);
 
     if (btnImportSaveFile && fileImportSave) {
-      btnImportSaveFile.addEventListener('click', () => fileImportSave.click());
-      fileImportSave.addEventListener('change', async () => {
+      bind(btnImportSaveFile, 'click', () => fileImportSave.click());
+      bind(fileImportSave, 'change', async () => {
         const f = fileImportSave.files && fileImportSave.files[0];
         if (!f) return;
         const text = await f.text();
@@ -3836,7 +5231,7 @@ function applyLanguageToUI(){
     }
 
     if (btnImportSaveText && importSaveText) {
-      btnImportSaveText.addEventListener('click', () => {
+      bind(btnImportSaveText, 'click', () => {
         const text = (importSaveText.value || '').trim();
         if (!text) {
           showToast(t('emptyText'), 'warn');
@@ -3846,45 +5241,68 @@ function applyLanguageToUI(){
       });
     }
 
-    btnScan.addEventListener('click', scanForCode);
-    btnHack.addEventListener('click', doHack);
-    btnUpgradeCpu.addEventListener('click', upgradeCpu);
-    btnUpgradeCode.addEventListener('click', upgradeSelectedCode);
-    if (btnSyncCode) btnSyncCode.addEventListener('click', syncSelectedCode);
-    btnEvolveCode.addEventListener('click', evolveSelectedCode);
+    bind(btnScan, 'click', scanForCode);
+    bind(btnHack, 'click', doHack);
+    bind(btnUpgradeCpu, 'click', upgradeCpu);
+    bind(btnUpgradeGpu, 'click', upgradeGpu);
+    bind(btnUpgradeCode, 'click', upgradeSelectedCode);
+    bind(btnSyncCode, 'click', syncSelectedCode);
+    bind(btnEvolveCode, 'click', evolveSelectedCode);
 
-    btnUseEnergyPack.addEventListener('click', useEnergyPack);
+    bind(btnUseEnergyPack, 'click', useEnergyPack);
+    bind(document, 'hcsig:lab-ready', renderStagePanel);
+    bind(window, 'hcsig:language-applied', renderStagePanel);
 
-    chkRiskMode.addEventListener('change', () => {
-      state.riskMode = chkRiskMode.checked;
-      log(t('riskModeLog', { state: state.riskMode ? t('on') : t('off') }), 'system');
+    hackModeButtons.forEach(btn => {
+      bind(btn, 'click', () => {
+        const mode = normalizeHackMode(btn.dataset.hackMode || 'normal');
+        if (mode === 'extreme' && state.level < 5) {
+          showToast(getLang() === 'en' ? 'EXTREME unlocks at Lv.5.' : 'EXTREME은 Lv.5 이상에서 해금됩니다.', 'warn');
+          renderHackModeUI();
+          return;
+        }
+        state.hackMode = mode;
+        state.riskMode = mode === 'risk';
+        playSfx('mode');
+        log(t('hackModeLog', { mode: getHackModeInfo(mode).label }), 'system');
+        renderHackModeUI();
+        scheduleSilentSave();
+      });
     });
 
-    btnSaveLoadout.addEventListener('click', saveCurrentLoadout);
-    btnLoadLoadout.addEventListener('click', loadLoadout);
+    achievementFilterButtons.forEach(btn => {
+      bind(btn, 'click', () => {
+        state.ui = state.ui || {};
+        state.ui.achievementFilter = btn.dataset.achievementFilter || 'incomplete';
+        renderAchievements();
+        scheduleSilentSave();
+      });
+    });
+
+    bind(chkShowHiddenAchievements, 'change', () => {
+      state.ui = state.ui || {};
+      state.ui.showHiddenAchievements = !!chkShowHiddenAchievements.checked;
+      renderAchievements();
+      scheduleSilentSave();
+    });
+
+    bind(btnSaveLoadout, 'click', saveCurrentLoadout);
+    bind(btnLoadLoadout, 'click', loadLoadout);
 
     function init() {
       addCodeInstanceFromTemplate('basic');
       state.requiredExp = requiredExp(state.level);
-      renderServers();
-      renderShop();
+      ensureStageDefaults();
       ensureMissionResets();
-      applySettings();
-      syncSettingsUI();
-      applyLanguageToUI();
-      updateStatsUI();
-      log(t('initLog'), 'system');
 
       if (localStorage.getItem(SAVE_KEY)) {
         loadGame();
       } else {
         state.lastSeenAt = Date.now();
-        applyLanguageToUI();
-        updateStatsUI();
+        refreshUiAfterStateRestore();
       }
 
-      applyLanguageToUI();
-      renderUpdateLog();
+      log(t('initLog'), 'system');
       maybeShowUpdateOnStart();
       setTimeout(() => {
         maybeStartTutorial();
@@ -3919,13 +5337,7 @@ function applyLanguageToUI(){
           toast: (message, type = 'save') => showToast(message, type),
           log: (message, type = 'system') => log(message, type),
           refresh: () => {
-            applyLanguageToUI();
-            updateStatsUI();
-            renderCodeList();
-            renderCodeDetail();
-            renderMissions();
-            renderAchievements();
-            renderCodex();
+            refreshUiAfterStateRestore();
           }
         };
         window.dispatchEvent(new CustomEvent('hcsig:ready', {
@@ -3940,670 +5352,3 @@ function applyLanguageToUI(){
     }
 
     init();
-  
-
-
-// === MOBILE PATCH: disable resizers on touch devices ===
-(function(){
-  if(window.__HCSIG_SIMPLE_MOBILE__){
-    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    if(isTouch){
-      document.querySelectorAll('.resizer,.resize-bar').forEach(el=>el.remove());
-    }
-    return;
-  }
-  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-  if(isTouch){
-    document.querySelectorAll('.resizer,.resize-bar').forEach(el=>el.remove());
-    window.addEventListener('load', ()=>{
-      const lp = document.getElementById('leftPanel');
-      const rp = document.getElementById('rightPanel');
-      if(lp) lp.style.flex = 'none';
-      if(rp) rp.style.flex = 'none';
-    });
-  }
-})();
-
-
-
-// === MOBILE UI MODE: Tabbed panels ===
-(function(){
-  if(window.__HCSIG_SIMPLE_MOBILE__) return;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  // IMPORTANT: This build uses the newer 5-tab "MOBILE VIEWS" system.
-  // The legacy 3-tab (left/center/right) switcher can create an invisible overlay that blocks taps on iOS
-  // until a relayout event (like opening "More") happens. Disable it entirely.
-  return;
-
-  // (legacy code below intentionally unreachable)
-
-  if(!document.body.classList.contains('mobile-tab-left') &&
-     !document.body.classList.contains('mobile-tab-center') &&
-     !document.body.classList.contains('mobile-tab-right')){
-    document.body.classList.add('mobile-tab-center');
-  }
-
-  function setTab(tab){
-    document.body.classList.remove('mobile-tab-left','mobile-tab-center','mobile-tab-right');
-    document.body.classList.add('mobile-tab-'+tab);
-    document.querySelectorAll('.mobile-tabs button').forEach(b=>{
-      b.classList.toggle('active', b.dataset.tab === tab);
-    });
-    const panelId = tab==='left'?'leftPanel':tab==='center'?'centerPanel':'rightPanel';
-    const p = document.getElementById(panelId);
-    if(p) p.scrollTop = 0;
-  }
-
-  const wrap = document.createElement('div');
-  wrap.className = 'mobile-tabs';
-  wrap.innerHTML = `
-    <button type="button" data-tab="left" aria-label="Status">STATUS</button>
-    <button type="button" data-tab="center" aria-label="Action">ACTION</button>
-    <button type="button" data-tab="right" aria-label="Log">LOG</button>
-  `;
-  document.body.appendChild(wrap);
-
-  wrap.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>setTab(btn.dataset.tab));
-  });
-
-  const btnMore = document.getElementById('btnMore');
-  if(btnMore){
-    btnMore.addEventListener('click', ()=>setTab('right'));
-  }
-
-  const initial = document.body.classList.contains('mobile-tab-left')?'left':
-                  document.body.classList.contains('mobile-tab-right')?'right':'center';
-  setTab(initial);
-
-  window.addEventListener('resize', ()=>{
-    const stillMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-    if(!stillMobile){
-      const mt = document.querySelector('.mobile-tabs');
-      if(mt) mt.remove();
-      document.body.classList.remove('mobile-tab-left','mobile-tab-center','mobile-tab-right');
-    }
-  });
-})();
-
-
-
-// === MOBILE VIEWS: split PC layout into mobile tabs ===
-(function(){
-  if(window.__HCSIG_SIMPLE_MOBILE__) return;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-  // legacy split-view disabled by k1 hotfix
-  return;
-
-  // helper
-  const byText = (root, sel, txt) => {
-    const els = Array.from(root.querySelectorAll(sel));
-    return els.find(e => (e.textContent||'').trim().toLowerCase() === txt.toLowerCase());
-  };
-
-  // Create mobile view containers
-  const views = [
-    ['Status','mobileViewStatus'],
-    ['Action','mobileViewAction'],
-    ['Codes','mobileViewCodes'],
-    ['Shop','mobileViewShop'],
-    ['Log','mobileViewLog'],
-  ];
-  const main = document.getElementById('main') || document.querySelector('#main') || document.body;
-
-  views.forEach(([_,id])=>{
-    if(document.getElementById(id)) return;
-    const v = document.createElement('div');
-    v.id = id;
-    v.className = 'mobile-view';
-    main.insertBefore(v, main.firstChild);
-  });
-
-  // Move leftPanel -> Status + Shop
-  const left = document.getElementById('leftPanel');
-  if(left){
-    const shopTitle = Array.from(left.querySelectorAll('.section-title')).find(t => (t.textContent||'').trim()==='Shop');
-    const statusView = document.getElementById('mobileViewStatus');
-    const shopView = document.getElementById('mobileViewShop');
-
-    if(shopTitle){
-      // nodes before Shop go to Status
-      let node = left.firstChild;
-      const toMoveStatus = [];
-      while(node && node !== shopTitle){
-        const next = node.nextSibling;
-        toMoveStatus.push(node);
-        node = next;
-      }
-      toMoveStatus.forEach(n=>statusView.appendChild(n));
-
-      // Shop title and everything after -> Shop
-      let node2 = shopTitle;
-      const toMoveShop = [];
-      while(node2){
-        const next = node2.nextSibling;
-        toMoveShop.push(node2);
-        node2 = next;
-      }
-      toMoveShop.forEach(n=>shopView.appendChild(n));
-    }else{
-      // fallback: whole left panel in Status
-      statusView.appendChild(left);
-    }
-  }
-
-  // Move centerPanel -> Action + Codes
-  const center = document.getElementById('centerPanel');
-  if(center){
-    const actionView = document.getElementById('mobileViewAction');
-    const codesView  = document.getElementById('mobileViewCodes');
-
-    const codeInvTitle = Array.from(center.querySelectorAll('.section-title')).find(t => (t.textContent||'').trim()==='코드 인벤토리');
-    let codeBlock = null;
-    if(codeInvTitle){
-      // typically inside a flex-row container
-      codeBlock = codeInvTitle.closest('.flex-row') || codeInvTitle.closest('.stat-box') || codeInvTitle.parentElement;
-    }
-
-    if(codeBlock){
-      // move nodes before codeBlock into Action
-      let node = center.firstChild;
-      const toMoveAction = [];
-      while(node && node !== codeBlock){
-        const next = node.nextSibling;
-        toMoveAction.push(node);
-        node = next;
-      }
-      toMoveAction.forEach(n=>actionView.appendChild(n));
-
-      // move codeBlock and after into Codes
-      let node2 = codeBlock;
-      const toMoveCodes = [];
-      while(node2){
-        const next = node2.nextSibling;
-        toMoveCodes.push(node2);
-        node2 = next;
-      }
-      toMoveCodes.forEach(n=>codesView.appendChild(n));
-    }else{
-      // fallback: whole center in Action
-      actionView.appendChild(center);
-    }
-  }
-
-  // LOG view: try to use existing logBox if present, else open "더보기" logs
-  const logView = document.getElementById('mobileViewLog');
-  const logBox = document.getElementById('logBox');
-  if(logBox){
-    logView.appendChild(logBox.closest('.stat-box') ? logBox.closest('.stat-box') : logBox);
-  } else {
-    const tip = document.createElement('div');
-    tip.className = 'stat-box';
-    tip.innerHTML = '<div class="section-title">Log</div><div class="small">LOG는 상단의 “더보기”에서 확인할 수 있습니다.</div>';
-    logView.appendChild(tip);
-  }
-
-  // Replace tab bar with 5 tabs
-  const oldTabs = document.querySelector('.mobile-tabs');
-  if(oldTabs) oldTabs.remove();
-
-  const wrap = document.createElement('div');
-  wrap.className = 'mobile-tabs';
-  wrap.innerHTML = `
-    <button type="button" data-view="status">STATUS</button>
-    <button type="button" data-view="action">ACTION</button>
-    <button type="button" data-view="codes">CODES</button>
-    <button type="button" data-view="shop">SHOP</button>
-    <button type="button" data-view="log">LOG</button>
-  `;
-  document.body.appendChild(wrap);
-
-  function setView(v){
-    document.body.classList.remove('mobile-view-status','mobile-view-action','mobile-view-codes','mobile-view-shop','mobile-view-log');
-    document.body.classList.add('mobile-view-'+v);
-    wrap.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
-    const id = 'mobileView' + v.charAt(0).toUpperCase() + v.slice(1);
-    const panel = document.getElementById(id);
-    if(panel) panel.scrollTop = 0;
-
-    // If LOG chosen and logs are in more modal, try open it
-    if(v==='log'){
-      const btnMore = document.getElementById('btnMore');
-      if(btnMore && !document.getElementById('logBox')) btnMore.click();
-    }
-  }
-
-  wrap.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>setView(btn.dataset.view));
-  });
-
-  // When a code is tapped, auto-scroll to detail inside codes view
-  const codeList = document.getElementById('codeList');
-  const codeDetail = document.getElementById('codeDetail');
-  if(codeList && codeDetail){
-    codeList.addEventListener('click', (e)=>{
-      const li = e.target.closest('li');
-      if(!li) return;
-      // ensure we're on Codes view
-      setView('codes');
-      setTimeout(()=>codeDetail.scrollIntoView({behavior:'smooth', block:'start'}), 50);
-    });
-  }
-
-  // default view
-  setView('status');
-})();
-
-
-
-// === SAFE-AREA / TABS HEIGHT CALIBRATION ===
-(function(){
-  if(window.__HCSIG_SIMPLE_MOBILE__) return;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  function setTabsHeightVar(){
-    const tabs = document.querySelector('.mobile-tabs');
-    if(!tabs) return;
-    const h = Math.ceil(tabs.getBoundingClientRect().height);
-    document.documentElement.style.setProperty('--mobileTabsH', h + 'px');
-  }
-
-  // Run now and after layout settles
-  window.addEventListener('load', ()=>{ setTabsHeightVar(); setTimeout(setTabsHeightVar, 250); setTimeout(setTabsHeightVar, 800); });
-  window.addEventListener('resize', ()=>{ setTabsHeightVar(); });
-  window.addEventListener('orientationchange', ()=>{ setTimeout(setTabsHeightVar, 300); });
-
-  // iOS Safari sometimes changes viewport when address bar hides/shows while scrolling
-  document.addEventListener('scroll', ()=>{
-    // light throttle
-    if(window.__tabsH_to) return;
-    window.__tabsH_to = setTimeout(()=>{ window.__tabsH_to = null; setTabsHeightVar(); }, 250);
-  }, {passive:true});
-})();
-
-
-
-// === MOBILE TABS AUTO-HIDE on scroll ===
-(function(){
-  if(window.__HCSIG_SIMPLE_MOBILE__) return;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-  // disabled by k1 hotfix; old view IDs are no longer used
-  return;
-
-  function activeViewEl(){
-    const ids = ['mobileViewStatus','mobileViewAction','mobileViewCodes','mobileViewShop','mobileViewLog'];
-    for(const id of ids){
-      const el = document.getElementById(id);
-      if(!el) continue;
-      const st = window.getComputedStyle(el);
-      if(st.display !== 'none') return el;
-    }
-    return null;
-  }
-
-  let lastTop = 0;
-  let hidden = false;
-  let ticking = false;
-
-  function showTabs(){
-    if(!hidden) return;
-    hidden = false;
-    document.body.classList.remove('mobile-tabs-hidden');
-  }
-  function hideTabs(){
-    if(hidden) return;
-    hidden = true;
-    document.body.classList.add('mobile-tabs-hidden');
-  }
-
-  function onScroll(){
-    if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(()=>{
-      const el = activeViewEl();
-      if(!el){ ticking=false; return; }
-      const top = el.scrollTop || 0;
-      const delta = top - lastTop;
-
-      if(top <= 4){ showTabs(); lastTop = top; ticking=false; return; }
-      if(Math.abs(delta) < 6){ ticking=false; return; }
-
-      if(delta > 0) hideTabs();
-      else showTabs();
-
-      lastTop = top;
-      ticking = false;
-    });
-  }
-
-  function attach(){
-    const ids = ['mobileViewStatus','mobileViewAction','mobileViewCodes','mobileViewShop','mobileViewLog'];
-    ids.forEach(id=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      if(el.__hcsigHideAttached) return;
-      el.__hcsigHideAttached = true;
-      el.addEventListener('scroll', onScroll, {passive:true});
-      el.addEventListener('touchstart', showTabs, {passive:true});
-    });
-  }
-
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.mobile-tabs button');
-    if(btn) showTabs();
-  });
-
-  window.addEventListener('load', attach);
-  window.addEventListener('resize', attach);
-  setTimeout(attach, 600);
-})();
-
-
-
-// === ANDROID: VisualViewport keyboard handling + UA class ===
-(function(){
-  if(window.__HCSIG_SIMPLE_MOBILE__) return;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  const ua = navigator.userAgent || '';
-  if(/Android/i.test(ua)) document.body.classList.add('is-android');
-  if(/iPhone|iPad|iPod/i.test(ua)) document.body.classList.add('is-ios');
-
-  const vv = window.visualViewport;
-  if(!vv) return;
-
-  function update(){
-    // keyboard offset roughly equals viewport "missing" height
-    const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-    document.documentElement.style.setProperty('--vvKeyboardOffset', kb + 'px');
-    if(kb > 40) document.body.classList.add('keyboard-open');
-    else document.body.classList.remove('keyboard-open');
-  }
-
-  vv.addEventListener('resize', update);
-  vv.addEventListener('scroll', update);
-  window.addEventListener('resize', update);
-  window.addEventListener('orientationchange', ()=>setTimeout(update, 250));
-  setTimeout(update, 250);
-  setTimeout(update, 900);
-})();
-
-
-
-// === MOBILE SIMPLE NAV (k1 hotfix) ===
-(function(){
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  const main = document.getElementById('main');
-  const left = document.getElementById('leftPanel');
-  const center = document.getElementById('centerPanel');
-  const toast = (msg, kind='info') => {
-    try { if (typeof showToast === 'function') showToast(msg, kind); } catch(e){}
-  };
-  if(!main || !left || !center) return;
-
-  document.body.classList.add('mobile-simple-ui');
-  document.body.classList.remove(
-    'mobile-view-status','mobile-view-action','mobile-view-codes','mobile-view-shop','mobile-view-log',
-    'mobile-tab-left','mobile-tab-center','mobile-tab-right'
-  );
-
-  const oldTabs = document.querySelector('.mobile-tabs');
-  if(oldTabs) oldTabs.remove();
-
-  function ensureView(id){
-    let el = document.getElementById(id);
-    if(!el){
-      el = document.createElement('section');
-      el.id = id;
-      el.className = 'mobile-simple-view';
-      main.insertBefore(el, main.firstChild);
-    }
-    return el;
-  }
-
-  const homeView = ensureView('mobileSimpleHome');
-  const codesView = ensureView('mobileSimpleCodes');
-  const shopView = ensureView('mobileSimpleShop');
-
-  const leftChildren = Array.from(left.children);
-  const centerInner = center.querySelector('.center-inner') || center;
-  const centerChildren = Array.from(centerInner.children);
-
-  const statusTitle = leftChildren[0] || null;
-  const statusBox = leftChildren[1] || null;
-  const shopTitle = left.querySelector('.section-title:nth-of-type(2)') || leftChildren.find(el => el.classList && el.classList.contains('section-title') && /shop/i.test(el.textContent||''));
-  const shopSortRow = left.querySelector('.shop-sort-row');
-  const shopList = document.getElementById('shopList');
-  const actionBox = centerChildren.find(el => el.classList && el.classList.contains('stat-box')) || null;
-  const codeRow = center.querySelector('.flex-row.flex-grow');
-
-  if(statusTitle && statusTitle.parentElement !== homeView) homeView.appendChild(statusTitle);
-  if(statusBox && statusBox.parentElement !== homeView) homeView.appendChild(statusBox);
-  if(actionBox && actionBox.parentElement !== homeView) homeView.appendChild(actionBox);
-
-  if(shopTitle && shopTitle.parentElement !== shopView) shopView.appendChild(shopTitle);
-  if(shopSortRow && shopSortRow.parentElement !== shopView) shopView.appendChild(shopSortRow);
-  if(shopList && shopList.parentElement !== shopView) shopView.appendChild(shopList);
-
-  if(codeRow){
-    let merged = document.getElementById('mobileCodesMerged');
-    if(!merged){
-      merged = document.createElement('div');
-      merged.id = 'mobileCodesMerged';
-      merged.className = 'stat-box codes-merged';
-      const title = document.createElement('div');
-      title.className = 'section-title';
-      title.textContent = 'Codes';
-      merged.appendChild(title);
-      codesView.appendChild(merged);
-    }
-    const codeBoxes = Array.from(codeRow.children).filter(el => el.classList && el.classList.contains('stat-box'));
-    codeBoxes.forEach(box => {
-      if(box.parentElement !== merged) merged.appendChild(box);
-    });
-    if(codeRow.parentElement) codeRow.parentElement.removeChild(codeRow);
-  }
-
-  const nav = document.createElement('nav');
-  nav.className = 'mobile-tabs mobile-simple-tabs';
-  nav.innerHTML = `
-    <button type="button" data-view="home">${t('mobileHome')}</button>
-    <button type="button" data-view="codes">${t('mobileCodes')}</button>
-    <button type="button" data-view="shop">${t('mobileShop')}</button>
-    <button type="button" data-view="soon">${t('mobileComing')}</button>
-  `;
-  document.body.appendChild(nav);
-
-  let currentView = 'home';
-  function setView(view){
-    if(view === 'soon'){
-      toast(t('comingSoonToast'), 'system');
-      nav.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === currentView));
-      return;
-    }
-    currentView = view;
-    document.body.classList.remove('mobile-simple-view-home','mobile-simple-view-codes','mobile-simple-view-shop');
-    document.body.classList.add('mobile-simple-view-' + view);
-    nav.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
-    const target = view === 'home' ? homeView : view === 'codes' ? codesView : shopView;
-    if(target) target.scrollTop = 0;
-    try {
-      const tabsH = Math.ceil(nav.getBoundingClientRect().height);
-      document.documentElement.style.setProperty('--mobileTabsH', tabsH + 'px');
-    } catch(e) {}
-  }
-
-  nav.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => setView(btn.dataset.view));
-  });
-
-  const codeList = document.getElementById('codeList');
-  const codeDetail = document.getElementById('codeDetail');
-  if(codeList && codeDetail){
-    codeList.addEventListener('click', (e) => {
-      const li = e.target.closest('li');
-      if(!li) return;
-      setView('codes');
-      setTimeout(() => {
-        try { codeDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch(e) {}
-      }, 40);
-    });
-  }
-
-  setView('home');
-})();
-
-
-/* === CHRISTMAS SNOW EFFECT (v1.6.6: toggle + stop) === */
-(function(){
-  const canvas = document.getElementById('snow-canvas');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-
-  let w = 0, h = 0;
-  let rafId = null;
-  let enabled = false;
-
-  function resize(){
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize, {passive:true});
-
-  const flakes = Array.from({length: 80}, () => ({
-    x: Math.random()*w,
-    y: Math.random()*h,
-    r: Math.random()*2+1,
-    s: Math.random()*0.5+0.5,
-    o: Math.random()*0.5+0.3
-  }));
-
-  function tick(){
-    if(!enabled){ rafId = null; return; }
-    ctx.clearRect(0,0,w,h);
-    for(const f of flakes){
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,255,255,${f.o})`;
-      ctx.fill();
-      f.y += f.s;
-      if(f.y > h){ f.y = -5; f.x = Math.random()*w; }
-    }
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function start(){
-    if(enabled && !rafId) rafId = requestAnimationFrame(tick);
-  }
-
-  function stop(){
-    enabled = false;
-    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
-    try { ctx.clearRect(0,0,w,h); } catch(e) {}
-  }
-
-  window.__snowFX = {
-    setEnabled(on){
-      enabled = !!on;
-      if(enabled){
-        start();
-      } else {
-        stop();
-      }
-    }
-  };
-
-  // 초기 상태는 applySettings()에서 결정
-  try { if (typeof applySettings === 'function') applySettings(); } catch(e) {}
-})();
-
-
-// === SIMPLE MOBILE NAV (HOME / CODES / SHOP / COMING SOON) ===
-(function(){
-  if(!window.__HCSIG_SIMPLE_MOBILE__) return;
-  const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
-  if(!isMobile) return;
-
-  const body = document.body;
-  const left = document.getElementById('leftPanel');
-  const center = document.getElementById('centerPanel');
-  const header = document.querySelector('header');
-  if(!left || !center) return;
-
-  const sectionTitles = Array.from(left.querySelectorAll('.section-title'));
-  const statusTitle = sectionTitles.find(el => (el.textContent || '').trim().toLowerCase() === 'status');
-  const shopTitle = sectionTitles.find(el => (el.textContent || '').trim().toLowerCase() === 'shop');
-  const statusBox = left.querySelector('.stat-box');
-  const shopSortRow = left.querySelector('.shop-sort-row');
-  const shopListEl = document.getElementById('shopList');
-  const centerInner = center.querySelector('.center-inner') || center;
-  const actionsBox = centerInner.querySelector('.stat-box');
-  const codesWrap = centerInner.querySelector('.flex-row.flex-grow');
-  const scanOverlay = document.getElementById('scanOverlay');
-
-  if(statusTitle) statusTitle.classList.add('mobile-home-only');
-  if(statusBox) statusBox.classList.add('mobile-home-only');
-  if(actionsBox) actionsBox.classList.add('mobile-home-only');
-  if(shopTitle) shopTitle.classList.add('mobile-shop-only');
-  if(shopSortRow) shopSortRow.classList.add('mobile-shop-only');
-  if(shopListEl) shopListEl.classList.add('mobile-shop-only');
-  if(codesWrap) codesWrap.classList.add('mobile-codes-only');
-
-  const existing = document.querySelector('.mobile-simple-tabs');
-  if(existing) existing.remove();
-
-  const wrap = document.createElement('div');
-  wrap.className = 'mobile-simple-tabs';
-  wrap.innerHTML = `
-    <button type="button" data-mobile-tab="home">${t('mobileHome')}</button>
-    <button type="button" data-mobile-tab="codes">${t('mobileCodes')}</button>
-    <button type="button" data-mobile-tab="shop">${t('mobileShop')}</button>
-    <button type="button" data-mobile-tab="coming">${t('mobileComing')}</button>
-  `;
-  body.appendChild(wrap);
-
-  function updateHeaderVar(){
-    const h = header ? Math.ceil(header.getBoundingClientRect().height) : 52;
-    document.documentElement.style.setProperty('--header-h', h + 'px');
-  }
-
-  function setSimpleTab(tab){
-    body.classList.remove('simple-tab-home','simple-tab-codes','simple-tab-shop');
-    body.classList.add('simple-tab-' + tab);
-    wrap.querySelectorAll('button').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mobileTab === tab);
-    });
-    if(tab === 'codes' && center) center.scrollTop = 0;
-    if(tab === 'shop' && left) left.scrollTop = 0;
-    if(tab === 'home') {
-      if(left) left.scrollTop = 0;
-      if(center) center.scrollTop = 0;
-    }
-  }
-
-  wrap.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-mobile-tab]');
-    if(!btn) return;
-    const tab = btn.dataset.mobileTab;
-    if(tab === 'coming') {
-      showToast(t('comingSoonToast'), 'system');
-      return;
-    }
-    setSimpleTab(tab);
-  });
-
-  updateHeaderVar();
-  window.addEventListener('resize', updateHeaderVar);
-  window.addEventListener('orientationchange', () => setTimeout(updateHeaderVar, 250));
-  if(scanOverlay) scanOverlay.classList.add('mobile-scan-overlay');
-  setSimpleTab('home');
-})();
