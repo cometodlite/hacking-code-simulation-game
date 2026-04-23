@@ -285,9 +285,34 @@
   const staleMoreView = document.getElementById('appViewMore');
   if(staleMoreView) staleMoreView.remove();
 
-  [statusTitle, statusBox, actionBox, scanOverlay].forEach(el => {
-    if(el && el.parentElement !== views.home) views.home.appendChild(el);
+  let homeCockpit = document.getElementById('homeCockpit');
+  if(!homeCockpit){
+    homeCockpit = document.createElement('section');
+    homeCockpit.id = 'homeCockpit';
+    homeCockpit.className = 'home-cockpit';
+    views.home.insertBefore(homeCockpit, views.home.firstChild);
+  }
+  [statusTitle, statusBox, actionBox].forEach(el => {
+    if(el && el.parentElement !== homeCockpit) homeCockpit.appendChild(el);
   });
+  if(scanOverlay && scanOverlay.parentElement !== views.home) views.home.appendChild(scanOverlay);
+  if(statusBox) statusBox.classList.add('home-status-grid');
+  if(actionBox) {
+    actionBox.classList.add('home-actions-box');
+    const loadoutLabel = document.getElementById('labelLoadout');
+    const loadoutBlock = loadoutLabel && loadoutLabel.parentElement;
+    if(loadoutBlock) loadoutBlock.classList.add('home-loadout-block');
+    const loadoutRow = loadoutBlock && loadoutBlock.querySelector('.button-row');
+    if(loadoutRow) loadoutRow.classList.add('loadout-control-row');
+    if(!document.getElementById('homeLiveHint')){
+      actionBox.insertAdjacentHTML('afterend', `
+        <button type="button" id="homeLiveHint" class="home-live-hint">
+          <span>LIVE NET</span>
+          <strong>관제 신호 보기</strong>
+        </button>
+      `);
+    }
+  }
   [shopTitle, shopSortRow, shopList].forEach(el => {
     if(el && el.parentElement !== views.shop) views.shop.appendChild(el);
   });
@@ -311,10 +336,11 @@
 	        </div>
 	        <div class="lab-mode-chip">LAB ONLINE</div>
 	      </div>
-      <div class="lab-subtabs" id="labSubtabs">
-        <button type="button" class="active" data-lab-tab="stage">데이터 타워</button>
-        <button type="button" data-lab-tab="coming">COMING SOON</button>
-      </div>
+	      <div class="lab-subtabs" id="labSubtabs">
+	        <button type="button" class="active" data-lab-tab="stage">데이터 타워</button>
+	        <button type="button" data-lab-tab="zero">ZERO-DAY</button>
+	        <button type="button" data-lab-tab="coming">COMING SOON</button>
+	      </div>
       <section class="lab-panel active" data-lab-panel="stage">
         <div class="stage-head">
           <div>
@@ -333,17 +359,31 @@
 	          <h4>데이터 타워 선택 대기</h4>
 	          <p>챕터를 선택하면 추천값과 보상이 표시됩니다.</p>
 	        </div>
-	        <div class="stage-chapter-list" id="stageChapterList" aria-label="Data Tower chapters"></div>
+		        <div class="stage-chapter-list" id="stageChapterList" aria-label="Data Tower chapters"></div>
+		      </section>
+	      <section class="lab-panel" data-lab-panel="zero">
+	        <span class="badge">PREVIEW</span>
+	        <h3>ZERO-DAY</h3>
+	        <p>정식 침투 엔진은 다음 대형 업데이트에서 열립니다. 이번 버전에서는 모드 흐름만 먼저 공개합니다.</p>
+	        <div class="zero-day-flow">
+	          <article><strong>준비</strong><span>코드 빌드와 CPU/GPU 성향을 맞춥니다.</span></article>
+	          <article><strong>침투</strong><span>탐지 게이지가 오르기 전 핵심 노드를 돌파합니다.</span></article>
+	          <article><strong>탈출</strong><span>획득한 신호를 정리하고 보상을 회수합니다.</span></article>
+	        </div>
+	        <div class="zero-day-meter" aria-label="Zero-day preview detection gauge">
+	          <span style="width:42%"></span>
+	        </div>
+	        <div class="small">ZERO-DAY는 실제 플레이 버튼 없이 프리뷰 셸로만 표시됩니다.</div>
 	      </section>
-      <section class="lab-panel" data-lab-panel="coming">
-        <span class="badge">NEXT</span>
-        <h3>준비 중</h3>
-        <p>아직 열리지 않은 실험 모드입니다.</p>
+	      <section class="lab-panel" data-lab-panel="coming">
+	        <span class="badge">ROADMAP</span>
+        <h3>확장 로드맵</h3>
+        <p>LAB은 장기 도전과 다음 실험 콘텐츠를 준비하는 확장 허브입니다.</p>
         <div class="lab-preview-grid">
           <div><strong>BOSS RUSH</strong><span>연속 보스전</span></div>
-          <div><strong>WEEKLY RUN</strong><span>주간 조건 도전</span></div>
-          <div><strong>SERVER EVENT</strong><span>변칙 서버</span></div>
-          <div><strong>HYBRID TEST</strong><span>CPU/GPU 빌드</span></div>
+	          <div><strong>CODE PRESET</strong><span>빌드 저장 슬롯</span></div>
+          <div><strong>SEASON CODE</strong><span>시즌 한정 코드</span></div>
+          <div><strong>ZERO-DAY CORE</strong><span>정식 침투 엔진</span></div>
         </div>
       </section>
     `;
@@ -374,10 +414,10 @@
       <section class="coming-panel">
         <span class="badge">QUEUE</span>
         <h3>예정 콘텐츠</h3>
-        <p>보스 러시, 주간 도전, 코드 프리셋, 특수 서버 이벤트를 준비합니다.</p>
+	        <p>보스 러시, 코드 프리셋, 특수 서버 이벤트를 준비합니다.</p>
         <div class="lab-preview-grid coming-preview-grid">
           <div><strong>BOSS RUSH</strong><span>연속 도전</span></div>
-          <div><strong>WEEKLY RUN</strong><span>주간 보상</span></div>
+	          <div><strong>CODE PRESET</strong><span>빌드 저장</span></div>
           <div><strong>PRESETS</strong><span>코드 조합 저장</span></div>
           <div><strong>SEASON CODE</strong><span>한정 코드</span></div>
         </div>
@@ -428,19 +468,6 @@
   nav.querySelectorAll('[data-main-view]').forEach(btn => {
     btn.addEventListener('click', () => setView(btn.dataset.mainView));
   });
-
-  const codeList = document.getElementById('codeList');
-  const codeDetail = document.getElementById('codeDetail');
-  if(codeList && codeDetail){
-    codeList.addEventListener('click', (e) => {
-      const li = e.target.closest('li');
-      if(!li) return;
-      setView('codes');
-      setTimeout(() => {
-        try { codeDetail.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch(e) {}
-      }, 40);
-    });
-  }
 
   document.addEventListener('hcsig:navigate-main', (event) => {
     const view = event.detail && event.detail.view;

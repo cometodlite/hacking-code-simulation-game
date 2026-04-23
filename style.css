@@ -53,12 +53,20 @@
       opacity: 0.7;
     }
 
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-    }
+	    .header-right {
+	      display: flex;
+	      align-items: center;
+	      justify-content:flex-end;
+	      flex-wrap:wrap;
+	      gap: 8px;
+	      font-size: 13px;
+	    }
+
+	    #btnList,
+	    #btnEvent{
+	      min-width:64px;
+	      font-weight:900;
+	    }
 
     header span.subtitle {
       font-size: 13px;
@@ -522,7 +530,10 @@ button:hover {
 
     /* 더보기 모달 + 탭 */
 
-    #moreModalBackdrop {
+    #moreModalBackdrop,
+    #listModalBackdrop,
+    #eventModalBackdrop,
+    #codeDetailModalBackdrop {
       display: none;
       position: fixed;
       inset: 0;
@@ -533,11 +544,17 @@ button:hover {
       justify-content: center;
     }
 
-    #moreModalBackdrop.active {
+    #moreModalBackdrop.active,
+    #listModalBackdrop.active,
+    #eventModalBackdrop.active,
+    #codeDetailModalBackdrop.active {
       display: flex;
     }
 
-    #moreModal {
+    #moreModal,
+    #listModal,
+    #eventModal,
+    #codeDetailModal {
       width: 780px;
       max-width: 95vw;
       max-height: 85vh;
@@ -549,7 +566,10 @@ button:hover {
       flex-direction: column;
     }
 
-    #moreModalHeader {
+    #moreModalHeader,
+    #listModalHeader,
+    #eventModalHeader,
+    #codeDetailModalHeader {
       padding: 10px 12px;
       border-bottom: 1px solid #111827;
       display: flex;
@@ -558,11 +578,17 @@ button:hover {
       gap: 8px;
     }
 
-    #moreModalHeader h2 {
+    #moreModalHeader h2,
+    #listModalHeader h2,
+    #eventModalHeader h2,
+    #codeDetailModalHeader h2 {
       font-size: 14px;
     }
 
-    #moreModalBody {
+    #moreModalBody,
+    #listModalBody,
+    #eventModalBody,
+    #codeDetailModalBody {
       padding: 8px 12px 10px;
       overflow: auto;
       font-size: 12px;
@@ -571,7 +597,10 @@ button:hover {
       gap: 8px;
     }
 
-    #moreModalFooter {
+    #moreModalFooter,
+    #listModalFooter,
+    #eventModalFooter,
+    #codeDetailModalFooter {
       padding: 8px 12px;
       border-top: 1px solid #111827;
       display: flex;
@@ -645,7 +674,8 @@ button:hover {
       opacity: 0.9;
     }
 
-    .more-tabs {
+    .more-tabs,
+    .list-tabs {
       display: flex;
       gap: 6px;
       margin-bottom: 6px;
@@ -653,7 +683,8 @@ button:hover {
       padding-bottom: 4px;
     }
 
-    .more-tab-button {
+    .more-tab-button,
+    .list-tab-button {
       font-size: 12px;
       padding: 4px 8px;
       border-radius: 6px 6px 0 0;
@@ -664,18 +695,21 @@ button:hover {
       opacity: 0.75;
     }
 
-    .more-tab-button.active {
+    .more-tab-button.active,
+    .list-tab-button.active {
       background: #020617;
       border-color: #1f2937;
       border-bottom-color: #020617;
       opacity: 1;
     }
 
-    .more-tab-panel {
+    .more-tab-panel,
+    .list-tab-panel {
       display: none;
     }
 
-    .more-tab-panel.active {
+    .more-tab-panel.active,
+    .list-tab-panel.active {
       display: block;
     }
 
@@ -856,7 +890,7 @@ button:hover {
     html{
       font-size: calc(16px * var(--font-scale));
     }
-    #main, #moreModal{
+    #main, #moreModal, #listModal, #eventModal, #codeDetailModal{
       zoom: var(--ui-zoom);
     }
 
@@ -1022,7 +1056,11 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
 }
 #tutorialBackdrop.show{ display:flex; }
 #tutorialModal{
-  width: min(560px, calc(100vw - 24px));
+  width: min(600px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, rgba(17,24,39,0.98), rgba(10,15,25,0.98));
   border: 1px solid rgba(96,165,250,0.24);
   border-radius: 18px;
@@ -1043,15 +1081,65 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
 }
 #tutorialBody{
   padding: 18px 16px 16px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 #tutorialBody h3{
   margin: 8px 0 10px;
   font-size: 20px;
 }
+#tutorialStepGoal{
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  border: 1px solid rgba(52,211,153,0.22);
+  border-radius: 8px;
+  background: rgba(16,185,129,0.10);
+  color: #a7f3d0;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
 #tutorialStepText{
   margin: 0;
   line-height: 1.6;
   color: #e5e7eb;
+}
+#tutorialStepChecklist{
+  margin-top: 12px;
+}
+.tutorial-checklist-list{
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tutorial-checklist-list li{
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid rgba(148,163,184,0.16);
+  border-radius: 8px;
+  background: rgba(15,23,42,0.54);
+  color: #dbeafe;
+  line-height: 1.45;
+}
+.tutorial-check-marker{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: rgba(52,211,153,0.14);
+  color: #86efac;
+  font-size: 13px;
+  font-weight: 900;
 }
 #tutorialStepHint{
   margin-top: 12px;
@@ -1072,10 +1160,29 @@ body { min-height: var(--app-height); padding-top: var(--safe-top); padding-bott
 body.tutorial-open{ overflow:hidden; }
 @media (max-width: 900px), (hover: none) and (pointer: coarse){
   #tutorialBackdrop{ padding: 12px; align-items:flex-end; }
-  #tutorialModal{ width: calc(100vw - 12px); border-radius: 18px 18px 0 0; margin-bottom: calc(8px + var(--safe-bottom, 0px)); }
+  #tutorialModal{ width: calc(100vw - 24px); max-width: calc(100vw - 24px); border-radius: 18px 18px 0 0; margin-bottom: calc(8px + var(--safe-bottom, 0px)); }
   #tutorialHeader, #tutorialFooter{ padding: 12px 14px; }
+  #tutorialHeader{ align-items:flex-start; }
+  #tutorialHeader > div{ min-width:0; }
+  #tutorialHeader h2{ font-size:16px; line-height:1.25; overflow-wrap:anywhere; }
+  #btnTutorialSkip{ flex:0 0 auto; min-height:40px; padding:0 12px; }
   #tutorialBody{ padding: 16px 14px 14px; }
   #tutorialBody h3{ font-size: 18px; }
+  #tutorialStepGoal,
+  #tutorialStepText,
+  #tutorialStepHint{
+    overflow-wrap:anywhere;
+    word-break:keep-all;
+  }
+  #tutorialFooter{
+    justify-content:stretch;
+    flex-wrap:wrap;
+  }
+  #tutorialFooter button{
+    flex:1 1 104px;
+    min-height:42px;
+    padding:0 12px;
+  }
 }
 
 
@@ -1084,25 +1191,80 @@ body.tutorial-open{ overflow:hidden; }
   background: transparent;
   backdrop-filter: none;
   pointer-events: none;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: calc(var(--headerH, 56px) + 12px);
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 12px 14px 18px;
 }
 #tutorialBackdrop.interactive #tutorialModal{
+  pointer-events: none;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(48vh, 430px);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.34);
+}
+#tutorialBackdrop.interactive #tutorialHeader,
+#tutorialBackdrop.interactive #tutorialFooter{
   pointer-events: auto;
-  width: min(520px, calc(100vw - 20px));
-  box-shadow: 0 12px 28px rgba(0,0,0,0.38);
+}
+#tutorialBackdrop.interactive #tutorialBody{
+  padding: 12px 14px;
+}
+#tutorialBackdrop.interactive #tutorialBody h3{
+  margin-top: 4px;
+  font-size: 17px;
+}
+#tutorialBackdrop.interactive #tutorialStepText{
+  font-size: 13px;
+  line-height: 1.45;
+}
+#tutorialBackdrop.interactive #tutorialStepGoal{
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+#tutorialBackdrop.interactive .tutorial-checklist-list{
+  gap: 6px;
+}
+#tutorialBackdrop.interactive .tutorial-checklist-list li{
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+#tutorialBackdrop.interactive #tutorialStepHint{
+  margin-top: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 body.tutorial-open.tutorial-interactive{ overflow:auto; }
 @media (max-width: 900px), (hover: none) and (pointer: coarse){
   #tutorialBackdrop.interactive{
-    padding: calc(var(--headerH, 52px) + 8px) 8px 8px;
-    align-items: flex-start;
+    padding: 8px 8px calc(var(--mobileTabsH, 72px) + var(--safe-bottom, 0px) + 10px);
+    align-items: flex-end;
+    justify-content: center;
   }
   #tutorialBackdrop.interactive #tutorialModal{
     width: calc(100vw - 16px);
-    border-radius: 16px;
+    max-height: min(42vh, 360px);
+    border-radius: 12px;
     margin: 0;
+  }
+  #tutorialBackdrop.interactive #tutorialHeader h2{
+    display:none;
+  }
+  #tutorialBackdrop.interactive #tutorialHeader,
+  #tutorialBackdrop.interactive #tutorialFooter{
+    padding: 8px 10px;
+  }
+  #tutorialBackdrop.interactive #tutorialBody{
+    padding: 10px;
+  }
+  #tutorialBackdrop.interactive #tutorialBody h3{
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  #tutorialBackdrop.interactive .tutorial-checklist-list li:nth-child(n+3){
+    display:none;
   }
 }
 
@@ -1522,6 +1684,103 @@ body.app-shell-ui .section-title{
   color:#6ee7b7;
   letter-spacing:.08em;
 }
+.home-cockpit{
+  display:grid;
+  grid-template-columns:minmax(260px,.86fr) minmax(330px,1.14fr);
+  gap:14px;
+  align-items:start;
+  padding:16px;
+  border:1px solid rgba(94,234,212,.18);
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(10,16,14,.94), rgba(6,10,9,.96));
+  box-shadow:0 14px 36px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.home-cockpit > #titleStatus{
+  grid-column:1 / -1;
+  margin:0;
+}
+.home-cockpit > .stat-box{
+  margin:0;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  padding:0;
+}
+body.app-shell-ui .home-status-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+body.app-shell-ui .home-status-grid .stat-row{
+  min-height:58px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:5px;
+  padding:10px;
+  border:1px solid rgba(94,234,212,.14);
+  border-radius:8px;
+  background:rgba(6,12,11,.64);
+}
+body.app-shell-ui .home-status-grid #energyBarWrapper,
+body.app-shell-ui .home-status-grid .stat-row:nth-last-child(3),
+body.app-shell-ui .home-status-grid .stat-row:nth-last-child(2),
+body.app-shell-ui .home-status-grid .stat-row:nth-last-child(1){
+  grid-column:1 / -1;
+}
+body.app-shell-ui .home-actions-box .button-row{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+body.app-shell-ui .home-actions-box .button-row > button{
+  min-height:46px;
+}
+.home-loadout-block .loadout-control-row{
+  display:grid !important;
+  grid-template-columns:minmax(82px,.72fr) minmax(98px,1fr) minmax(98px,1fr);
+  gap:6px !important;
+  align-items:stretch;
+}
+.home-loadout-block .loadout-control-row select,
+.home-loadout-block .loadout-control-row button{
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  min-height:38px;
+}
+body.app-shell-ui #btnScan,
+body.app-shell-ui #btnHack{
+  background:linear-gradient(135deg, rgba(21,128,61,.92), rgba(13,148,136,.72));
+  border-color:rgba(134,239,172,.42);
+}
+.home-live-hint{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:42px;
+  width:100%;
+  padding:10px 12px;
+  border:1px solid rgba(94,234,212,.18);
+  border-radius:8px;
+  background:rgba(8,16,14,.78);
+  color:#d7fbe6;
+  text-align:left;
+}
+.home-live-hint span{
+  color:#6ee7b7;
+  font-size:11px;
+  font-weight:900;
+}
+.home-live-hint strong{
+  font-size:12px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 body.app-shell-ui button{
   border-radius:8px;
 }
@@ -1540,13 +1799,10 @@ body.app-shell-ui button:active{
 }
 .app-view-home.active{
   display:grid;
-  grid-template-columns:minmax(260px,.72fr) minmax(320px,1.28fr);
+  grid-template-columns:1fr;
   align-content:start;
   gap:14px;
-}
-.app-view-home #titleStatus{
-  grid-column:1 / -1;
-  margin-bottom:-6px;
+  overflow:auto;
 }
 .app-view-home #scanOverlay{
   inset:16px;
@@ -1555,12 +1811,70 @@ body.app-shell-ui button:active{
 .app-view-codes #codeList{
   max-height:none;
 }
+.app-view-codes #codeList{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:9px;
+}
+.app-view-codes #codeList li.code-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:82px;
+  padding:16px;
+  border:1px solid rgba(94,234,212,.14);
+  border-radius:8px;
+  background:rgba(9,14,13,.82);
+  cursor:pointer;
+  touch-action:manipulation;
+  user-select:none;
+  position:relative;
+}
+.app-view-codes #codeList li.code-card::after{
+  content:"상세";
+  position:absolute;
+  right:12px;
+  bottom:10px;
+  color:#6ee7b7;
+  font-size:10px;
+  font-weight:900;
+  opacity:.72;
+}
+.app-view-codes #codeList li.code-card.active{
+  border-color:rgba(134,239,172,.54);
+  background:rgba(20,83,45,.22);
+}
+.app-view-codes #codeList li.code-card:focus-visible{
+  outline:2px solid rgba(52,211,153,.72);
+  outline-offset:2px;
+}
+.code-card-main{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.code-card-main strong,
+.code-card-main span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.code-card-main span{
+  color:#b9c9c4;
+  font-size:12px;
+}
+.app-codes-layout > .stat-box.resizable-box{
+  display:none;
+}
 .app-codes-layout{
   align-items:stretch;
   min-height:100%;
 }
 .app-codes-layout > .stat-box{
   min-width:0;
+  flex:1 1 auto !important;
 }
 .more-quick-actions{
   display:flex;
@@ -1571,7 +1885,8 @@ body.app-shell-ui button:active{
   align-items:center;
   justify-content:center;
 }
-body.app-shell-ui .more-tabs{
+body.app-shell-ui .more-tabs,
+body.app-shell-ui .list-tabs{
   position:sticky;
   top:0;
   z-index:5;
@@ -1581,7 +1896,8 @@ body.app-shell-ui .more-tabs{
   background:rgba(7,10,9,.88);
   backdrop-filter:blur(12px);
 }
-body.app-shell-ui .more-tab-button{
+body.app-shell-ui .more-tab-button,
+body.app-shell-ui .list-tab-button{
   border-radius:8px;
 }
 .lab-hero{
@@ -1645,6 +1961,159 @@ body.app-shell-ui .more-tab-button{
   margin:10px 0 8px;
   font-size:20px;
 }
+.weekly-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:12px;
+}
+.weekly-head h3{
+  margin:8px 0 6px;
+}
+.weekly-summary{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(110px,1fr));
+  gap:8px;
+  min-width:min(420px, 100%);
+}
+.weekly-summary div{
+  padding:10px;
+  border:1px solid rgba(94,234,212,.16);
+  border-radius:8px;
+  background:rgba(7,13,13,.70);
+}
+.weekly-summary span,
+.weekly-goal-meta{
+  display:block;
+  color:#9ad7c9;
+  font-size:11px;
+  font-weight:700;
+}
+.weekly-summary strong{
+  display:block;
+  margin-top:4px;
+  color:#f8fff9;
+  font-size:16px;
+}
+.weekly-event-node{
+  margin:10px 0 12px;
+  padding:10px 12px;
+  border:1px solid rgba(190,242,100,.22);
+  border-radius:8px;
+  background:linear-gradient(135deg, rgba(20,83,45,.42), rgba(7,13,13,.82));
+  color:#ecfccb;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+.weekly-filter{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 12px;
+}
+.weekly-filter button{
+  min-height:36px;
+  border:1px solid rgba(148,163,184,.18);
+  border-radius:8px;
+  background:rgba(11,18,22,.76);
+  color:#cbd5e1;
+  font-weight:800;
+}
+.weekly-filter button.active{
+  border-color:rgba(45,212,191,.68);
+  background:rgba(20,184,166,.28);
+  color:#fff;
+}
+.weekly-goal-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.weekly-goal-card,
+.weekly-bonus-card,
+.weekly-empty{
+  border:1px solid rgba(94,234,212,.14);
+  border-radius:8px;
+  background:rgba(7,13,13,.74);
+}
+.weekly-goal-card{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:stretch;
+  padding:12px;
+}
+.weekly-goal-card.is-complete{
+  border-color:rgba(190,242,100,.30);
+}
+.weekly-goal-card.is-claimed{
+  opacity:.76;
+}
+.weekly-goal-main{
+  min-width:0;
+  flex:1 1 auto;
+}
+.weekly-goal-top{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.weekly-goal-top strong{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.weekly-goal-card p,
+.weekly-bonus-card p{
+  margin:8px 0;
+  color:#d7efe3;
+  line-height:1.55;
+}
+.weekly-progress-line{
+  height:6px;
+  overflow:hidden;
+  border-radius:8px;
+  background:rgba(30,41,59,.72);
+  margin:8px 0;
+}
+.weekly-progress-line span{
+  display:block;
+  height:100%;
+  border-radius:8px;
+  background:linear-gradient(90deg, #2dd4bf, #84cc16);
+}
+.weekly-goal-card button,
+.weekly-bonus-card button{
+  flex:0 0 auto;
+  align-self:center;
+  min-height:42px;
+  min-width:96px;
+  border-color:rgba(45,212,191,.45);
+  background:linear-gradient(135deg, rgba(20,184,166,.78), rgba(21,128,61,.78));
+  color:#fff;
+  font-weight:900;
+}
+.weekly-goal-card button:disabled,
+.weekly-bonus-card button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.weekly-bonus-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  padding:14px;
+  margin-top:12px;
+  background:
+    linear-gradient(135deg, rgba(22,101,52,.42), rgba(7,13,13,.86)),
+    radial-gradient(circle at 100% 0%, rgba(250,204,21,.12), transparent 34%);
+}
+.weekly-empty{
+  grid-column:1 / -1;
+  padding:16px;
+  color:#b7c9c6;
+}
 .coming-panel{
   margin-top:14px;
   padding:16px;
@@ -1695,6 +2164,7 @@ body.app-shell-ui .more-tab-button{
   border-radius:8px;
   background:linear-gradient(180deg, rgba(8,16,14,.92), rgba(7,10,9,.94));
   box-shadow:0 14px 36px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.03);
+  contain:layout paint style;
 }
 	.live-pulse-card{
 	  padding:14px;
@@ -1796,6 +2266,7 @@ body.app-shell-ui .more-tab-button{
   min-height:38px;
   border-radius:8px;
   padding:8px 12px;
+  transition:background .12s ease, border-color .12s ease, color .12s ease;
 }
 .live-broadcast-tabs button.active,
 .live-rank-tabs button.active{
@@ -1809,7 +2280,7 @@ body.app-shell-ui .more-tab-button{
 }
 .live-broadcast-panel.active{
   display:block;
-  animation:hcsigPanelIn .18s ease both;
+  animation:hcsigPanelIn .12s ease both;
 }
 .live-broadcast-panel h3{
   margin:10px 0 8px;
@@ -1834,6 +2305,7 @@ body.app-shell-ui .more-tab-button{
   border:1px solid rgba(94,234,212,.14);
   border-radius:8px;
   background:rgba(12,18,16,.72);
+  contain:layout paint style;
 }
 .live-announcement,
 .live-feed-item{
@@ -1952,6 +2424,87 @@ body.app-shell-ui .more-tab-button{
 	  color:#cbd5d8;
 	  font-size:12px;
 	}
+.event-intro,
+.live-broadcast-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px;
+  border:1px solid rgba(94,234,212,.18);
+  border-radius:8px;
+  background:linear-gradient(135deg, rgba(20,83,45,.34), rgba(7,10,9,.92));
+}
+.event-intro h3,
+.live-broadcast-hero h3{
+  margin:5px 0 6px;
+}
+.event-intro p,
+.live-broadcast-hero p{
+  margin:0;
+  color:#cde7dc;
+  line-height:1.5;
+}
+.event-chip{
+  flex:0 0 auto;
+  padding:7px 9px;
+  border-radius:8px;
+  border:1px solid rgba(190,242,100,.26);
+  color:#ecfccb;
+  font-size:11px;
+  font-weight:900;
+  background:rgba(20,83,45,.28);
+}
+.zero-day-flow{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+.zero-day-flow article{
+  display:grid;
+  gap:5px;
+  padding:13px;
+  border:1px solid rgba(94,234,212,.15);
+  border-radius:8px;
+  background:rgba(12,18,16,.72);
+}
+.zero-day-flow span{
+  color:#cbd5d8;
+  font-size:12px;
+  line-height:1.55;
+}
+.zero-day-meter{
+  height:10px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(15,23,42,.86);
+  margin:8px 0 10px;
+}
+.zero-day-meter span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, #34d399, #facc15, #fb7185);
+}
+#codeDetailModal{
+  width:520px;
+}
+#codeDetailModalBody{
+  gap:6px;
+}
+#codeDetailModalFooter{
+  flex-wrap:wrap;
+}
+#codeDetailModalFooter button{
+  flex:1 1 112px;
+  min-height:40px;
+}
+.more-live-mount{
+  margin-top:8px;
+  display:grid;
+  gap:10px;
+}
 	.stage-head{
 	  display:flex;
 	  justify-content:space-between;
@@ -2014,18 +2567,18 @@ body.app-shell-ui .more-tab-button{
 	}
 	.stage-layout{
 	  display:grid;
-	  grid-template-columns:minmax(280px,1.05fr) minmax(300px,.95fr);
+	  grid-template-columns:minmax(300px,.92fr) minmax(320px,1.08fr);
 	  gap:12px;
 	  align-items:start;
 	}
 	.stage-list{
 	  display:grid;
-	  grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+	  grid-template-columns:repeat(auto-fill,minmax(104px,1fr));
 	  gap:8px;
-	  max-height:calc(100vh - 330px);
-	  min-height:260px;
-	  overflow:auto;
-	  padding:2px 4px 2px 2px;
+	  max-height:none;
+	  min-height:0;
+	  overflow:visible;
+	  padding:0;
 	}
 	.stage-card{
 	  display:flex;
@@ -2033,8 +2586,8 @@ body.app-shell-ui .more-tab-button{
 	  align-items:stretch;
 	  text-align:left;
 	  gap:5px;
-	  min-height:116px;
-	  padding:10px;
+	  min-height:78px;
+	  padding:9px;
 	  border-radius:8px;
 	  border:1px solid rgba(94,234,212,.14);
 	  background:linear-gradient(180deg, rgba(14,20,18,.92), rgba(8,12,11,.92));
@@ -2089,8 +2642,8 @@ body.app-shell-ui .more-tab-button{
 	  color:#bef264;
 	}
 	.stage-detail{
-	  position:sticky;
-	  top:8px;
+	  position:relative;
+	  top:auto;
 	  border:1px solid rgba(94,234,212,.18);
 	  border-radius:8px;
 	  background:
@@ -2101,7 +2654,7 @@ body.app-shell-ui .more-tab-button{
 	}
 	.stage-detail h4{
 	  margin:8px 0 4px;
-	  font-size:22px;
+	  font-size:20px;
 	}
 	.stage-detail p{
 	  margin:0;
@@ -2145,7 +2698,7 @@ body.app-shell-ui .more-tab-button{
 	  margin:10px 0 12px;
 	}
 	.stage-action-row button{
-	  flex:0 0 auto;
+	  flex:0 0 min(210px, 46%);
 	  min-height:42px;
 	  padding:0 16px;
 	  border-color:rgba(45,212,191,.50);
@@ -2204,12 +2757,18 @@ body.app-shell-ui #tutorialStepHint{
 }
 .hack-mode-segment button:hover:not(:disabled),
 .achievement-toolbar button:hover:not(:disabled),
+.weekly-filter button:hover:not(:disabled),
+.weekly-goal-card button:hover:not(:disabled),
+.weekly-bonus-card button:hover:not(:disabled),
 .stage-chapter-head:hover,
 .stage-card:hover{
   transform:translateY(-1px);
 }
 .hack-mode-segment button:active:not(:disabled),
 .achievement-toolbar button:active:not(:disabled),
+.weekly-filter button:active:not(:disabled),
+.weekly-goal-card button:active:not(:disabled),
+.weekly-bonus-card button:active:not(:disabled),
 .stage-chapter-head:active,
 .stage-card:active{
   transform:translateY(0) scale(.99);
@@ -2267,7 +2826,7 @@ body.app-shell-ui #tutorialStepHint{
 .stage-chapter-list{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
   margin-top:12px;
 }
 .stage-chapter{
@@ -2281,8 +2840,8 @@ body.app-shell-ui #tutorialStepHint{
 }
 .stage-chapter-head{
   width:100%;
-  display:flex;
-  justify-content:space-between;
+  display:grid;
+  grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);
   align-items:center;
   gap:12px;
   min-height:54px;
@@ -2312,9 +2871,10 @@ body.app-shell-ui #tutorialStepHint{
   background:linear-gradient(135deg, rgba(20,184,166,.23), rgba(15,23,20,.92));
 }
 .stage-chapter .stage-list{
-  max-height:420px;
+  max-height:none;
   min-height:0;
   padding:10px;
+  overflow:visible;
   border-top:1px solid rgba(148,163,184,.12);
 }
 @media (max-width: 900px), (hover: none) and (pointer: coarse){
@@ -2358,9 +2918,12 @@ body.app-shell-ui #tutorialStepHint{
   }
   button:active,
   body.app-shell-ui button:active,
-  .hack-mode-segment button:active:not(:disabled),
-  .achievement-toolbar button:active:not(:disabled),
-  .stage-chapter-head:active,
+	  .hack-mode-segment button:active:not(:disabled),
+	  .achievement-toolbar button:active:not(:disabled),
+	  .weekly-filter button:active:not(:disabled),
+	  .weekly-goal-card button:active:not(:disabled),
+	  .weekly-bonus-card button:active:not(:disabled),
+	  .stage-chapter-head:active,
   .stage-card:active,
   .app-main-tabs button:active{
     transform:none !important;
@@ -2368,18 +2931,22 @@ body.app-shell-ui #tutorialStepHint{
   .app-main-view{
     padding:10px 10px calc(var(--mobileTabsH, 82px) + 28px + env(safe-area-inset-bottom));
   }
-	  .app-view-home.active,
-	  .app-codes-layout,
-	  .lab-preview-grid,
-	  .stage-head,
-	  .stage-layout{
-	    display:grid;
-	    grid-template-columns:1fr;
-	  }
-	  .stage-summary,
-	  .stage-meta-grid{
-	    grid-template-columns:1fr;
-	    min-width:0;
+		  .app-view-home.active,
+		  .home-cockpit,
+		  .app-codes-layout,
+		  .lab-preview-grid,
+		  .weekly-head,
+		  .weekly-goal-list,
+		  .stage-head,
+		  .stage-layout{
+		    display:grid;
+		    grid-template-columns:1fr;
+		  }
+		  .stage-summary,
+		  .weekly-summary,
+		  .stage-meta-grid{
+		    grid-template-columns:1fr;
+		    min-width:0;
 	  }
 	  .stage-list{
 	    max-height:none;
@@ -2428,25 +2995,75 @@ body.app-shell-ui #tutorialStepHint{
     width:100%;
     text-align:center;
   }
-  .lab-subtabs{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
+	  .lab-subtabs{
+	    display:grid;
+	    grid-template-columns:repeat(3,minmax(0,1fr));
+	  }
+	  .lab-subtabs button{
+	    flex:1 1 auto;
+	    min-width:0;
+	    padding:6px 4px;
+	    font-size:11px;
+	  }
+	  .weekly-goal-card,
+	  .weekly-bonus-card{
+	    flex-direction:column;
+	    align-items:stretch;
+	  }
+	  .weekly-goal-card button,
+	  .weekly-bonus-card button{
+	    width:100%;
+	  }
   body.app-shell-ui header{
-    flex-wrap:wrap;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
     align-items:center;
+    padding:12px 12px 10px !important;
   }
-  .live-net-strip{
-    order:3;
+  body.app-shell-ui .header-left{
+    justify-content:flex-start;
+  }
+  body.app-shell-ui header .subtitle{
+    display:none;
+  }
+  body.app-shell-ui .header-right{
     width:100%;
-    justify-content:space-between;
-    overflow:hidden;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
   }
-  .live-net-strip span,
-  .live-net-strip strong{
-    overflow:hidden;
-    text-overflow:ellipsis;
+  body.app-shell-ui .header-right button{
+    min-width:0 !important;
+    min-height:44px;
+    width:100%;
+    padding:8px 6px;
   }
+  .home-cockpit{
+    padding:12px;
+    gap:12px;
+  }
+  .home-status-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  body.app-shell-ui .home-status-grid .stat-row{
+    min-height:52px;
+    padding:8px;
+  }
+  .home-actions-box .button-row{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .home-loadout-block .loadout-control-row{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .home-loadout-block .loadout-control-row select{
+    grid-column:1 / -1;
+  }
+  .home-live-hint{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .zero-day-flow,
   .live-node-row{
     grid-template-columns:1fr;
   }
@@ -2468,6 +3085,18 @@ body.app-shell-ui #tutorialStepHint{
   .live-rank-entry em{
     grid-column:2;
   }
+  #codeDetailModalBackdrop{
+    align-items:flex-end;
+  }
+  #codeDetailModal{
+    width:100vw;
+    max-width:100vw;
+    max-height:82vh;
+    border-radius:8px 8px 0 0;
+  }
+  #codeDetailModalFooter{
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  }
 }
 @media (prefers-reduced-motion: reduce){
   .app-main-view.active,
@@ -2478,8 +3107,9 @@ body.app-shell-ui #tutorialStepHint{
   .app-main-tabs button,
   body.app-shell-ui button,
   .hack-mode-segment button,
-  .achievement-toolbar button,
-  .stage-card{
+	  .achievement-toolbar button,
+	  .weekly-filter button,
+	  .stage-card{
     transition:none;
   }
 }
