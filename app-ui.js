@@ -6,26 +6,34 @@
 (function(){
   try{
     if('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    document.documentElement.style.setProperty('--appH', Math.ceil(window.innerHeight) + 'px');
+    const firstH = Math.ceil(window.innerHeight) + 'px';
+    document.documentElement.style.setProperty('--appH', firstH);
+    document.documentElement.style.setProperty('--app-height', firstH);
   }catch(e){}
 })();
 
 
 // --- Touch/zoom guard (mobile double-tap/pinch accidental zoom) ---
+// body에 touch-action:manipulation이 있어 더블탭 줌은 이미 방지됨.
+// touchend preventDefault는 "완전히 같은 요소"를 320ms 내 연속 탭할
+// 때만 적용 — 다른 요소를 연속 탭할 때 click이 차단되는 버그 방지.
 (function(){
-  let lastTouchEnd = 0;
+  let lastTouchEnd    = 0;
+  let lastTouchTarget = null;
   function isEditable(target){
-    return !!(target && target.closest && target.closest('input, textarea, select, [contenteditable="true"]'));
+    return !!(target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], label'));
   }
   document.addEventListener('gesturestart', ev => {
     ev.preventDefault();
   }, { passive:false });
   document.addEventListener('touchend', ev => {
-    const now = Date.now();
-    if (!isEditable(ev.target) && now - lastTouchEnd <= 320) {
+    const now        = Date.now();
+    const sameTarget = ev.target === lastTouchTarget;
+    if (!isEditable(ev.target) && sameTarget && now - lastTouchEnd <= 320) {
       ev.preventDefault();
     }
-    lastTouchEnd = now;
+    lastTouchEnd    = now;
+    lastTouchTarget = ev.target;
   }, { passive:false });
 })();
 
@@ -42,7 +50,9 @@
   function setAppH(){
     const vv = window.visualViewport;
     const h = vv ? vv.height : window.innerHeight;
-    root.style.setProperty('--appH', px(h));
+    const value = px(h);
+    root.style.setProperty('--appH', value);
+    root.style.setProperty('--app-height', value);
   }
 
   function setHeaderTabs(){
@@ -51,7 +61,9 @@
     const isMobile = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
 
     if(header){
-      root.style.setProperty('--headerH', px(header.getBoundingClientRect().height));
+      const headerValue = px(header.getBoundingClientRect().height);
+      root.style.setProperty('--headerH', headerValue);
+      root.style.setProperty('--header-h', headerValue);
     }
     if(isMobile){
       if(tabs){
@@ -72,7 +84,11 @@
     setAppH();
     setHeaderTabs();
     // remove tiny scroll offsets that look like the whole UI is shifted upward
-    try{ if(window.scrollY !== 0) window.scrollTo(0,0); }catch(e){}
+    try{
+      if(window.scrollY !== 0) window.scrollTo(0,0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }catch(e){}
   }
 
   function scheduleKick(delay = 0){
@@ -101,6 +117,9 @@
   window.addEventListener('resize', () => scheduleKick());
   window.addEventListener('orientationchange', () => scheduleKick(250));
   window.addEventListener('pageshow', () => scheduleKick(40));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') scheduleKick(20);
+  });
 
   // ResizeObserver catches font-load/header wrap changes that happen AFTER first paint
   try{
@@ -227,7 +246,7 @@
 
 
 
-// === APP SHELL NAV (HOME / CODES / SHOP / LAB / COMING SOON) ===
+// === APP SHELL NAV (SHOP / CODES / HOME / LAB / COMING SOON) ===
 (function(){
   const main = document.getElementById('main');
   const left = document.getElementById('leftPanel');
@@ -275,6 +294,7 @@
   const statusTitle = document.getElementById('titleStatus');
   const statusBox = statusTitle ? statusTitle.nextElementSibling : left.querySelector('.stat-box');
   const shopTitle = document.getElementById('titleShop');
+  const shopTypeTabs = document.getElementById('shopTypeTabs');
   const shopSortRow = left.querySelector('.shop-sort-row');
   const shopList = document.getElementById('shopList');
   const actionBox = document.getElementById('titleActions') ? document.getElementById('titleActions').closest('.stat-box') : centerInner.querySelector('.stat-box');
@@ -297,6 +317,21 @@
   });
   if(scanOverlay && scanOverlay.parentElement !== views.home) views.home.appendChild(scanOverlay);
   if(statusBox) statusBox.classList.add('home-status-grid');
+
+  // v3.0.1: "오늘 할 일" 요약 카드
+  if(!document.getElementById('todaySummaryBox')){
+    const todayBox = document.createElement('div');
+    todayBox.id = 'todaySummaryBox';
+    todayBox.className = 'today-summary-box stat-box';
+    todayBox.innerHTML = `
+      <div class="today-summary-header">
+        <span class="badge">TODAY</span>
+        <span class="today-summary-title" id="todaySummaryTitle">${label('todayTitle','오늘 할 일')}</span>
+      </div>
+      <div id="todaySummaryContent" class="today-summary-content"></div>
+    `;
+    homeCockpit.appendChild(todayBox);
+  }
   if(actionBox) {
     actionBox.classList.add('home-actions-box');
     const loadoutLabel = document.getElementById('labelLoadout');
@@ -313,13 +348,67 @@
       `);
     }
   }
-  [shopTitle, shopSortRow, shopList].forEach(el => {
+  [shopTitle, shopTypeTabs, shopSortRow, shopList].forEach(el => {
     if(el && el.parentElement !== views.shop) views.shop.appendChild(el);
   });
   if(codeRow){
     codeRow.classList.add('app-codes-layout');
     if(codeRow.parentElement !== views.codes) views.codes.appendChild(codeRow);
   }
+
+  // v3.0.1: INVENTORY 서브탭 (CODES / ITEMS) 삽입
+  if(!document.getElementById('inventorySubtabs')){
+    const subtabs = document.createElement('div');
+    subtabs.id = 'inventorySubtabs';
+    subtabs.className = 'inventory-subtabs';
+    subtabs.innerHTML = `
+      <button type="button" class="inventory-subtab active" data-inv-tab="codes">${label('inventoryCodesTab','CODES')}</button>
+      <button type="button" class="inventory-subtab" data-inv-tab="items">${label('inventoryItemsTab','ITEMS')}</button>
+    `;
+    views.codes.insertBefore(subtabs, views.codes.firstChild);
+  }
+
+  if(!document.getElementById('inventoryItemsPanel')){
+    const itemsPanel = document.createElement('div');
+    itemsPanel.id = 'inventoryItemsPanel';
+    itemsPanel.className = 'inventory-panel inventory-items-panel';
+    itemsPanel.setAttribute('aria-hidden', 'true');
+    itemsPanel.style.display = 'none';
+    itemsPanel.innerHTML = `<div id="itemsContent" class="items-content"></div>`;
+    views.codes.appendChild(itemsPanel);
+  }
+
+  // 서브탭 클릭 핸들러
+  (function(){
+    function setInvTab(tab){
+      const subtabsEl = document.getElementById('inventorySubtabs');
+      const itemsEl = document.getElementById('inventoryItemsPanel');
+      const codesEl = codeRow;
+      if(!subtabsEl) return;
+      subtabsEl.querySelectorAll('[data-inv-tab]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.invTab === tab);
+      });
+      if(codesEl){
+        codesEl.style.display = tab === 'codes' ? '' : 'none';
+        codesEl.setAttribute('aria-hidden', tab !== 'codes' ? 'true' : 'false');
+      }
+      if(itemsEl){
+        itemsEl.style.display = tab === 'items' ? '' : 'none';
+        itemsEl.setAttribute('aria-hidden', tab !== 'items' ? 'true' : 'false');
+      }
+      // ITEMS 패널 렌더
+      if(tab === 'items'){
+        try{ document.dispatchEvent(new CustomEvent('hcsig:render-items')); }catch(e){}
+      }
+    }
+    document.addEventListener('click', function(e){
+      const btn = e.target.closest('[data-inv-tab]');
+      if(!btn) return;
+      setInvTab(btn.dataset.invTab);
+    });
+    // 초기 상태: CODES 탭
+    setInvTab('codes');
+  })();
   if(moreModal && moreModalBackdrop && moreModal.parentElement !== moreModalBackdrop){
     moreModalBackdrop.appendChild(moreModal);
   }
@@ -362,49 +451,7 @@
 		        <div class="stage-chapter-list" id="stageChapterList" aria-label="Data Tower chapters"></div>
 		      </section>
 	      <section class="lab-panel" data-lab-panel="zero">
-	        <span class="badge">LIVE MODE</span>
-	        <h3>ZERO-DAY</h3>
-	        <p>정식 침투 엔진이 열렸습니다. 탐지 게이지가 100%에 닿기 전에 핵심 노드를 돌파하고 신호를 회수하세요.</p>
-	        <div class="zero-day-flow">
-	          <article><strong>준비</strong><span>코드 빌드와 CPU/GPU 성향을 맞춥니다.</span></article>
-	          <article><strong>침투</strong><span>탐지 게이지가 오르기 전 핵심 노드를 돌파합니다.</span></article>
-	          <article><strong>탈출</strong><span>획득한 신호를 정리하고 보상을 회수합니다.</span></article>
-	        </div>
-	        <div class="zero-day-summary" id="zeroDaySummary">
-	          <div><span>BEST DEPTH</span><strong>0 / 12</strong></div>
-	          <div><span>BEST SCORE</span><strong>0</strong></div>
-	          <div><span>RUNS</span><strong>0</strong></div>
-	          <div><span>SIGNAL</span><strong>0</strong></div>
-	        </div>
-	        <div class="zero-day-mode-grid" id="zeroDayModeGrid" aria-label="Zero-day modes">
-	          <article class="zero-day-mode-card" data-zero-day-mode-card="single">
-	            <div class="zero-day-mode-head">
-	              <span class="badge">SINGLE</span>
-	              <strong>싱글모드</strong>
-	            </div>
-	            <p>안정적인 단독 침투입니다. 기본 흐름을 익히고 개인 기록과 보상 회수에 집중합니다.</p>
-	            <div class="zero-day-mode-meta">
-	              <span>개인 기록 중심</span>
-	              <span>최고 깊이</span>
-	              <span>최대 보상</span>
-	            </div>
-	            <button type="button" data-zero-day-start="single">싱글 침투 시작</button>
-	          </article>
-	          <article class="zero-day-mode-card" data-zero-day-mode-card="compete">
-	            <div class="zero-day-mode-head">
-	              <span class="badge">COMPETE</span>
-	              <strong>경쟁모드</strong>
-	            </div>
-	            <p>점수형 침투입니다. 탐지 압박이 높지만 깊이, 속도, 회수 신호가 더 큰 점수로 환산됩니다.</p>
-	            <div class="zero-day-mode-meta">
-	              <span>점수 경쟁</span>
-	              <span>탐지 압박 증가</span>
-	              <span>고효율 회수</span>
-	            </div>
-	            <button type="button" data-zero-day-start="compete">경쟁 침투 시작</button>
-	          </article>
-	        </div>
-	        <div class="zero-day-run-panel" id="zeroDayRunPanel"></div>
+	        <div id="zeroDayPanel"></div>
 	      </section>
 	      <section class="lab-panel" data-lab-panel="coming">
 	        <span class="badge">ROADMAP</span>
@@ -425,6 +472,12 @@
         const tab = btn.dataset.labTab || 'stage';
         labTabs.forEach(item => item.classList.toggle('active', item === btn));
         labPanels.forEach(panel => panel.classList.toggle('active', panel.dataset.labPanel === tab));
+        // Notify app-core to re-render the ZD panel when zero tab is selected
+        if (tab === 'zero') {
+          try { document.dispatchEvent(new CustomEvent('hcsig:zd-tab-open')); } catch(e) {}
+        }
+        // BGM: 랩 서브탭 전환 알림
+        try { document.dispatchEvent(new CustomEvent('hcsig:lab-tab', { detail: { tab } })); } catch(e) {}
       });
     });
   }
@@ -461,11 +514,11 @@
   nav.id = 'appMainNav';
   nav.className = 'mobile-tabs app-main-tabs';
   nav.innerHTML = `
-    <button type="button" data-main-view="home">${label('mobileHome', 'HOME')}</button>
-    <button type="button" data-main-view="codes">${label('mobileCodes', 'CODES')}</button>
     <button type="button" data-main-view="shop">${label('mobileShop', 'SHOP')}</button>
+    <button type="button" data-main-view="codes">${label('mobileInventory', 'INVENTORY')}</button>
+    <button type="button" data-main-view="home">${label('mobileHome', 'HOME')}</button>
     <button type="button" data-main-view="lab">${label('mobileLab', 'LAB')}</button>
-    <button type="button" data-main-view="coming">${label('mobileComing', 'COMING SOON')}</button>
+    <button type="button" data-main-view="coming" data-nav-coming="1">${label('mobileComing', 'COMING SOON')}</button>
   `;
   const header = document.querySelector('header');
   if(header && header.nextSibling) header.parentNode.insertBefore(nav, header.nextSibling);
@@ -496,8 +549,30 @@
     try { document.dispatchEvent(new CustomEvent('hcsig:main-view', { detail: { view } })); } catch(e) {}
   }
 
+  function showComingToast(){
+    let toast = document.getElementById('comingToast');
+    if(!toast){
+      toast = document.createElement('div');
+      toast.id = 'comingToast';
+      toast.className = 'coming-toast';
+      toast.textContent = label('comingSoonToast', '다음 업데이트에서 공개됩니다');
+      document.body.appendChild(toast);
+    }
+    toast.classList.remove('coming-toast-visible');
+    void toast.offsetWidth;
+    toast.classList.add('coming-toast-visible');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('coming-toast-visible'), 2400);
+  }
+
   nav.querySelectorAll('[data-main-view]').forEach(btn => {
-    btn.addEventListener('click', () => setView(btn.dataset.mainView));
+    btn.addEventListener('click', () => {
+      if(btn.dataset.navComing === '1'){
+        showComingToast();
+        return;
+      }
+      setView(btn.dataset.mainView);
+    });
   });
 
   document.addEventListener('hcsig:navigate-main', (event) => {
@@ -506,11 +581,23 @@
   });
 
   function syncLabels(){
-    nav.querySelector('[data-main-view="home"]').textContent = label('mobileHome', 'HOME');
-    nav.querySelector('[data-main-view="codes"]').textContent = label('mobileCodes', 'CODES');
     nav.querySelector('[data-main-view="shop"]').textContent = label('mobileShop', 'SHOP');
+    nav.querySelector('[data-main-view="codes"]').textContent = label('mobileInventory', 'INVENTORY');
+    nav.querySelector('[data-main-view="home"]').textContent = label('mobileHome', 'HOME');
     nav.querySelector('[data-main-view="lab"]').textContent = label('mobileLab', 'LAB');
     nav.querySelector('[data-main-view="coming"]').textContent = label('mobileComing', 'COMING SOON');
+    // 서브탭 라벨 동기화
+    try {
+      const subtabsEl = document.getElementById('inventorySubtabs');
+      if(subtabsEl){
+        const cBtn = subtabsEl.querySelector('[data-inv-tab="codes"]');
+        const iBtn = subtabsEl.querySelector('[data-inv-tab="items"]');
+        if(cBtn) cBtn.textContent = label('inventoryCodesTab','CODES');
+        if(iBtn) iBtn.textContent = label('inventoryItemsTab','ITEMS');
+      }
+      const tTitle = document.getElementById('todaySummaryTitle');
+      if(tTitle) tTitle.textContent = label('todayTitle','오늘 할 일');
+    } catch(e) {}
   }
   window.addEventListener('hcsig:language-applied', syncLabels);
   window.addEventListener('resize', syncTabsHeight, {passive:true});
@@ -521,68 +608,7 @@
 })();
 
 
-/* === CHRISTMAS SNOW EFFECT (v1.6.6: toggle + stop) === */
-(function(){
-  const canvas = document.getElementById('snow-canvas');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-
-  let w = 0, h = 0;
-  let rafId = null;
-  let enabled = false;
-
-  function resize(){
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize, {passive:true});
-
-  const flakes = Array.from({length: 80}, () => ({
-    x: Math.random()*w,
-    y: Math.random()*h,
-    r: Math.random()*2+1,
-    s: Math.random()*0.5+0.5,
-    o: Math.random()*0.5+0.3
-  }));
-
-  function tick(){
-    if(!enabled){ rafId = null; return; }
-    ctx.clearRect(0,0,w,h);
-    for(const f of flakes){
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(255,255,255,${f.o})`;
-      ctx.fill();
-      f.y += f.s;
-      if(f.y > h){ f.y = -5; f.x = Math.random()*w; }
-    }
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function start(){
-    if(enabled && !rafId) rafId = requestAnimationFrame(tick);
-  }
-
-  function stop(){
-    enabled = false;
-    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
-    try { ctx.clearRect(0,0,w,h); } catch(e) {}
-  }
-
-  window.__snowFX = {
-    setEnabled(on){
-      enabled = !!on;
-      if(enabled){
-        start();
-      } else {
-        stop();
-      }
-    }
-  };
-
-  window.__snowFX.setEnabled(canvas.style.display !== 'none');
-})();
+// Snow effect removed in v3.0.0
 
 
 // === keep mobile tab labels in sync after language/state restore ===
@@ -590,9 +616,9 @@
   function syncMobileTabLabels(){
     try {
       if (typeof t !== 'function') return;
-      document.querySelectorAll('[data-main-view="home"]').forEach(el => { el.textContent = t('mobileHome'); });
-      document.querySelectorAll('[data-main-view="codes"]').forEach(el => { el.textContent = t('mobileCodes'); });
       document.querySelectorAll('[data-main-view="shop"]').forEach(el => { el.textContent = t('mobileShop'); });
+      document.querySelectorAll('[data-main-view="codes"]').forEach(el => { el.textContent = t('mobileInventory'); });
+      document.querySelectorAll('[data-main-view="home"]').forEach(el => { el.textContent = t('mobileHome'); });
       document.querySelectorAll('[data-main-view="lab"]').forEach(el => { el.textContent = t('mobileLab'); });
       document.querySelectorAll('[data-main-view="coming"]').forEach(el => { el.textContent = t('mobileComing'); });
     } catch (e) {}

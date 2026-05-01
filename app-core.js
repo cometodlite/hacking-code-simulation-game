@@ -1,13 +1,71 @@
-const CURRENT_VERSION = '2.3.0';
-const TUTORIAL_VERSION = 5;
-    const ENERGY_INTERVAL_MS = 120000; // 에너지 1칸당 120초
-    const SAVE_KEY = 'HCSiG_SAVE_v16';
+
+/**
+ * HCSiG v3.0.0 — ZERO-DAY DISCOVERY
+ * ZERO-DAY 모드 타임어택 코어 루프 / SUPPORT 패널 버그픽스 / 즉시 클리어 버그픽스
+ */
+
+// 전역 초기화 상태 변수
+window.gameInitialized = false;
+
+// 1. 템플릿 치환 기능이 강화된 번역 함수 (요청서 1, 2, 5번 해결)
+window.t = function(key, data = {}) {
+    const lang = (typeof state !== 'undefined' && state.language) ? state.language : 'ko';
+    let str = (typeof I18N !== 'undefined' && I18N[lang] && I18N[lang][key]) ? I18N[lang][key] : key;
+    
+    // {v}, {name}, {sec} 등의 플레이스홀더 치환
+    Object.keys(data).forEach(k => {
+        str = str.replace(new RegExp(`{${k}}`, 'g'), data[k]);
+    });
+    return str;
+};
+
+// 2. HTML 이스케이프 함수
+window.escapeHtml = function(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
+
+// 3. UI 가림 현상 방지 CSS 주입 (요청서 3, 4번 해결)
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        /* 모달 레이아웃 구조화 */
+        .modal-panel { display: flex !important; flex-direction: column !important; max-height: 90vh !important; overflow: hidden !important; }
+        .modal-header { flex: 0 0 auto !important; z-index: 10 !important; background: inherit; }
+        .modal-content { flex: 1 1 auto !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; min-height: 0; }
+        .modal-toolbar { flex: 0 0 auto !important; background: rgba(0,0,0,0.8); z-index: 5 !important; padding: 10px 0; }
+        .modal-scroll, .list-content-area, .mission-list-container { 
+            flex: 1 1 auto !important; 
+            overflow-y: auto !important; 
+            padding-bottom: 100px !important; 
+            -webkit-overflow-scrolling: touch; 
+        }
+        /* 서버 드롭다운 등 UI 요소 정렬 */
+        select option { padding: 5px; }
+    `;
+    document.head.appendChild(style);
+})();
+
+// 4. 세이브 안정성 가드 (요청서 6, 7번)
+function getSaveScore(saveObj) {
+    if(!saveObj || !saveObj.state) return -1;
+    const s = saveObj.state;
+    // 코드 수, 레벨, 크레딧 등을 종합하여 점수 계산
+    return (s.inventory?.length || 0) * 100 + (s.level || 0) * 50 + (s.credits || 0) / 1000;
+}
+
+// 기존 loadGame을 래핑하거나 로직 보강 필요 (여기서는 핵심 로직 가이드만 포함)
+console.log('[Stability Patch] Loaded');
+const CURRENT_VERSION = '3.0.0';
+const TUTORIAL_VERSION = 6;
+    const ENERGY_INTERVAL_MS = 60000; // 에너지 1칸당 60초
+    const SAVE_KEY = 'HCSiG_SAVE_v17';
 const I18N = {
   ko: {
     appTitle: 'HCSiG - Hacking Code Simulator Game', subtitle: 'Hacking Code Simulator Game', list:'LIST', listTitle:'LIST', event:'EVENT', eventTitle:'EVENT', more: '더보기 ▾', moreTitle: '더보기', status:'Status', shop:'Shop', actions:'Actions', codeInventory:'코드 인벤토리', codeDetail:'코드 상세',
     level:'레벨', exp:'경험치', credits:'크레딧', cpuTier:'CPU 티어', gpuTier:'GPU 티어', energy:'에너지', nextRecovery:'다음 회복까지', energyPack:'에너지 팩', lastSave:'마지막 저장', use:'사용', sort:'정렬', category:'분류', all:'전체', system:'시스템', economy:'경제', utility:'유틸',
     codeScan:'코드 스캔', serverHack:'서버 해킹', cpuUpgrade:'CPU 업그레이드', gpuUpgrade:'GPU 업그레이드', targetServer:'타겟 서버', loadout:'로드아웃', saveSlot:'슬롯 저장', loadSlot:'슬롯 불러오기', hackMode:'해킹 모드',
-    actionsDesc1:'· 에너지 1칸 = 120초, 0.1초 단위로 카운트다운 표시', actionsDesc2:'· 코드 스캔: 에너지 1, 스캔 EXP 소량 (희귀도별 스캔 시간 차등)', actionsDesc3:'· 서버 해킹: NORMAL/RISK/EXTREME 난이도 선택 가능', actionsDesc4:'· CPU는 성공률 안정, GPU는 반복/도전 보상 증폭을 담당합니다.',
+    actionsDesc1:'· 에너지 1칸 = 60초, 0.1초 단위로 카운트다운 표시', actionsDesc2:'· 코드 스캔: 에너지 1, 스캔 EXP 소량 (희귀도별 스캔 시간 차등)', actionsDesc3:'· 서버 해킹: NORMAL/RISK/EXTREME 난이도 선택 가능', actionsDesc4:'· CPU는 성공률 안정, GPU는 반복/도전 보상 증폭을 담당합니다.',
     codeUpgrade:'코드 강화', codeSync:'코드 동기화', codeEvolve:'코드 진화', shardEnhance:'조각 강화', codeDesc1:'· 강화: 코드 레벨에 비례한 크레딧 소모, 파워 증가 (파괴 없음).', codeDesc2:'· 동기화: 중복 조각을 모아 성공률 보정과 파워를 함께 강화합니다.', codeDesc3:'· 진화: 일정 레벨 이상 시 희귀도 승급 (COMMON → UNCOMMON → … → LEGENDARY).',
     mission:'미션', achievement:'업적', codex:'코드 도감', logs:'로그', liveNet:'LIVE NET', rank:'RANK', settings:'설정', data:'클라우드 계정', quest:'퀘스트', records:'기록', liveNetRecords:'네트워크 관제', softRank:'소프트 랭킹', envSettings:'환경 설정', dataManage:'클라우드 계정', close:'닫기',
     logSearchHelp:'로그 검색 (로그 항목 클릭 → 핀/해제)', searchPlaceholder:'검색어 입력...', clearLogs:'로그 초기화', hideLogs:'로그 숨기기', showLogs:'로그 보이기', logFilter:'로그 필터',
@@ -16,18 +74,18 @@ const I18N = {
     shopSortUpdate:'업데이트순', shopSortNew:'신규 우선', shopSortRarity:'희귀도순', shopSortPrice:'가격순', shopSortName:'이름순', codeSortRecent:'최신', codeSortRarity:'희귀도', codeSortPower:'파워', codeSortLevel:'레벨', codeSortName:'이름',
     codexSummary:'발견 {a} / {b}', discovered:'DISCOVERED', locked:'LOCKED', basePower:'기본 파워', ownedLvPwr:'보유 Lv.{lv} / PWR {pwr}', undiscoveredCode:'미발견 코드', undiscoveredDesc:'아직 발견하지 못한 코드입니다. 코드 스캔으로 해제하세요.', noCodes:'보유 코드 없음. [코드 스캔]으로 코드를 얻으세요.', selectCode:'보유 중인 코드를 선택하면 상세 정보가 표시됩니다.',
     levelLabel:'레벨: Lv.{v}', powerLabel:'파워: {v}', usageLabel:'사용 횟수: {v}', shardsLabel:'중복 조각: {v}', syncLabel:'동기화 단계: {v}', nextUpgrade:'다음 강화 비용: {v} 크레딧', nextSync:'다음 동기화 비용: 조각 {a} / 예상 성공률 보정 +{b}%', evolveReady:'진화 조건: 충족', evolveNeed:'진화 조건: Lv.5 이상 필요', ability:'능력', noDesc:'설명 없음.',
-    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'보상', none:'없음', complete:'완료', incomplete:'미완', achieved:'달성', notYet:'미달', hiddenAchievement:'히든 업적입니다. 달성 시 공개됩니다.', difficultyEasy:'일반', difficultyNormal:'보통', difficultyHard:'어려움', hidden:'HIDDEN', achievementAll:'전체', achievementIncomplete:'미완료', achievementComplete:'완료', achievementShowHidden:'숨김 포함',
+    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'보상', none:'없음', complete:'완료', incomplete:'미완', achieved:'달성', notYet:'미달', hiddenAchievement:'히든 업적입니다. 달성 시 공개됩니다.', difficultyEasy:'일반', difficultyNormal:'보통', achievementDifficultyHard:'어려움', hidden:'HIDDEN', achievementAll:'전체', achievementIncomplete:'미완료', achievementComplete:'완료', achievementShowHidden:'숨김 포함',
     full:'FULL', seconds:'초', minutes:'분', visible:'표시', on:'ON', off:'OFF',
     saveStateSaved:'게임 상태가 클라우드 캐시에 저장되었습니다.', saveComplete:'클라우드 캐시 저장 완료', autosaveComplete:'✅ 자동 캐시 저장 완료', noSavedData:'저장된 데이터가 없습니다.', saveLoaded:'저장된 데이터를 불러왔습니다.', saveLoadError:'저장 데이터를 불러오는 중 오류가 발생했습니다.', saveDeleted:'저장 데이터가 삭제되었습니다.', exportFail:'내보내기 실패 (콘솔 확인)', hackModeLog:'해킹 모드: {mode}', riskPenaltyLog:'RISK 실패 페널티: 에너지가 추가로 1 소모되었습니다.', extremePenaltyLog:'EXTREME 실패 페널티: 에너지가 추가로 2 소모되었습니다.', gpuUpgradeLog:'GPU 업그레이드 완료! 현재 티어: {tier} (소모 크레딧 {cost})', gpuUpgradeFail:'GPU 업그레이드 실패: 크레딧이 부족합니다. (필요: {cost})', loadoutSaved:'로드아웃 슬롯 {slot}에 현재 설정을 저장했습니다.', loadoutEmpty:'로드아웃 슬롯 {slot}에 저장된 설정이 없습니다.', loadoutLoaded:'로드아웃 슬롯 {slot}을 불러왔습니다.',
     toastAchievement:'업적 달성: {name}', achievementLog:'[업적 달성] {name}', activeCode:'활성 코드 변경: {name}', levelUpLog:'레벨 업! Lv.{lv} 달성. 크레딧 +50 지급.', noEnergyPack:'에너지 팩이 없습니다.', energyFull:'이미 에너지가 가득 찼습니다.', usedEnergyPack:'에너지 팩 1개를 사용해 에너지를 최대치까지 회복했습니다.',
     noCodeSync:'동기화할 코드가 없습니다.', syncFailShards:'코드 동기화 실패: 중복 조각이 부족합니다. (필요: {need}, 보유: {have})', syncDone:'코드 동기화 완료: {name} 동기화 {lv}단계 달성. 파워 +{pwr}, 성공률 보정 +{rate}%.', syncToast:'{name} 동기화 {lv}단계', noCodeUpgrade:'강화할 코드가 없습니다. 먼저 코드를 스캔하세요.', upgradeFailCredits:'코드 강화 실패: 크레딧이 부족합니다. (필요: {cost})', upgradeDone:'코드 강화: {name} Lv.{lv} (파워 +5 → {pwr}), 크레딧 -{cost}.', noCodeEvolve:'진화할 코드가 없습니다.', maxRarity:'이미 최상위 희귀도(LEGENDARY)입니다. 더 이상 진화할 수 없습니다.', evolveNeedLv:'코드 진화 실패: 진화에는 최소 Lv.5 이상이 필요합니다.', evolveCannot:'진화를 처리할 수 없습니다.', evolveDone:'코드 진화 성공: {name}가 {rarity} 등급으로 승급, 파워 +10 → {pwr}.', shardEnhanceFail:'조각 강화 실패: 조각이 부족합니다. (필요: {need}, 보유: {have})', shardEnhanceDone:'조각 강화: {name} PWR +2 → {pwr}. 조각 -{cost}.', shardEnhanceCost:'조각 강화 비용: 조각 {cost} / PWR +2',
-    noEnergyScan:'에너지가 부족하여 코드 스캔을 수행할 수 없습니다.', noEnergyHack:'에너지가 부족하여 서버 해킹을 수행할 수 없습니다.', energyPackToast:'에너지 팩 +1 (보유: {v})', offlineRecoverLog:'오프라인 동안 에너지 {v} 회복 ({label} 경과)', offlineRecoverToast:'오프라인 회복: 에너지 +{v}', exportDone:'저장 데이터 내보내기 완료', importDone:'저장 데이터 불러오기 완료', importFail:'불러오기 실패: JSON 형식을 확인하세요.', emptyText:'텍스트가 비어 있습니다.', logsHide:'로그 숨기기', logsShow:'로그 보이기', initLog:'HCSiG 초기화 완료. (언어 설정, 중복 조각/코드 동기화, 모바일 UI, 상점 분류 적용)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileMore:'MORE', mobileLab:'LAB', mobileStage:'데이터 타워', mobileComing:'COMING SOON', tutorialReplay:'튜토리얼 다시 보기', comingSoonToast:'Coming Soon - 준비 중인 기능입니다.', buy:'구매', buyDone:'구매 완료', buyUnavailable:'구매 불가', buySpendTitle:'구매하면 크레딧이 소모됩니다.', buyDailyLimit:'오늘 구매 제한에 도달했습니다.', buyOnceLimit:'이미 구매한 영구 아이템입니다.', notEnoughCredits:'크레딧이 부족합니다.', shopLog:'[상점] {msg}', shopBought:'{name} 구매 (💰 -{cost})', missionDoneToast:'미션 완료: {name} ({reward})', missionDoneCredits:'크레딧 +{v}', missionDoneEnergyPack:'에너지 팩 +{v}', missionDoneBoth:'크레딧 +{c} / 에너지 팩 +{e}', serverOption:'{name} (보안 {sec}, Lv{lv}+)', serverLevelNeed:'해당 서버를 해킹하려면 최소 Lv.{lv} 이상이어야 합니다.', noOwnedCodes:'보유 코드가 없습니다. 먼저 코드 스캔으로 코드를 확보하세요.', scanFound:'새 코드 발견! {name} [{rarity}]', scanDuplicate:'중복 코드 감지: {name} [{rarity}] → 중복 조각 +{gain} (보유 {have}).', scanDone:'코드 스캔 완료: 경험치 +{exp}.', hackSuccessLog:'서버 해킹 성공! [{server}] 성공 확률 {chance}%. 크레딧 +{credits}, EXP +{exp}.', hackFailLog:'서버 해킹 실패. [{server}] 성공 확률 {chance}%였음.', logDailyShopReset:'[시스템] 일일 상점 제한이 초기화되었습니다. (05:00 리셋)', loadoutSlot:'슬롯 {n}', logPinHint:'로그 항목 클릭 → 핀/해제', saveToLocal:'현재 상태를 브라우저 LocalStorage에 저장합니다.', loadFromLocal:'LocalStorage에서 저장된 데이터를 불러옵니다.', deleteSave:'저장 데이터를 삭제합니다.', exportJson:'현재 저장 데이터를 JSON 파일로 내보냅니다.', importJsonFile:'JSON 저장 파일을 불러옵니다.', importJsonText:'텍스트(JSON)로 저장 데이터를 불러옵니다.', languageTitle:'게임 언어를 선택합니다.', uiScaleTitle:'전체 UI 배율을 조정합니다.', toastTitle:'화면 알림(토스트) 표시 시간을 설정합니다.', shopSortTitle:'상점 아이템 정렬 기준을 선택합니다.', codeSortTitle:'코드 인벤토리 정렬 기준을 선택합니다.', dailyResetLabel:'05:00 리셋 ({n}회)', onceLabel:'1회', dailyShort:'일일', onceShort:'1회', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY'
+    noEnergyScan:'에너지가 부족하여 코드 스캔을 수행할 수 없습니다.', noEnergyHack:'에너지가 부족하여 서버 해킹을 수행할 수 없습니다.', energyPackToast:'에너지 팩 +1 (보유: {v})', offlineRecoverLog:'오프라인 동안 에너지 {v} 회복 ({label} 경과)', offlineRecoverToast:'오프라인 회복: 에너지 +{v}', exportDone:'저장 데이터 내보내기 완료', importDone:'저장 데이터 불러오기 완료', importFail:'불러오기 실패: JSON 형식을 확인하세요.', emptyText:'텍스트가 비어 있습니다.', logsHide:'로그 숨기기', logsShow:'로그 보이기', initLog:'HCSiG 초기화 완료. (언어 설정, 중복 조각/코드 동기화, 모바일 UI, 상점 분류 적용)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileMore:'MORE', mobileLab:'LAB', mobileStage:'데이터 타워', mobileComing:'COMING SOON', tutorialReplay:'튜토리얼 다시 보기', comingSoonToast:'Coming Soon - 준비 중인 기능입니다.', buy:'구매', buyDone:'구매 완료', buyUnavailable:'구매 불가', buySpendTitle:'구매하면 크레딧이 소모됩니다.', buyDailyLimit:'오늘 구매 제한에 도달했습니다.', buyOnceLimit:'이미 구매한 영구 아이템입니다.', notEnoughCredits:'크레딧이 부족합니다.', shopLog:'[상점] {msg}', shopBought:'{name} 구매 (💰 -{cost})', missionDoneToast:'미션 완료: {name} ({reward})', missionDoneCredits:'크레딧 +{v}', missionDoneEnergyPack:'에너지 팩 +{v}', missionDoneBoth:'크레딧 +{c} / 에너지 팩 +{e}', serverOption:'{name} (보안 {sec}, Lv{lv}+)', serverLevelNeed:'해당 서버를 해킹하려면 최소 Lv.{lv} 이상이어야 합니다.', noOwnedCodes:'보유 코드가 없습니다. 먼저 코드 스캔으로 코드를 확보하세요.', scanFound:'새 코드 발견! {name} [{rarity}]', scanDuplicate:'중복 코드 감지: {name} [{rarity}] → 중복 조각 +{gain} (보유 {have}).', scanDone:'코드 스캔 완료: 경험치 +{exp}.', hackSuccessLog:'서버 해킹 성공! [{server}] 성공 확률 {chance}%. 크레딧 +{credits}, EXP +{exp}.', hackFailLog:'서버 해킹 실패. [{server}] 성공 확률 {chance}%였음.', logDailyShopReset:'[시스템] 일일 상점 제한이 초기화되었습니다. (05:00 리셋)', loadoutSlot:'슬롯 {n}', logPinHint:'로그 항목 클릭 → 핀/해제', saveToLocal:'현재 상태를 브라우저 LocalStorage에 저장합니다.', loadFromLocal:'LocalStorage에서 저장된 데이터를 불러옵니다.', deleteSave:'저장 데이터를 삭제합니다.', exportJson:'현재 저장 데이터를 JSON 파일로 내보냅니다.', importJsonFile:'JSON 저장 파일을 불러옵니다.', importJsonText:'텍스트(JSON)로 저장 데이터를 불러옵니다.', languageTitle:'게임 언어를 선택합니다.', uiScaleTitle:'전체 UI 배율을 조정합니다.', toastTitle:'화면 알림(토스트) 표시 시간을 설정합니다.', shopSortTitle:'상점 아이템 정렬 기준을 선택합니다.', codeSortTitle:'코드 인벤토리 정렬 기준을 선택합니다.', dailyResetLabel:'05:00 리셋 ({n}회)', onceLabel:'1회', dailyShort:'일일', onceShort:'1회', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY', rarityOperation:'OPERATION', routeExternal:'외부 루트', routeInternal:'내부 루트', routeCore:'코어 루트', targetRoute:'루트', upgradeTarget:'업그레이드 대상', systemStatus:'시스템 상태', creditsTab:'CREDITS', manualTab:'설명서', difficultyIntro:'입문', difficultyGeneral:'일반', difficultyStandard:'보통', difficultyHard:'어려움', difficultyChaos:'혼돈', difficultyImpossible:'불가능', passTab:'PASS', weeklyTab:'WEEKLY', seasonPass:'시즌 패스', passPoints:'패스 포인트', passTier:'패스 티어', seasonShop:'시즌 상점', opsShop:'OPS 상점', zeroDayOnboarding:'온보딩', zeroDayPve:'PVE', zeroDayPvp:'PVP', zeroDaySingle:'싱글', zeroDayCompete:'경쟁', vulnerability:'취약점', vulnerabilityShard:'취약점 조각', oneDay:'OneDay', coin:'COIN', token:'TOKEN', accountStatus:'계정 및 클라우드 상태', accountCustom:'계정 커스텀', comingSoonToastShort:'준비 중입니다.', zeroDayCmdLocale:'ZERO-DAY 명령어 표시', zdCmdAuto:'auto', zdCmdEn:'english', zdCmdKo:'korean', energyRecoveryDesc:'에너지 1칸 = 60초', todayTitle:'오늘 할 일', todayEnergy:'에너지', todayDailyMissions:'일일 미션', todayWeeklyGoals:'WEEKLY 목표', todayEnergyPack:'에너지 팩', todayComplete:'완료', todayRemaining:'남음', mobileInventory:'INVENTORY', inventoryCodesTab:'CODES', inventoryItemsTab:'ITEMS', itemsConsumables:'소모품', itemsCurrency:'재화', itemsComingSoon:'· Daily Bonus Box와 ROM은 다음 업데이트에서 추가됩니다.', autoRunLabel:'AUTO-RUN', autoScanLabel:'자동 스캔', autoHackLabel:'자동 해킹', autoRunStop:'중지', autoRunActive:'진행 중', autoRunUsesLeft:'남은 횟수', autoRunStartScan:'자동 스캔을 시작합니다. (10초마다 / 1시간)', autoRunStartHack:'자동 해킹을 시작합니다. (20초마다 / 30분)', autoRunStopped:'자동 실행이 중단되었습니다.', autoRunEnded:'자동 실행이 완료되었습니다.', autoRunNoEnergy:'에너지와 에너지 팩이 모두 소진되어 자동 실행을 중단합니다.', autoRunNoCoin:'COIN이 부족합니다.', autoRunDailyLimit:'오늘 자동 실행 횟수를 모두 사용했습니다. (일일 3회)', autoRunAlreadyActive:'이미 자동 실행이 진행 중입니다. 먼저 중지해주세요.', autoRunPause:'일시 중지', autoRunResume:'재개', autoRunEnd:'종료', autoRunPaused:'일시 중지됨', timeSwapLabel:'타임 스와프', timeSwap2h:'타임 스와프 2h', timeSwap5h:'타임 스와프 5h', timeSwap10h:'타임 스와프 10h', timeSwapUseAutoRun:'AUTO-RUN 연장', timeSwapUseEnergy:'에너지 회복 단축', timeSwapExtended:'AUTO-RUN 시간이 연장되었습니다.', timeSwapEnergySkipped:'에너지 회복 대기시간이 단축되었습니다.', timeSwapNone:'타임 스와프가 없습니다.', timeSwapFull:'에너지가 이미 최대이고 AUTO-RUN이 비활성 상태입니다.', traceAmpleLabel:'TRACE 앰플', nullSeedLabel:'NULL 시드', itemsGrowth:'성장 재료', rouletteTab:'룰렛', rouletteTitle:'초보자 한정 룰렛', rouletteDesc:'신규 계정 기준 10일간 매일 1회 수령할 수 있는 한정 룰렛입니다.', rouletteClaim:'오늘의 룰렛 뽑기', rouletteAlreadyClaimed:'오늘은 이미 수령했습니다. 내일 다시 오세요.', rouletteExpired:'초보자 한정 룰렛 기간이 종료되었습니다.', rouletteDayCount:'{cur} / 10일 완료', rouletteGuaranteed:'확정 보상', rouletteBonus:'랜덤 추가 보상', supportTab:'SUPPORT', supportTitle:'HCSiG 후원하기', supportDesc:'HCSiG를 응원해주시면 개발 지속에 큰 힘이 됩니다. 수동 처리 방식으로 운영자가 직접 확인 후 보상을 지급합니다.', supportHow:'구매 방법', supportHowDesc:'상품을 선택하고, 계정 정보를 복사하여 아래 문의 채널로 전달해주세요. 운영자 확인 후 보상이 지급됩니다.', supportContact:'문의하기', supportPending:'처리 대기 중', supportYourId:'내 계정 정보'
   },
   en: {
     appTitle: 'HCSiG - Hacking Code Simulator Game', subtitle: 'Hacking Code Simulator Game', list:'LIST', listTitle:'LIST', event:'EVENT', eventTitle:'EVENT', more: 'More ▾', moreTitle: 'More', status:'Status', shop:'Shop', actions:'Actions', codeInventory:'Code Inventory', codeDetail:'Code Detail',
     level:'Level', exp:'EXP', credits:'Credits', cpuTier:'CPU Tier', gpuTier:'GPU Tier', energy:'Energy', nextRecovery:'Next Recovery', energyPack:'Energy Pack', lastSave:'Last Save', use:'Use', sort:'Sort', category:'Category', all:'All', system:'System', economy:'Economy', utility:'Utility',
     codeScan:'Scan Code', serverHack:'Hack Server', cpuUpgrade:'Upgrade CPU', gpuUpgrade:'Upgrade GPU', targetServer:'Target Server', loadout:'Loadout', saveSlot:'Save Slot', loadSlot:'Load Slot', hackMode:'Hack Mode',
-    actionsDesc1:'· 1 energy = 120 seconds, shown with 0.1-second countdown', actionsDesc2:'· Scan Code: costs 1 energy and grants scan EXP', actionsDesc3:'· Hack Server: choose NORMAL / RISK / EXTREME difficulty', actionsDesc4:'· CPU stabilizes success, GPU amplifies repeat/challenge rewards.',
+    actionsDesc1:'· 1 energy = 60 seconds, shown with 0.1-second countdown', actionsDesc2:'· Scan Code: costs 1 energy and grants scan EXP', actionsDesc3:'· Hack Server: choose NORMAL / RISK / EXTREME difficulty', actionsDesc4:'· CPU stabilizes success, GPU amplifies repeat/challenge rewards.',
     codeUpgrade:'Upgrade Code', codeSync:'Sync Code', codeEvolve:'Evolve Code', shardEnhance:'Shard Boost', codeDesc1:'· Upgrade: costs credits based on code level and raises power (no destruction).', codeDesc2:'· Sync: spend duplicate shards to raise success bonus and power together.', codeDesc3:'· Evolve: rank up at a required level (COMMON → UNCOMMON → … → LEGENDARY).',
     mission:'Mission', achievement:'Achievements', codex:'Code Codex', logs:'Logs', liveNet:'LIVE NET', rank:'RANK', settings:'Settings', data:'Cloud Account', quest:'Quests', records:'Records', liveNetRecords:'Network Control', softRank:'Soft Ranking', envSettings:'Settings', dataManage:'Cloud Account', close:'Close',
     logSearchHelp:'Search logs (click a log entry to pin/unpin)', searchPlaceholder:'Type to search...', clearLogs:'Clear Logs', hideLogs:'Hide Logs', showLogs:'Show Logs', logFilter:'Log Filter',
@@ -36,17 +94,38 @@ const I18N = {
     shopSortUpdate:'By Update', shopSortNew:'Newest First', shopSortRarity:'By Rarity', shopSortPrice:'By Price', shopSortName:'By Name', codeSortRecent:'Recent', codeSortRarity:'Rarity', codeSortPower:'Power', codeSortLevel:'Level', codeSortName:'Name',
     codexSummary:'Discovered {a} / {b}', discovered:'DISCOVERED', locked:'LOCKED', basePower:'Base Power', ownedLvPwr:'Owned Lv.{lv} / PWR {pwr}', undiscoveredCode:'Undiscovered Code', undiscoveredDesc:'You have not discovered this code yet. Unlock it by scanning codes.', noCodes:'No codes owned. Use [Scan Code] to get one.', selectCode:'Select an owned code to view details.',
     levelLabel:'Level: Lv.{v}', powerLabel:'Power: {v}', usageLabel:'Uses: {v}', shardsLabel:'Duplicate Shards: {v}', syncLabel:'Sync Level: {v}', nextUpgrade:'Next upgrade cost: {v} credits', nextSync:'Next sync cost: {a} shards / expected success bonus +{b}%', evolveReady:'Evolution requirement: Met', evolveNeed:'Evolution requirement: Need Lv.5+', ability:'Ability', noDesc:'No description.',
-    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'Reward', none:'None', complete:'Complete', incomplete:'Incomplete', achieved:'Achieved', notYet:'Not Yet', hiddenAchievement:'This is a hidden achievement. It will be revealed when completed.', difficultyEasy:'Easy', difficultyNormal:'Normal', difficultyHard:'Hard', hidden:'HIDDEN', achievementAll:'All', achievementIncomplete:'Incomplete', achievementComplete:'Complete', achievementShowHidden:'Include Hidden',
+    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'Reward', none:'None', complete:'Complete', incomplete:'Incomplete', achieved:'Achieved', notYet:'Not Yet', hiddenAchievement:'This is a hidden achievement. It will be revealed when completed.', difficultyEasy:'Easy', difficultyNormal:'Normal', achievementDifficultyHard:'Hard', hidden:'HIDDEN', achievementAll:'All', achievementIncomplete:'Incomplete', achievementComplete:'Complete', achievementShowHidden:'Include Hidden',
     full:'FULL', seconds:'sec', minutes:'min', visible:'Visible', on:'ON', off:'OFF',
     saveStateSaved:'Game state saved to cloud cache.', saveComplete:'Cloud cache saved', autosaveComplete:'✅ Autosave cache complete', noSavedData:'No saved data found.', saveLoaded:'Saved data loaded.', saveLoadError:'An error occurred while loading save data.', saveDeleted:'Save data deleted.', exportFail:'Export failed (check console)', hackModeLog:'Hack Mode: {mode}', riskPenaltyLog:'RISK failure penalty consumed 1 additional energy.', extremePenaltyLog:'EXTREME failure penalty consumed 2 additional energy.', gpuUpgradeLog:'GPU upgrade complete! Current tier: {tier} (Credits -{cost})', gpuUpgradeFail:'GPU upgrade failed: not enough credits. (Need: {cost})', loadoutSaved:'Saved current setup to loadout slot {slot}.', loadoutEmpty:'There is no saved setup in loadout slot {slot}.', loadoutLoaded:'Loaded loadout slot {slot}.',
     toastAchievement:'Achievement unlocked: {name}', achievementLog:'[Achievement] {name}', activeCode:'Active code changed: {name}', levelUpLog:'Level up! Reached Lv.{lv}. Credits +50.', noEnergyPack:'No energy packs available.', energyFull:'Energy is already full.', usedEnergyPack:'Used 1 energy pack and fully restored energy.',
     noCodeSync:'There is no code to sync.', syncFailShards:'Code sync failed: not enough duplicate shards. (Need: {need}, Have: {have})', syncDone:'Code sync complete: {name} reached sync stage {lv}. Power +{pwr}, success bonus +{rate}%.', syncToast:'{name} sync stage {lv}', noCodeUpgrade:'There is no code to upgrade. Scan a code first.', upgradeFailCredits:'Code upgrade failed: not enough credits. (Need: {cost})', upgradeDone:'Code upgraded: {name} Lv.{lv} (Power +5 → {pwr}), Credits -{cost}.', noCodeEvolve:'There is no code to evolve.', maxRarity:'Already at the highest rarity (LEGENDARY). It cannot evolve further.', evolveNeedLv:'Code evolution failed: evolution requires at least Lv.5.', evolveCannot:'Cannot process evolution.', evolveDone:'Code evolution success: {name} advanced to {rarity}, Power +10 → {pwr}.', shardEnhanceFail:'Shard boost failed: not enough shards. (Need: {need}, Have: {have})', shardEnhanceDone:'Shard boost: {name} PWR +2 → {pwr}. Shards -{cost}.', shardEnhanceCost:'Shard boost cost: {cost} shards / PWR +2',
-    noEnergyScan:'Not enough energy to scan a code.', noEnergyHack:'Not enough energy to hack the server.', energyPackToast:'Energy Pack +1 (Owned: {v})', offlineRecoverLog:'Recovered {v} energy while offline ({label} elapsed)', offlineRecoverToast:'Offline recovery: Energy +{v}', exportDone:'Save data exported.', importDone:'Save data imported.', importFail:'Import failed: please check the JSON format.', emptyText:'The text box is empty.', logsHide:'Hide Logs', logsShow:'Show Logs', initLog:'HCSiG initialized. (language setting, duplicate shards/code sync, mobile UI, shop categories enabled)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileComing:'COMING SOON', comingSoonToast:'Coming Soon - This feature is in preparation.', buy:'Buy', buyDone:'Purchase complete', buyUnavailable:'Unavailable', buySpendTitle:'Buying this item will consume credits.', buyDailyLimit:'You have reached today\'s purchase limit.', buyOnceLimit:'This permanent item has already been purchased.', notEnoughCredits:'Not enough credits.', shopLog:'[Shop] {msg}', shopBought:'Purchased {name} (💰 -{cost})', missionDoneToast:'Mission complete: {name} ({reward})', missionDoneCredits:'Credits +{v}', missionDoneEnergyPack:'Energy Pack +{v}', missionDoneBoth:'Credits +{c} / Energy Pack +{e}', serverOption:'{name} (Security {sec}, Lv{lv}+)', serverLevelNeed:'You must be at least Lv.{lv} to hack this server.', noOwnedCodes:'You do not own any codes yet. Scan codes first.', scanFound:'New code discovered! {name} [{rarity}]', scanDuplicate:'Duplicate code detected: {name} [{rarity}] → Duplicate Shards +{gain} (Owned {have}).', scanDone:'Code scan complete: EXP +{exp}.', hackSuccessLog:'Server hack success! [{server}] Success chance {chance}%. Credits +{credits}, EXP +{exp}.', hackFailLog:'Server hack failed. [{server}] Success chance was {chance}%.', logDailyShopReset:'[System] Daily shop limits have been reset. (05:00 reset)', loadoutSlot:'Slot {n}', logPinHint:'Click a log entry to pin/unpin it', saveToLocal:'Save the current state to browser LocalStorage.', loadFromLocal:'Load saved data from LocalStorage.', deleteSave:'Delete the saved data.', exportJson:'Export the current save data as a JSON file.', importJsonFile:'Load a JSON save file.', importJsonText:'Load save data from text (JSON).', languageTitle:'Select the game language.', uiScaleTitle:'Adjust the overall UI scale.', toastTitle:'Set how long toast notifications remain on screen.', shopSortTitle:'Choose how shop items are sorted.', codeSortTitle:'Choose how the code inventory is sorted.', dailyResetLabel:'05:00 reset ({n})', onceLabel:'one-time', dailyShort:'daily', onceShort:'once', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY'
+    noEnergyScan:'Not enough energy to scan a code.', noEnergyHack:'Not enough energy to hack the server.', energyPackToast:'Energy Pack +1 (Owned: {v})', offlineRecoverLog:'Recovered {v} energy while offline ({label} elapsed)', offlineRecoverToast:'Offline recovery: Energy +{v}', exportDone:'Save data exported.', importDone:'Save data imported.', importFail:'Import failed: please check the JSON format.', emptyText:'The text box is empty.', logsHide:'Hide Logs', logsShow:'Show Logs', initLog:'HCSiG initialized. (language setting, duplicate shards/code sync, mobile UI, shop categories enabled)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileComing:'COMING SOON', comingSoonToast:'Coming Soon - This feature is in preparation.', buy:'Buy', buyDone:'Purchase complete', buyUnavailable:'Unavailable', buySpendTitle:'Buying this item will consume credits.', buyDailyLimit:'You have reached today\'s purchase limit.', buyOnceLimit:'This permanent item has already been purchased.', notEnoughCredits:'Not enough credits.', shopLog:'[Shop] {msg}', shopBought:'Purchased {name} (💰 -{cost})', missionDoneToast:'Mission complete: {name} ({reward})', missionDoneCredits:'Credits +{v}', missionDoneEnergyPack:'Energy Pack +{v}', missionDoneBoth:'Credits +{c} / Energy Pack +{e}', serverOption:'{name} (Security {sec}, Lv{lv}+)', serverLevelNeed:'You must be at least Lv.{lv} to hack this server.', noOwnedCodes:'You do not own any codes yet. Scan codes first.', scanFound:'New code discovered! {name} [{rarity}]', scanDuplicate:'Duplicate code detected: {name} [{rarity}] → Duplicate Shards +{gain} (Owned {have}).', scanDone:'Code scan complete: EXP +{exp}.', hackSuccessLog:'Server hack success! [{server}] Success chance {chance}%. Credits +{credits}, EXP +{exp}.', hackFailLog:'Server hack failed. [{server}] Success chance was {chance}%.', logDailyShopReset:'[System] Daily shop limits have been reset. (05:00 reset)', loadoutSlot:'Slot {n}', logPinHint:'Click a log entry to pin/unpin it', saveToLocal:'Save the current state to browser LocalStorage.', loadFromLocal:'Load saved data from LocalStorage.', deleteSave:'Delete the saved data.', exportJson:'Export the current save data as a JSON file.', importJsonFile:'Load a JSON save file.', importJsonText:'Load save data from text (JSON).', languageTitle:'Select the game language.', uiScaleTitle:'Adjust the overall UI scale.', toastTitle:'Set how long toast notifications remain on screen.', shopSortTitle:'Choose how shop items are sorted.', codeSortTitle:'Choose how the code inventory is sorted.', dailyResetLabel:'05:00 reset ({n})', onceLabel:'one-time', dailyShort:'daily', onceShort:'once', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY', rarityOperation:'OPERATION', routeExternal:'External Route', routeInternal:'Internal Route', routeCore:'Core Route', targetRoute:'Route', upgradeTarget:'Upgrade Target', systemStatus:'System Status', creditsTab:'CREDITS', manualTab:'Manual', difficultyIntro:'Intro', difficultyGeneral:'General', difficultyStandard:'Standard', difficultyHard:'Hard', difficultyChaos:'Chaos', difficultyImpossible:'Impossible', passTab:'PASS', weeklyTab:'WEEKLY', seasonPass:'Season Pass', passPoints:'Pass Points', passTier:'Pass Tier', seasonShop:'Season Shop', opsShop:'OPS Shop', zeroDayOnboarding:'Onboarding', zeroDayPve:'PVE', zeroDayPvp:'PVP', zeroDaySingle:'Single', zeroDayCompete:'Compete', vulnerability:'Vulnerability', vulnerabilityShard:'Vuln. Shard', oneDay:'OneDay', coin:'COIN', token:'TOKEN', accountStatus:'Account & Cloud Status', accountCustom:'Account Custom', comingSoonToastShort:'In preparation.', zeroDayCmdLocale:'ZERO-DAY Command Display', zdCmdAuto:'auto', zdCmdEn:'english', zdCmdKo:'korean', energyRecoveryDesc:'1 energy = 60 seconds', todayTitle:'Today', todayEnergy:'Energy', todayDailyMissions:'Daily Missions', todayWeeklyGoals:'WEEKLY Goals', todayEnergyPack:'Energy Pack', todayComplete:'complete', todayRemaining:'remaining', mobileInventory:'INVENTORY', inventoryCodesTab:'CODES', inventoryItemsTab:'ITEMS', itemsConsumables:'Consumables', itemsCurrency:'Currency', itemsComingSoon:'· Daily Bonus Box and ROM will be added in upcoming updates.', autoRunLabel:'AUTO-RUN', autoScanLabel:'Auto Scan', autoHackLabel:'Auto Hack', autoRunStop:'Stop', autoRunActive:'Active', autoRunUsesLeft:'Uses left', autoRunStartScan:'Auto Scan started. (every 10s / 1 hour)', autoRunStartHack:'Auto Hack started. (every 20s / 30 min)', autoRunStopped:'Auto-run stopped.', autoRunEnded:'Auto-run completed.', autoRunNoEnergy:'Auto-run stopped: no energy or energy packs remaining.', autoRunNoCoin:'Not enough COIN.', autoRunDailyLimit:'Daily auto-run uses exhausted. (3/day)', autoRunAlreadyActive:'Auto-run is already active. Stop it first.', autoRunPause:'Pause', autoRunResume:'Resume', autoRunEnd:'End', autoRunPaused:'Paused', timeSwapLabel:'Time Swap', timeSwap2h:'Time Swap 2h', timeSwap5h:'Time Swap 5h', timeSwap10h:'Time Swap 10h', timeSwapUseAutoRun:'Extend AUTO-RUN', timeSwapUseEnergy:'Skip Energy Recovery', timeSwapExtended:'AUTO-RUN time extended.', timeSwapEnergySkipped:'Energy recovery time skipped.', timeSwapNone:'No Time Swap available.', timeSwapFull:'Energy is full and AUTO-RUN is inactive.', traceAmpleLabel:'TRACE Ample', nullSeedLabel:'NULL Seed', itemsGrowth:'Growth Materials', rouletteTab:'Roulette', rouletteTitle:'Beginner Roulette', rouletteDesc:'A limited roulette available once a day for 10 days from your first login.', rouletteClaim:"Today's Roll", rouletteAlreadyClaimed:'Already claimed today. Come back tomorrow.', rouletteExpired:'Beginner roulette period has ended.', rouletteDayCount:'{cur} / 10 days', rouletteGuaranteed:'Guaranteed', rouletteBonus:'Random Bonus', supportTab:'SUPPORT', supportTitle:'Support HCSiG', supportDesc:'Your support helps keep HCSiG running. Rewards are processed manually by the operator after confirmation.', supportHow:'How to Purchase', supportHowDesc:'Select a product and send your account info to the contact channel below. Rewards will be delivered after operator review.', supportContact:'Contact Us', supportPending:'Pending', supportYourId:'Your Account Info'
     ,mobileMore:'MORE', mobileLab:'LAB', mobileStage:'DATA TOWER', tutorialReplay:'Replay Tutorial'
+  },
+  ja: {
+    appTitle: 'HCSiG - Hacking Code Simulator Game', subtitle: 'Hacking Code Simulator Game', list:'リスト', listTitle:'リスト', event:'イベント', eventTitle:'イベント', more: 'メニュー ▾', moreTitle: 'メニュー', status:'ステータス', shop:'ショップ', actions:'アクション', codeInventory:'コードインベントリ', codeDetail:'コード詳細',
+    level:'レベル', exp:'EXP', credits:'クレジット', cpuTier:'CPUティア', gpuTier:'GPUティア', energy:'エネルギー', nextRecovery:'次の回復まで', energyPack:'エネルギーパック', lastSave:'最終保存', use:'使用', sort:'並び替え', category:'カテゴリ', all:'全て', system:'システム', economy:'経済', utility:'ユーティリティ',
+    codeScan:'コードスキャン', serverHack:'サーバーハッキング', cpuUpgrade:'CPUアップグレード', gpuUpgrade:'GPUアップグレード', targetServer:'ターゲットサーバー', loadout:'ロードアウト', saveSlot:'スロット保存', loadSlot:'スロット読込', hackMode:'ハッキングモード',
+    actionsDesc1:'· エネルギー1 = 60秒、0.1秒単位でカウントダウン表示', actionsDesc2:'· コードスキャン: エネルギー1、スキャンEXP少量', actionsDesc3:'· サーバーハッキング: NORMAL/RISK/EXTREME 難易度を選択可能', actionsDesc4:'· CPUは成功率の安定、GPUは反復/挑戦報酬の増幅を担当します。',
+    codeUpgrade:'コード強化', codeSync:'コード同期', codeEvolve:'コード進化', shardEnhance:'シャード強化', codeDesc1:'· 強化: コードレベルに応じてクレジットを消費し、パワーが上昇します（破壊なし）。', codeDesc2:'· 同期: 重複シャードを集めて成功率補正とパワーを同時に強化します。', codeDesc3:'· 進化: 一定レベル以上でレアリティ昇格 (COMMON → UNCOMMON → … → LEGENDARY)。',
+    mission:'ミッション', achievement:'実績', codex:'コード図鑑', logs:'ログ', liveNet:'LIVE NET', rank:'RANK', settings:'設定', data:'クラウドアカウント', quest:'クエスト', records:'記録', liveNetRecords:'ネットワーク管制', softRank:'ソフトランキング', envSettings:'環境設定', dataManage:'クラウドアカウント', close:'閉じる',
+    logSearchHelp:'ログ検索 (ログ項目クリック → ピン留め/解除)', searchPlaceholder:'検索ワード入力...', clearLogs:'ログ初期化', hideLogs:'ログを隠す', showLogs:'ログを表示', logFilter:'ログフィルタ',
+    language:'言語', fontScale:'フォントサイズ', snow:'雪エフェクト', uiScale:'UIスケール', animation:'アニメーション', sfx:'効果音', sfxVolume:'効果音ボリューム', toastTime:'トースト表示時間', autosaveToast:'自動保存通知', liveNetwork:'LIVE NET', liveNicknameMode:'ネットワーク表示名', nickname:'ニックネーム', callsign:'コールサイン', enabled:'使用', settingsHelp:'· 設定はセーブデータに含まれ、リロード後も保持されます。',
+    saveNow:'保存', loadNow:'読込', clearSave:'セーブデータ削除', exportSave:'エクスポート', importFile:'ファイル読込', importText:'テキストで読込', importTextPlaceholder:'ここにJSONを貼り付けて読込を押してください。', importTextBtn:'テキスト読込', saveHelp:'· 保存場所: クラウドアカウント<br/>· ブラウザ内部保存は自動キャッシュと既存セーブの移行のみに使用されます。',
+    shopSortUpdate:'更新順', shopSortNew:'新着優先', shopSortRarity:'レアリティ順', shopSortPrice:'価格順', shopSortName:'名前順', codeSortRecent:'最新', codeSortRarity:'レアリティ', codeSortPower:'パワー', codeSortLevel:'レベル', codeSortName:'名前',
+    codexSummary:'発見 {a} / {b}', discovered:'DISCOVERED', locked:'LOCKED', basePower:'基本パワー', ownedLvPwr:'所持 Lv.{lv} / PWR {pwr}', undiscoveredCode:'未発見コード', undiscoveredDesc:'まだ発見していないコードです。コードスキャンで解放してください。', noCodes:'所持コード無し。[コードスキャン] でコードを取得してください。', selectCode:'所持コードを選択すると詳細が表示されます。',
+    levelLabel:'レベル: Lv.{v}', powerLabel:'パワー: {v}', usageLabel:'使用回数: {v}', shardsLabel:'重複シャード: {v}', syncLabel:'同期段階: {v}', nextUpgrade:'次の強化コスト: {v} クレジット', nextSync:'次の同期コスト: シャード {a} / 予想成功率補正 +{b}%', evolveReady:'進化条件: 達成', evolveNeed:'進化条件: Lv.5以上が必要', ability:'能力', noDesc:'説明なし。',
+    missionHeaderDaily:'DAILY QUEST', missionHeaderWeekly:'WEEKLY QUEST', missionHeaderMonth:'MONTH QUEST', missionHeaderGeneral:'GENERAL QUEST', reward:'報酬', none:'なし', complete:'完了', incomplete:'未完了', achieved:'達成', notYet:'未達', hiddenAchievement:'隠し実績です。達成時に公開されます。', difficultyEasy:'一般', difficultyNormal:'普通', achievementDifficultyHard:'難しい', hidden:'HIDDEN', achievementAll:'全て', achievementIncomplete:'未完了', achievementComplete:'完了', achievementShowHidden:'隠し含む',
+    full:'FULL', seconds:'秒', minutes:'分', visible:'表示', on:'ON', off:'OFF',
+    saveStateSaved:'ゲーム状態がクラウドキャッシュに保存されました。', saveComplete:'クラウドキャッシュ保存完了', autosaveComplete:'✅ 自動キャッシュ保存完了', noSavedData:'保存データがありません。', saveLoaded:'保存データを読み込みました。', saveLoadError:'保存データの読み込み中にエラーが発生しました。', saveDeleted:'保存データを削除しました。', exportFail:'エクスポート失敗 (コンソール確認)', hackModeLog:'ハッキングモード: {mode}', riskPenaltyLog:'RISK失敗ペナルティ: エネルギーが追加で1消費されました。', extremePenaltyLog:'EXTREME失敗ペナルティ: エネルギーが追加で2消費されました。', gpuUpgradeLog:'GPUアップグレード完了！ 現在のティア: {tier} (消費クレジット {cost})', gpuUpgradeFail:'GPUアップグレード失敗: クレジットが不足しています。 (必要: {cost})', loadoutSaved:'ロードアウトスロット {slot} に現在の設定を保存しました。', loadoutEmpty:'ロードアウトスロット {slot} に保存された設定がありません。', loadoutLoaded:'ロードアウトスロット {slot} を読み込みました。',
+    toastAchievement:'実績達成: {name}', achievementLog:'[実績達成] {name}', activeCode:'アクティブコード変更: {name}', levelUpLog:'レベルアップ！ Lv.{lv} 達成。 クレジット +50 付与。', noEnergyPack:'エネルギーパックがありません。', energyFull:'すでにエネルギーが満タンです。', usedEnergyPack:'エネルギーパックを1個使用してエネルギーを最大まで回復しました。',
+    noCodeSync:'同期するコードがありません。', syncFailShards:'コード同期失敗: 重複シャードが不足しています。 (必要: {need}, 所持: {have})', syncDone:'コード同期完了: {name} 同期 {lv}段階達成。 パワー +{pwr}, 成功率補正 +{rate}%。', syncToast:'{name} 同期 {lv}段階', noCodeUpgrade:'強化するコードがありません。先にコードをスキャンしてください。', upgradeFailCredits:'コード強化失敗: クレジットが不足しています。 (必要: {cost})', upgradeDone:'コード強化: {name} Lv.{lv} (パワー +5 → {pwr}), クレジット -{cost}。', noCodeEvolve:'進化するコードがありません。', maxRarity:'すでに最上位レアリティ(LEGENDARY)です。これ以上進化できません。', evolveNeedLv:'コード進化失敗: 進化には最低Lv.5以上が必要です。', evolveCannot:'進化を処理できません。', evolveDone:'コード進化成功: {name} が {rarity} に昇格、 パワー +10 → {pwr}。', shardEnhanceFail:'シャード強化失敗: シャードが不足しています。 (必要: {need}, 所持: {have})', shardEnhanceDone:'シャード強化: {name} PWR +2 → {pwr}。 シャード -{cost}。', shardEnhanceCost:'シャード強化コスト: シャード {cost} / PWR +2',
+    noEnergyScan:'エネルギーが不足しているためコードスキャンを実行できません。', noEnergyHack:'エネルギーが不足しているためサーバーハッキングを実行できません。', energyPackToast:'エネルギーパック +1 (所持: {v})', offlineRecoverLog:'オフライン中にエネルギー {v} 回復 ({label} 経過)', offlineRecoverToast:'オフライン回復: エネルギー +{v}', exportDone:'保存データのエクスポート完了', importDone:'保存データの読込完了', importFail:'読込失敗: JSON形式を確認してください。', emptyText:'テキストが空です。', logsHide:'ログを隠す', logsShow:'ログを表示', initLog:'HCSiG 初期化完了。 (言語設定、重複シャード/コード同期、モバイルUI、ショップ分類適用)', mobileHome:'HOME', mobileCodes:'CODES', mobileShop:'SHOP', mobileMore:'MORE', mobileLab:'LAB', mobileStage:'データタワー', mobileComing:'COMING SOON', tutorialReplay:'チュートリアル再表示', comingSoonToast:'Coming Soon - 準備中の機能です。', buy:'購入', buyDone:'購入完了', buyUnavailable:'購入不可', buySpendTitle:'購入するとクレジットが消費されます。', buyDailyLimit:'本日の購入制限に達しました。', buyOnceLimit:'すでに購入済みの永久アイテムです。', notEnoughCredits:'クレジットが不足しています。', shopLog:'[ショップ] {msg}', shopBought:'{name} 購入 (💰 -{cost})', missionDoneToast:'ミッション完了: {name} ({reward})', missionDoneCredits:'クレジット +{v}', missionDoneEnergyPack:'エネルギーパック +{v}', missionDoneBoth:'クレジット +{c} / エネルギーパック +{e}', serverOption:'{name} (セキュリティ {sec}, Lv{lv}+)', serverLevelNeed:'このサーバーをハックするには最低 Lv.{lv} 以上が必要です。', noOwnedCodes:'所持コードがありません。先にコードスキャンでコードを取得してください。', scanFound:'新コード発見！ {name} [{rarity}]', scanDuplicate:'重複コード検出: {name} [{rarity}] → 重複シャード +{gain} (所持 {have})。', scanDone:'コードスキャン完了: 経験値 +{exp}。', hackSuccessLog:'サーバーハッキング成功！ [{server}] 成功確率 {chance}%。 クレジット +{credits}, EXP +{exp}。', hackFailLog:'サーバーハッキング失敗。 [{server}] 成功確率 {chance}% でした。', logDailyShopReset:'[システム] デイリーショップ制限がリセットされました。 (05:00 リセット)', loadoutSlot:'スロット {n}', logPinHint:'ログ項目クリック → ピン留め/解除', saveToLocal:'現在の状態をブラウザの LocalStorage に保存します。', loadFromLocal:'LocalStorage から保存データを読み込みます。', deleteSave:'保存データを削除します。', exportJson:'現在の保存データを JSON ファイルにエクスポートします。', importJsonFile:'JSON 保存ファイルを読み込みます。', importJsonText:'テキスト(JSON)で保存データを読み込みます。', languageTitle:'ゲーム言語を選択します。', uiScaleTitle:'全体UIサイズを調整します。', toastTitle:'画面通知(トースト)の表示時間を設定します。', shopSortTitle:'ショップアイテムの並び順を選択します。', codeSortTitle:'コードインベントリの並び順を選択します。', dailyResetLabel:'05:00 リセット ({n}回)', onceLabel:'1回', dailyShort:'デイリー', onceShort:'1回', rarityCommon:'COMMON', rarityUncommon:'UNCOMMON', rarityRare:'RARE', rarityEpic:'EPIC', rarityLegendary:'LEGENDARY', rarityOperation:'OPERATION', routeExternal:'外部ルート', routeInternal:'内部ルート', routeCore:'コアルート', targetRoute:'ルート', upgradeTarget:'アップグレード対象', systemStatus:'システム状態', creditsTab:'CREDITS', manualTab:'マニュアル', difficultyIntro:'入門', difficultyGeneral:'一般', difficultyStandard:'普通', difficultyHard:'難しい', difficultyChaos:'混沌', difficultyImpossible:'不可能', passTab:'PASS', weeklyTab:'WEEKLY', seasonPass:'シーズンパス', passPoints:'パスポイント', passTier:'パスティア', seasonShop:'シーズンショップ', opsShop:'OPSショップ', zeroDayOnboarding:'オンボーディング', zeroDayPve:'PVE', zeroDayPvp:'PVP', zeroDaySingle:'シングル', zeroDayCompete:'競争', vulnerability:'脆弱性', vulnerabilityShard:'脆弱性シャード', oneDay:'OneDay', coin:'COIN', token:'TOKEN', accountStatus:'アカウントとクラウドステータス', accountCustom:'アカウントカスタム', comingSoonToastShort:'準備中です。', zeroDayCmdLocale:'ZERO-DAY コマンド表示', zdCmdAuto:'auto', zdCmdEn:'english', zdCmdKo:'korean', energyRecoveryDesc:'エネルギー1 = 60秒', todayTitle:'本日のタスク', todayEnergy:'エネルギー', todayDailyMissions:'デイリーミッション', todayWeeklyGoals:'WEEKLYゴール', todayEnergyPack:'エネルギーパック', todayComplete:'完了', todayRemaining:'残り', mobileInventory:'INVENTORY', inventoryCodesTab:'CODES', inventoryItemsTab:'ITEMS', itemsConsumables:'消耗品', itemsCurrency:'通貨', itemsComingSoon:'· Daily Bonus BoxとROMは次のアップデートで追加されます。', autoRunLabel:'AUTO-RUN', autoScanLabel:'自動スキャン', autoHackLabel:'自動ハック', autoRunStop:'停止', autoRunActive:'進行中', autoRunUsesLeft:'残り回数', autoRunStartScan:'自動スキャンを開始します。(10秒ごと / 1時間)', autoRunStartHack:'自動ハックを開始します。(20秒ごと / 30分)', autoRunStopped:'自動実行が中断されました。', autoRunEnded:'自動実行が完了しました。', autoRunNoEnergy:'エネルギーとエネルギーパックが不足したため自動実行を停止します。', autoRunNoCoin:'COINが不足しています。', autoRunDailyLimit:'本日の自動実行回数を使い切りました。(1日3回)', autoRunAlreadyActive:'すでに自動実行が進行中です。先に停止してください。', autoRunPause:'一時停止', autoRunResume:'再開', autoRunEnd:'終了', autoRunPaused:'一時停止中', timeSwapLabel:'タイムスワップ', timeSwap2h:'タイムスワップ 2h', timeSwap5h:'タイムスワップ 5h', timeSwap10h:'タイムスワップ 10h', timeSwapUseAutoRun:'AUTO-RUN延長', timeSwapUseEnergy:'エネルギー回復短縮', timeSwapExtended:'AUTO-RUN時間が延長されました。', timeSwapEnergySkipped:'エネルギー回復待機時間が短縮されました。', timeSwapNone:'タイムスワップがありません。', timeSwapFull:'エネルギーが最大でAUTO-RUNも非活性です。', traceAmpleLabel:'TRACEアンプル', nullSeedLabel:'NULLシード', itemsGrowth:'成長素材', rouletteTab:'ルーレット', rouletteTitle:'初心者限定ルーレット', rouletteDesc:'新規アカウントから10日間、毎日1回受け取れる限定ルーレットです。', rouletteClaim:'本日のルーレット', rouletteAlreadyClaimed:'本日はすでに受け取り済みです。明日またお越しください。', rouletteExpired:'初心者限定ルーレット期間が終了しました。', rouletteDayCount:'{cur} / 10日完了', rouletteGuaranteed:'確定報酬', rouletteBonus:'ランダム追加報酬', supportTab:'SUPPORT', supportTitle:'HCSiGをサポート', supportDesc:'HCSiGへのご支援が開発継続の力になります。運営者が確認後、手動で報酬を支給します。', supportHow:'購入方法', supportHowDesc:'商品を選択し、アカウント情報を下記の問い合わせ先にお送りください。運営者確認後に報酬が支給されます。', supportContact:'お問い合わせ', supportPending:'処理待ち', supportYourId:'アカウント情報'
   }
 };
 function getLang(){ return (state && state.ui && state.ui.lang) ? state.ui.lang : 'ko'; }
 function t(key, vars){ const lang=getLang(); let str=(I18N[lang]&&I18N[lang][key]) || I18N.ko[key] || key; if(vars){ for(const [k,v] of Object.entries(vars)){ str=str.replaceAll('{'+k+'}', String(v)); } } return str; }
+function langText(ko, en, ja = ko){ const lang = getLang(); return lang === 'en' ? en : (lang === 'ja' ? ja : ko); }
 function setText(id, value){ const el=document.getElementById(id); if(el) el.textContent=value; }
 function setHtml(id, value){ const el=document.getElementById(id); if(el) el.innerHTML=value; }
 
@@ -84,17 +163,48 @@ const TEXT_DATA = {
       failure_buffer_module: { name:'Failure Buffer Module', desc:'Adds 2 buffer charges that prevent RISK/EXTREME extra energy penalties.' },
       level_ticket: { name:'Simulation Level Ticket', desc:'Instantly raises your level by 1.' }
     }
+  },
+  // v3.0.0: 일본어 — 주요 서버명과 핵심 상점 아이템
+  ja: {
+    servers: {
+      school_lab: '学校実習サーバー',
+      bank_backup: '銀行バックアップノード',
+      gov_archive: '政府記録ノード',
+      central_core: '中央コアグリッド',
+      deep_space: 'ディープスペースリレー',
+      corp_dmz: '企業DMZノード',
+      black_market: 'ブラックマーケットルーター',
+      satellite_hub: '衛星ハブノード',
+      quantum_vault: 'クォンタム金庫サーバー',
+      neural_grid: 'ニューラルグリッドコア',
+      ghost_relay: 'ゴーストリレーノード',
+      zero_node: 'ゼロノードクラスター'
+    },
+    shop: {
+      energy_pack: { name:'エネルギーパック', desc:'インベントリに保存される消耗品。使用時にエネルギーを最大まで回復します。' },
+      energy_boost_1: { name:'エネルギーブースター I', desc:'即時エネルギー +5。' },
+      credit_boost_run: { name:'クレジットマルチプライヤー (セッション)', desc:'現在のセッション中、ハック成功時にクレジット 1.5 倍。' },
+      max_energy_up: { name:'最大エネルギーアップグレード', desc:'最大エネルギー +5 (永久)。' },
+      scanner_module: { name:'高性能スキャナーモジュール', desc:'コードスキャン時に経験値 +2 追加。' }
+    }
   }
 };
 
+// v3.0.0: 다국어 fallback 지원 (lang 키가 없으면 ko/원본명 사용)
 function localizeServerName(server){
-  return (getLang()==='en' && TEXT_DATA.en.servers[server.id]) ? TEXT_DATA.en.servers[server.id] : server.name;
+  const lang = getLang();
+  const data = TEXT_DATA[lang];
+  return (data && data.servers && data.servers[server.id]) ? data.servers[server.id] : server.name;
 }
 function localizeShopName(item){
-  return (getLang()==='en' && TEXT_DATA.en.shop[item.id] && TEXT_DATA.en.shop[item.id].name) ? TEXT_DATA.en.shop[item.id].name : item.name;
+  const lang = getLang();
+  const data = TEXT_DATA[lang];
+  return (data && data.shop && data.shop[item.id] && data.shop[item.id].name) ? data.shop[item.id].name : item.name;
 }
 function localizeShopDesc(item){
-  return (getLang()==='en' && TEXT_DATA.en.shop[item.id] && TEXT_DATA.en.shop[item.id].desc) ? TEXT_DATA.en.shop[item.id].desc : item.desc;
+  const lang = getLang();
+  const data = TEXT_DATA[lang];
+  return (data && data.shop && data.shop[item.id] && data.shop[item.id].desc) ? data.shop[item.id].desc : item.desc;
 }
 function localizeCodeDescription(def){
   if (!def) return '';
@@ -122,12 +232,13 @@ function localizeCodeDescription(def){
   return map[def.id] || def.description || '';
 }
 function localizeRarityLabel(rarity){
-  const map={COMMON:'rarityCommon',UNCOMMON:'rarityUncommon',RARE:'rarityRare',EPIC:'rarityEpic',LEGENDARY:'rarityLegendary'};
+  const map={COMMON:'rarityCommon',UNCOMMON:'rarityUncommon',RARE:'rarityRare',EPIC:'rarityEpic',LEGENDARY:'rarityLegendary',OPERATION:'rarityOperation'};
   return t(map[rarity] || rarity);
 }
 function localizeShopLimitLabel(info){
   if (!info) return '';
-  if (info.type === 'daily') return t('dailyResetLabel', { n: info.limit });
+  // v3.0.0: 짧고 명확한 라벨로 축약 (가로 잘림 방지)
+  if (info.type === 'daily') return getLang() === 'en' ? '05:00 reset' : '05:00 리셋';
   if (info.type === 'once') return t('onceLabel');
   return info.label || '';
 }
@@ -404,10 +515,13 @@ function applyLanguageToUI(){
   setText('titleStatus', t('status')); setText('titleShop', t('shop')); setText('titleActions', t('actions')); setText('titleCodeInventory', t('codeInventory')); setText('titleCodeDetail', t('codeDetail'));
   setText('labelLevel', t('level')); setText('labelExp', t('exp')); setText('labelCredits', t('credits')); setText('labelCpuTier', t('cpuTier')); setText('labelGpuTier', t('gpuTier')); setText('labelEnergy', t('energy')); setText('labelEnergyTimer', t('nextRecovery')); setText('labelEnergyPack', t('energyPack')); setText('labelLastSave', t('lastSave')); setText('btnUseEnergyPack', t('use'));
   setText('shopSortLabel', t('sort')); setText('shopCategoryLabel', t('category')); setText('shopCatAll', t('all')); setText('shopCatEnergy', t('energy')); setText('shopCatSystem', t('system')); setText('shopCatEconomy', t('economy')); setText('shopCatUtility', t('utility'));
-  setText('btnScan', t('codeScan')); setText('btnHack', t('serverHack')); setText('btnUpgradeCpu', t('cpuUpgrade')); setText('btnUpgradeGpu', t('gpuUpgrade')); setText('labelTargetServer', t('targetServer')); setText('labelLoadout', t('loadout')); setText('btnSaveLoadout', t('saveSlot')); setText('btnLoadLoadout', t('loadSlot')); setText('labelHackMode', t('hackMode'));
+  setText('btnScan', t('codeScan')); setText('btnHack', t('serverHack')); setText('btnUpgradeCpu', t('cpuUpgrade')); setText('btnUpgradeGpu', t('gpuUpgrade')); setText('labelTargetServer', t('targetServer')); setText('labelTargetRoute', t('targetRoute')); setText('labelUpgradeTarget', t('upgradeTarget')); setText('labelLoadout', t('loadout')); setText('btnSaveLoadout', t('saveSlot')); setText('btnLoadLoadout', t('loadSlot')); setText('labelHackMode', t('hackMode'));
+  setText('btnUpgrade', getLang()==='en' ? 'Upgrade' : getLang()==='ja' ? 'アップグレード' : '업그레이드');
+  setText('labelSystemUpgrade', getLang()==='en' ? 'System Upgrade' : getLang()==='ja' ? 'システムアップグレード' : '시스템 업그레이드');
   setText('actionsDesc1', t('actionsDesc1')); setText('actionsDesc2', t('actionsDesc2')); setText('actionsDesc3', t('actionsDesc3')); setText('actionsDesc4', t('actionsDesc4'));
   setText('btnUpgradeCode', t('codeUpgrade')); setText('btnSyncCode', t('codeSync')); setText('btnEvolveCode', t('codeEvolve')); setText('btnModalUpgradeCode', t('codeUpgrade')); setText('btnModalSyncCode', t('codeSync')); setText('btnModalEvolveCode', t('codeEvolve')); setText('btnModalShardCode', t('shardEnhance')); setText('codeDesc1', t('codeDesc1')); setText('codeDesc2', t('codeDesc2')); setText('codeDesc3', t('codeDesc3'));
-  setText('tabBtnMission', t('mission')); setText('tabBtnAchievement', t('achievement')); setText('tabBtnCodex', t('codex')); setText('tabBtnLiveNet', t('liveNet')); setText('tabBtnRank', t('rank')); setText('tabBtnSettings', t('settings')); setText('tabBtnSave', t('data'));
+  setText('tabBtnMission', t('mission')); setText('tabBtnAchievement', t('achievement')); setText('tabBtnCodex', t('codex')); setText('tabBtnLiveNet', t('liveNet')); setText('tabBtnRank', t('rank')); setText('tabBtnSettings', t('settings')); setText('tabBtnSave', t('data')); setText('tabBtnCredits', t('creditsTab')); setText('tabBtnManual', t('manualTab')); setText('tabBtnSupport', t('supportTab'));
+  setText('eventTabBtnWeekly', t('weeklyTab')); setText('eventTabBtnPass', t('passTab'));
   setText('listTabBtnMission', t('mission')); setText('listTabBtnAchievement', t('achievement')); setText('missionTabTitle', t('quest')); setText('achievementTabTitle', t('achievement')); setText('codexTabTitle', t('codex')); setText('liveNetTabTitle', t('liveNetRecords')); setText('rankTabTitle', t('softRank')); setText('settingsTabTitle', t('envSettings')); setText('saveTabTitle', t('dataManage')); setText('btnListClose2', t('close')); setText('btnEventClose2', t('close')); setText('btnMoreClose2', t('close'));
   setText('logSearchHelp', t('logSearchHelp')); const lsi=document.getElementById('logSearchInput'); if(lsi) lsi.placeholder=t('searchPlaceholder'); setText('btnClearLogs', t('clearLogs')); const btnToggle=document.getElementById('btnToggleLogs'); if(btnToggle){ btnToggle.textContent = (window.logsHidden ? t('showLogs') : t('hideLogs')); } setText('logFilterTitle', t('logFilter'));
   document.querySelectorAll('[data-achievement-filter="all"]').forEach(el => { el.textContent = t('achievementAll'); });
@@ -421,9 +535,14 @@ function applyLanguageToUI(){
   const setLangEl=document.getElementById('setLanguage'); if(setLangEl){ setLangEl.title=t('languageTitle'); [...setLangEl.options].forEach(opt=>{ if(opt.value==='ko') opt.textContent = getLang()==='en' ? 'Korean' : '한국어'; if(opt.value==='en') opt.textContent = 'English'; }); }
   const setUiZoomEl=document.getElementById('setUiZoom'); if(setUiZoomEl) setUiZoomEl.title=t('uiScaleTitle');
   const setToastMsEl=document.getElementById('setToastMs'); if(setToastMsEl){ setToastMsEl.title=t('toastTitle'); [...setToastMsEl.options].forEach(opt=>{ const secs=Math.round(Number(opt.value||0)/1000); opt.textContent = `${secs}${getLang()==='en' ? ' sec' : '초'}`; }); }
-  ['setSnow','setAnim','setSfx','setLiveNetwork'].forEach(id=>{ const input=document.getElementById(id); if(input && input.parentElement){ input.parentElement.lastChild.textContent = ' ' + t('enabled'); } });
+  ['setSnow','setAnim','setSfx','setLiveNetwork','setBgm'].forEach(id=>{ const input=document.getElementById(id); if(input && input.parentElement){ input.parentElement.lastChild.textContent = ' ' + t('enabled'); } });
+  const labelBgmEl = document.getElementById('labelBgm'); if(labelBgmEl) labelBgmEl.textContent = (getLang()==='en' ? 'BGM' : getLang()==='ja' ? 'BGM' : 'BGM');
   const ast=document.getElementById('setAutoSaveToast'); if(ast && ast.parentElement){ ast.parentElement.lastChild.textContent = ' ' + t('visible'); }
   const liveNameModeEl=document.getElementById('setLiveNicknameMode'); if(liveNameModeEl){ [...liveNameModeEl.options].forEach(opt=>{ if(opt.value==='nickname') opt.textContent=t('nickname'); if(opt.value==='callsign') opt.textContent=t('callsign'); }); }
+  setText('creditsLabelDevelop', getLang()==='en' ? 'Developed by' : getLang()==='ja' ? '開発' : '개발');
+  setText('creditsLabelPublish', getLang()==='en' ? 'Published by' : getLang()==='ja' ? '配信' : '유통');
+  setText('creditsLabelCopyright', getLang()==='en' ? '© 2025–2026' : getLang()==='ja' ? '© 2025–2026' : '© 2025–2026');
+  const creditsSeasonEl=document.getElementById('creditsSeasonLabel'); if(creditsSeasonEl) creditsSeasonEl.textContent = getSeasonPhaseInfo().badge;
   const btnSaveGameEl=document.getElementById('btnSaveGame'); if(btnSaveGameEl) btnSaveGameEl.title=t('saveToLocal');
   const btnLoadGameEl=document.getElementById('btnLoadGame'); if(btnLoadGameEl) btnLoadGameEl.title=t('loadFromLocal');
   const btnClearSaveEl=document.getElementById('btnClearSave'); if(btnClearSaveEl) btnClearSaveEl.title=t('deleteSave');
@@ -436,11 +555,200 @@ function applyLanguageToUI(){
   try { rerenderLogEntries(); } catch(e){}
   try { renderServers(); } catch(e){}
 }
-    const OLD_SAVE_KEY = 'HCSiG_SAVE_v15';
+    const OLD_SAVE_KEY = 'HCSiG_SAVE_v16';
     const LAST_SEEN_VERSION_KEY = 'HCSiG_LAST_SEEN_VERSION';
+    // v3.0.0+: 저장 안정성 패치 — 백업/메타 키
+    // SAVE_KEY는 절대 변경 금지 (사용자 데이터 키 호환성)
+    const SAVE_BACKUP_KEY = 'HCSiG_SAVE_BACKUP';      // 마이그레이션 전 마지막 raw 백업
+    const SAVE_BACKUP_PREV_KEY = 'HCSiG_SAVE_BACKUP_PREV'; // 백업의 백업 (1단계 더)
+    const SAVE_META_KEY = 'HCSiG_SAVE_META';          // 마이그레이션 메타데이터
+
+    // ── v3.0.0+: 저장 데이터 진행도 점수 계산 ──
+    // 더 진행한 save가 덜 진행한 save를 자동으로 덮지 못하도록 비교 기준 제공
+    function getSaveScore(saveData) {
+      try {
+        if (!saveData || typeof saveData !== 'object') return 0;
+        const s = saveData.state || {};
+        const codes = Array.isArray(saveData.ownedCodes) ? saveData.ownedCodes : [];
+        const stats = s.stats || {};
+        let score = 0;
+        // 보유 코드 수 (각 5점)
+        score += codes.length * 5;
+        // OPERATION/LEGENDARY 보유 (각 100점)
+        codes.forEach(c => {
+          if (!c) return;
+          if (c.rarity === 'OPERATION') score += 100;
+          else if (c.rarity === 'LEGENDARY') score += 50;
+          else if (c.rarity === 'EPIC') score += 25;
+          else if (c.rarity === 'RARE') score += 10;
+          // 코드 레벨/sync도 가중치
+          score += Math.max(0, Number(c.level || 0)) * 2;
+          score += Math.max(0, Number(c.syncLevel || 0)) * 3;
+          score += Math.max(0, Number(c.shards || 0)) * 0.2;
+        });
+        // 도감 발견 수 (각 3점)
+        const codex = s.codexFound || stats.codexFound || {};
+        const codexCount = (codex && typeof codex === 'object') ? Object.keys(codex).length : 0;
+        score += codexCount * 3;
+        // 진행도 지표
+        score += Math.max(0, Number(s.level || 0)) * 5;
+        score += Math.max(0, Number(s.exp || 0)) * 0.05;
+        score += Math.max(0, Number(s.credits || 0)) * 0.01;
+        score += Math.max(0, Number(stats.creditsEarnedTotal || 0)) * 0.005;
+        score += Math.max(0, Number(stats.hackSuccessCount || 0)) * 0.5;
+        score += Math.max(0, Number(stats.scanCount || 0)) * 0.2;
+        score += Math.max(0, Number(stats.stageClearCount || 0)) * 2;
+        score += Math.max(0, Number((s.stage && s.stage.highestCleared) || 0)) * 5;
+        // 업적 수
+        const achievements = s.achievements || {};
+        const achievementCount = (achievements && typeof achievements === 'object') ? Object.keys(achievements).length : 0;
+        score += achievementCount * 4;
+        // 재화
+        const items = s.items || {};
+        score += Math.max(0, Number(items.energyPack || 0)) * 0.5;
+        score += Math.max(0, Number(items.coin || 0)) * 0.3;
+        score += Math.max(0, Number(items.oneDay || 0)) * 0.05;
+        score += Math.max(0, Number(items.zeroDayVulnerability || 0)) * 8;
+        score += Math.max(0, Number(items.zeroDayVulnerabilityShard || 0)) * 0.4;
+        score += Math.max(0, Number(items.weeklyToken || 0)) * 0.6;
+        // ZERO-DAY 진행도
+        const zd = s.zeroDay || {};
+        if (zd.onboardingCompleted) score += 10;
+        score += Math.max(0, Number((zd.pve && zd.pve.runs) || 0)) * 1;
+        score += Math.max(0, Number((zd.pve && zd.pve.bestDepth) || 0)) * 2;
+        score += Math.max(0, Number((zd.pve && zd.pve.extracts) || 0)) * 3;
+        score += Math.max(0, Number((zd.pvp && zd.pvp.seasonWins) || 0)) * 4;
+        score += Math.max(0, Number((zd.skins && zd.skins.length) || 0)) * 30;
+        score += Math.max(0, Object.keys(zd.unlocks || {}).length) * 50; // 프로토콜
+        // PASS 진행도
+        const season = s.season || {};
+        score += Math.max(0, Number(season.passTier || 0)) * 8;
+        score += Math.max(0, Number(season.passPoints || 0)) * 0.05;
+        return Math.round(score);
+      } catch (e) {
+        console.warn('[SaveScore] failed:', e);
+        return 0;
+      }
+    }
+
+    // 사람이 읽을 수 있는 요약
+    function getSaveSummary(saveData) {
+      try {
+        const s = (saveData && saveData.state) || {};
+        const codes = (saveData && Array.isArray(saveData.ownedCodes)) ? saveData.ownedCodes : [];
+        const opCount = codes.filter(c => c && c.rarity === 'OPERATION').length;
+        const legCount = codes.filter(c => c && c.rarity === 'LEGENDARY').length;
+        return {
+          score: getSaveScore(saveData),
+          savedAt: saveData && saveData.savedAt ? new Date(saveData.savedAt).toLocaleString() : '-',
+          version: saveData && saveData.version ? saveData.version : '?',
+          level: s.level || 0,
+          credits: s.credits || 0,
+          codeCount: codes.length,
+          operationCount: opCount,
+          legendaryCount: legCount,
+          stageHighest: (s.stage && s.stage.highestCleared) || 0,
+          oneDay: (s.items && s.items.oneDay) || 0,
+          coin: (s.items && s.items.coin) || 0,
+          vuln: (s.items && s.items.zeroDayVulnerability) || 0
+        };
+      } catch (e) { return { score: 0, version: '?' }; }
+    }
+
+    // ── v3.0.0+: 마이그레이션 함수 ──
+    // 1.x / 2.x / 이전 3.0.0 데이터를 현재 구조로 변환. 누락된 필드만 default merge.
+    // 기존 획득/진행 데이터는 절대 삭제하지 않음.
+    function migrateSave(rawSave) {
+      if (!rawSave || typeof rawSave !== 'string') return null;
+      let parsed;
+      try {
+        parsed = JSON.parse(rawSave);
+      } catch (e) {
+        console.warn('[Migrate] parse failed:', e);
+        return null;
+      }
+      if (!parsed || typeof parsed !== 'object') return null;
+
+      // 마이그레이션 표시
+      const fromVersion = parsed.version || parsed.saveVersion || 'unknown';
+
+      // 구조 보정 — state 객체가 없으면 기존 데이터를 state로 감쌈 (legacy)
+      if (!parsed.state && parsed.level !== undefined) {
+        // 매우 오래된 flat 구조 — wrap
+        parsed = {
+          version: fromVersion,
+          savedAt: parsed.savedAt || Date.now(),
+          state: parsed,
+          ownedCodes: parsed.ownedCodes || [],
+          modifiers: parsed.modifiers || {}
+        };
+      }
+
+      // ownedCodes 무결성 — legacy ID mapping
+      // OPERATION 코드 ID가 안 바뀌었지만 안전망으로 매핑 테이블 둠
+      const LEGACY_CODE_ID_MAP = {
+        // 'old_id': 'new_id'
+        'op_meridian': 'operation_meridian',
+        'op_blackout': 'operation_blackout',
+        'OPERATION_MERIDIAN': 'operation_meridian',
+        'OPERATION_BLACKOUT': 'operation_blackout'
+      };
+      if (Array.isArray(parsed.ownedCodes)) {
+        parsed.ownedCodes = parsed.ownedCodes.map(c => {
+          if (!c) return c;
+          if (LEGACY_CODE_ID_MAP[c.id]) {
+            return Object.assign({}, c, { id: LEGACY_CODE_ID_MAP[c.id] });
+          }
+          return c;
+        }).filter(c => c && c.id); // null/invalid 제거
+      }
+
+      // saveVersion 갱신 (내용은 유지)
+      parsed.saveVersion = CURRENT_VERSION;
+
+      return parsed;
+    }
+
+    // ── v3.0.0+: 백업 저장 ──
+    // 마이그레이션 전 raw save를 백업. 이전 백업은 한 단계 더 보관.
+    function pushSaveBackup(rawSave) {
+      if (!rawSave) return;
+      try {
+        const prev = localStorage.getItem(SAVE_BACKUP_KEY);
+        if (prev) {
+          localStorage.setItem(SAVE_BACKUP_PREV_KEY, prev);
+        }
+        localStorage.setItem(SAVE_BACKUP_KEY, rawSave);
+        localStorage.setItem(SAVE_META_KEY, JSON.stringify({
+          backupAt: Date.now(),
+          version: CURRENT_VERSION
+        }));
+      } catch (e) {
+        console.warn('[SaveBackup] failed:', e);
+      }
+    }
+
+    function getSaveBackup() {
+      return localStorage.getItem(SAVE_BACKUP_KEY) || null;
+    }
+    function getSaveBackupPrev() {
+      return localStorage.getItem(SAVE_BACKUP_PREV_KEY) || null;
+    }
 
     // 업데이트 로그
     const updateLogs = [
+
+      {
+        version: 'v3.0.0',
+        lines: [
+          'ZERO-DAY 모드를 완전히 새로 만들었습니다. 기존 터미널 커맨드 방식(15버튼)을 폐기하고 ZERO-DAY DISCOVERY 타임어택으로 교체했습니다.',
+          '패치 타이머가 실시간으로 올라가는 동안 DATA INJECT를 탭/홀드해 데이터를 주입합니다. TRACE 위험도가 90%를 넘으면 기하급수적으로 증가합니다.',
+          '런 결과는 CLEAR(최소 주입량 달성) / CUT(패치 완료) / TRACED(추적됨) / ABORT(중단) 4종으로 구분됩니다.',
+          '난이도 5종(INTRO/EASY/NORMAL/HARD/DANGER), PHANTOM·BREAKER 프로토콜이 TRACE 감소·주입량 증가로 재편됩니다.',
+          'SUPPORT 패널 버그 수정: 입력 중 초기화, 보상 저장 지연, 태그 배지 미갱신 문제를 해결했습니다.',
+          'ZERO-DAY 즉시 클리어 버그 수정: depth 0에서 탈출해도 CLEAR가 카운트되던 문제를 수정했습니다.'
+        ]
+      },
 
       {
         version: 'v1.6.14(k5b3)',
@@ -767,6 +1075,42 @@ function applyLanguageToUI(){
           'ZERO-DAY 개인 기록, 최고 깊이, 최고 점수, 총 회수 신호를 저장합니다.'
         ]
       }
+      ,{
+        version: '3.0.2',
+        lines: [
+          '신규 아이템 타임 스와프(2h/5h/10h)가 추가되었습니다. AUTO-RUN 시간 연장 또는 에너지 회복 대기시간 단축에 사용할 수 있습니다.',
+          '신규 성장 재료 TRACE 앰플(코드 잠재 능력)과 NULL 시드(한계 돌파)가 아이템 패널에 추가되었습니다.',
+          '일일 미션 3종(일일 스캐너 I, 일일 침입자 I, 에너지 소비자)에 COIN +1 보상이 추가되었습니다.',
+          '초보자 한정 룰렛이 EVENT 탭에 추가되었습니다. 신규 계정 기준 10일간 매일 1회 수령 가능합니다.',
+          '수동 결제 처리 기반의 Support 시스템이 MORE → SUPPORT 탭에 추가되었습니다.'
+        ]
+      }
+      ,{
+        version: '3.0.1',
+        lines: [
+          'HOME 화면에 "오늘 할 일" 요약이 추가되었습니다. 에너지, 일일 미션 진행도, 주간 목표를 한 화면에서 확인할 수 있습니다.',
+          'CODES 탭이 INVENTORY로 이름이 바뀌었습니다. 내부에 CODES / ITEMS 두 패널로 분리되었습니다.',
+          'ITEMS 패널에 AUTO-RUN 시스템이 추가되었습니다. 자동 스캔(10 COIN, 10초마다, 1시간)과 자동 해킹(15 COIN, 20초마다, 30분)을 각각 일일 3회 사용할 수 있습니다. 에너지 소진 시 에너지 팩을 자동 사용합니다.',
+          'ITEMS 패널에서 에너지 팩, COIN, TOKEN, Daily Bonus Box, ROM 보유 현황을 확인할 수 있습니다.',
+          'DAILY / WEEKLY 미션 완료 상태가 새로고침 후에도 유지되도록 저장 로직을 강화했습니다.',
+          'LIVE NET에 Foundation Prep Update 공지가 추가되었습니다.'
+        ]
+      }
+      ,{
+        version: '3.0.0',
+        lines: [
+          '메인 패널 순서를 SHOP / CODES / HOME / LAB / COMING SOON으로 재배치했습니다.',
+          'EVENT를 PASS / WEEKLY CHALLENGE 2패널로 분리하고 월간 시즌제(2026-05부터 시즌 1)를 도입했습니다.',
+          '데이터 타워를 BREACH / SHIELD / FOCUS / EXIT 4액션 턴제 전투로 전환하고 에너지 비용을 1로 낮췄습니다.',
+          'ZERO-DAY를 온보딩 / PVE / PVP 3모드 정식 시스템으로 재출시했습니다. 터미널 UI와 취약점 재화를 추가했습니다.',
+          '서버를 12종으로 확장하고 외부 / 내부 / 코어 루트 3종을 추가했습니다.',
+          'OPERATION 희귀도 코드 2종(Operation_Meridian, Operation_Blackout)을 추가했습니다.',
+          '업적 난이도를 6단(입문/일반/보통/어려움/혼돈/불가능)으로 재편하고 GENERAL 퀘스트 +30종을 추가했습니다.',
+          '언어 지원을 한국어 / 영어 / 일본어 3종으로 확장했습니다.',
+          '더보기에 CREDITS 탭과 설명서 탭을 추가했습니다.',
+          '에너지 회복 주기를 120초에서 60초로 단축했습니다. 눈 이펙트를 제거했습니다.'
+        ]
+      }
 
     ];
 
@@ -782,13 +1126,22 @@ function applyLanguageToUI(){
       energy: 20,
       energyMax: 20,
       energyTimerMs: 0,
-      items: { energyPack: 0, weeklyToken: 0 },
+      items: { energyPack: 0, weeklyToken: 0, coin: 0, zeroDayVulnerability: 0, zeroDayVulnerabilityShard: 0, oneDay: 0, timeSwap2h: 0, timeSwap5h: 0, timeSwap10h: 0, traceAmple: 0, nullSeed: 0, dailyBonusBox: 0, rom: 0, codeProtection: 0, pickResidualData: 0 },
       lastSavedAt: null,
       lastSeenAt: null,
       tutorial: { completed: false, step: 0, seen: false, version: TUTORIAL_VERSION },
-      stage: { selectedId: 'stage_001', chapterFilter: '1', highestCleared: 0, cleared: {}, chapterRewardsClaimed: {} },
-      zeroDay: { mode: 'single', active: null, bestDepth: 0, bestSignal: 0, bestScore: 0, runs: 0, extracts: 0, traces: 0, totalSignal: 0, lastResult: null },
-      weeklyChallenge: { weekKey: null, progress: {}, claimed: {}, bonusClaimed: false, score: 0, badges: {} },
+      stage: { selectedId: 'stage_001', chapterFilter: '1', highestCleared: 0, cleared: {}, chapterRewardsClaimed: {}, activeBattle: null },
+      targeting: { serverId: 'school_lab', route: 'internal' },
+      zeroDay: {
+        onboardingCompleted: false, recommendationState: null,
+        pve: { active: null, bestDepth: 0, bestScore: 0, runs: 0, extracts: 0, difficulty: 'easy' },
+        pvp: { active: null, rating: 1000, seasonWins: 0, seasonLosses: 0, attacksTotal: 0, defensesTotal: 0 },
+        defense: { slots: 3, cards: [], usesThisMatch: 0 },
+        unlocks: {}, tier: 1, skins: [], activeSkin: 'zero_shell',
+        legacyRunStats: null
+      },
+      season: { currentKey: 'preseason', currentNumber: 0, passPoints: 0, passTier: 0, passClaimed: {}, shopPurchases: {}, pvpSeasonRecord: {} },
+      weeklyChallenge: { weekKey: null, progress: {}, claimed: {}, bonusClaimed: false, score: 0, badges: {}, progressTierCurrent: 'foundation', progressTierNext: null, shopPurchases: {} },
       activeCodeId: null,
       hackMode: 'normal',
       riskMode: false,
@@ -800,6 +1153,7 @@ function applyLanguageToUI(){
           riskHackSuccess: 0,
           shopPurchases: 0,
           energySpent: 0,
+          energyZeroReached: false,
           lastResetDay: null,
           completed: {}
         },
@@ -810,6 +1164,7 @@ function applyLanguageToUI(){
           shopPurchases: 0,
           energySpent: 0,
           levelReached: 1,
+          energyZeroReached: false,
           lastResetWeek: null,
           completed: {}
         },
@@ -820,6 +1175,7 @@ function applyLanguageToUI(){
           shopPurchases: 0,
           energySpent: 0,
           levelReached: 1,
+          energyZeroReached: false,
           lastResetMonth: null,
           completed: {}
         },
@@ -840,7 +1196,7 @@ function applyLanguageToUI(){
         shop: true,
         level: true
       },
-      ui: { lang: 'ko', shopSortMode: 'update', shopCategory: 'all', codeSortMode: 'recent', toastDurationMs: 3000, uiZoom: 1, fontScale: 100, anim: true, sfxEnabled: true, sfxVolume: 35, autoSaveToast: false, logSearch: '', snowEnabled: null, achievementFilter: 'incomplete', showHiddenAchievements: false, liveNetworkEnabled: true, liveNicknameMode: 'nickname', weeklyFilter: 'incomplete' },
+      ui: { lang: 'ko', shopSortMode: 'update', shopCategory: 'all', codeSortMode: 'recent', toastDurationMs: 3000, uiZoom: 1, fontScale: 100, anim: true, sfxEnabled: true, sfxVolume: 100, autoSaveToast: false, logSearch: '', snowEnabled: null, achievementFilter: 'incomplete', showHiddenAchievements: false, liveNetworkEnabled: true, liveNicknameMode: 'nickname', weeklyFilter: 'incomplete', homeStatusCollapsed: false, zeroDayCommandLocale: 'auto' },
       stats: {
         scanCount: 0,
         hackSuccessCount: 0,
@@ -857,16 +1213,49 @@ function applyLanguageToUI(){
         energyPacksUsed: 0,
         stageAttemptCount: 0,
         stageClearCount: 0,
+        stageTurnWinCount: 0,
         zeroDayRunCount: 0,
         zeroDayExtractCount: 0,
         zeroDayTraceCount: 0,
         zeroDayBestDepth: 0,
         zeroDayBestScore: 0,
         zeroDaySignalTotal: 0,
+        zeroDayPveClearCount: 0,
+        zeroDayPveEscapeCount: 0,
+        zeroDayPvpAttackWinCount: 0,
+        zeroDayPvpDefenseSuccessCount: 0,
+        zeroDayOneDayEarnedTotal: 0,
+        zeroDayOneDaySpentTotal: 0,
+        coinEarnedTotal: 0,
+        coinSpentTotal: 0,
+        oneDaySpentTotal: 0,
+        oneDayBoostsUsed: 0,
+        passTierReached: 0,
         gpuUpgradeCount: 0,
         weeklyAllClearCount: 0,
-        codeShardsSpentTotal: 0
-      }
+        weeklyGoalClaimCount: 0,
+        weeklyTokensSpentTotal: 0,
+        eventShopPurchaseCount: 0,
+        codeShardsSpentTotal: 0,
+        routeExternalHackSuccessCount: 0,
+        routeInternalHackSuccessCount: 0,
+        routeCoreHackSuccessCount: 0
+      },
+      autoRun: {
+        type: null,
+        endsAt: 0,
+        paused: false,
+        pausedTimeLeft: 0,
+        dailyScanUses: 0,
+        dailyHackUses: 0,
+        lastResetDay: null
+      },
+      beginnerRoulette: {
+        firstSeenAt: null,
+        claimedDays: []
+      },
+      supporterTags: [],
+      claimFlags: { firstLogin_3_0_0: false, pre3ScaleCompensation: false, pre3ScaleEligible: false }
     };
 
     const codeDefs = {
@@ -981,6 +1370,17 @@ function applyLanguageToUI(){
         rarity: 'EPIC',
         basePower: 29,
         description: '해킹 성공 확률 +12%p, 성공 시 크레딧 +20%를 적용합니다.'
+      },
+      zero_trace: {
+        id: 'zero_trace',
+        name: 'ZERO_TRACE',
+        rarity: 'EPIC',
+        basePower: 168,
+        seasonId: 'season_1',
+        codeClass: 'PICK',
+        description: 'Foundation Season 기념 코드. 해킹 성공률 +8%p, 크레딧 +18%, 데이터 타워 성공률 +4%p.',
+        descriptionEn: 'Foundation Season commemorative code. Hack chance +8%p, credits +18%, Data Tower chance +4%p.',
+        effect: { hackChance: 0.08, creditBonus: 0.18, stageChance: 0.04 }
       },
       ghost_script: {
         id: 'ghost_script',
@@ -1235,17 +1635,36 @@ function applyLanguageToUI(){
         basePower: 37,
         description: '데이터 타워 성공률과 반복 보상을 크게 강화합니다.',
         effect: { stageChance: 0.08, bossStageChance: 0.08, stageRepeatCreditBonus: 0.3, stageRepeatExpBonus: 0.18 }
-      }
+      },
+      operation_meridian: {
+        id: 'operation_meridian',
+        name: 'Operation_Meridian',
+        rarity: 'OPERATION',
+        basePower: 120,
+        description: '운영 코드. 해킹 성공 시 외부 루트 크레딧 보상 +50%. 정밀 침투 최적화.',
+        descriptionEn: 'Operation code. External route credit reward +50% on hack success. Precision infiltration optimized.',
+        effect: { externalRewardBonus: 0.5 }
+      },
+      operation_blackout: {
+        id: 'operation_blackout',
+        name: 'Operation_Blackout',
+        rarity: 'OPERATION',
+        basePower: 130,
+        description: '운영 코드. 코어 루트 보안 -15% 적용. 광역 재밍 프로토콜 내장.',
+        descriptionEn: 'Operation code. Core route security -15%. Broadband jamming protocol embedded.',
+        effect: { coreSecurityReduction: 0.15 }
+      },
     };
 
-    const rarityOrder = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
+    const rarityOrder = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY', 'OPERATION'];
 
     const rarityWeights = {
       COMMON: 70,
       UNCOMMON: 20,
       RARE: 7,
       EPIC: 2.5,
-      LEGENDARY: 0.5
+      LEGENDARY: 0.5,
+      OPERATION: 0
     };
 
     const rarityPowerUp = {
@@ -1259,47 +1678,35 @@ function applyLanguageToUI(){
     const ownedCodes = [];
 
     const servers = [
-      {
-        id: 'school_lab',
-        name: '학교 실습 서버',
-        security: 20,
-        minReward: 10,
-        maxReward: 25,
-        minLevel: 1
-      },
-      {
-        id: 'bank_backup',
-        name: '은행 백업 노드',
-        security: 35,
-        minReward: 25,
-        maxReward: 50,
-        minLevel: 2
-      },
-      {
-        id: 'gov_archive',
-        name: '정부 기록 보관 노드',
-        security: 50,
-        minReward: 40,
-        maxReward: 80,
-        minLevel: 3
-      },
-      {
-        id: 'central_core',
-        name: '중앙 코어 그리드',
-        security: 70,
-        minReward: 70,
-        maxReward: 140,
-        minLevel: 4
-      },
-      {
-        id: 'deep_space',
-        name: '딥 스페이스 릴레이',
-        security: 90,
-        minReward: 100,
-        maxReward: 200,
-        minLevel: 5
-      }
+      { id: 'school_lab', name: '학교 실습 서버', nameEn: 'School Lab Server', security: 20, minReward: 10, maxReward: 25, minLevel: 1 },
+      { id: 'bank_backup', name: '은행 백업 노드', nameEn: 'Bank Backup Node', security: 35, minReward: 25, maxReward: 50, minLevel: 2 },
+      { id: 'gov_archive', name: '정부 기록 보관 노드', nameEn: 'Gov Archive Node', security: 50, minReward: 40, maxReward: 80, minLevel: 3 },
+      { id: 'central_core', name: '중앙 코어 그리드', nameEn: 'Central Core Grid', security: 70, minReward: 70, maxReward: 140, minLevel: 4 },
+      { id: 'deep_space', name: '딥 스페이스 릴레이', nameEn: 'Deep Space Relay', security: 90, minReward: 100, maxReward: 200, minLevel: 5 },
+      { id: 'corp_dmz', name: '기업 DMZ 노드', nameEn: 'Corp DMZ Node', security: 40, minReward: 30, maxReward: 60, minLevel: 2 },
+      { id: 'black_market', name: '블랙마켓 라우터', nameEn: 'Black Market Router', security: 55, minReward: 50, maxReward: 100, minLevel: 3 },
+      { id: 'satellite_hub', name: '위성 허브 노드', nameEn: 'Satellite Hub Node', security: 65, minReward: 65, maxReward: 130, minLevel: 4 },
+      { id: 'quantum_vault', name: '퀀텀 금고 서버', nameEn: 'Quantum Vault Server', security: 80, minReward: 90, maxReward: 180, minLevel: 5 },
+      { id: 'neural_grid', name: '뉴럴 그리드 코어', nameEn: 'Neural Grid Core', security: 95, minReward: 120, maxReward: 240, minLevel: 6 },
+      { id: 'ghost_relay', name: '고스트 릴레이 노드', nameEn: 'Ghost Relay Node', security: 110, minReward: 150, maxReward: 300, minLevel: 7 },
+      { id: 'zero_node', name: '제로 노드 클러스터', nameEn: 'Zero Node Cluster', security: 130, minReward: 200, maxReward: 400, minLevel: 8 }
     ];
+
+    const serverRoutes = {
+      external: { id: 'external', nameKo: '외부 루트', nameEn: 'External Route', levelOffset: -1, securityMult: 0.85, rewardMult: 0.8 },
+      internal: { id: 'internal', nameKo: '내부 루트', nameEn: 'Internal Route', levelOffset: 0, securityMult: 1.0, rewardMult: 1.0 },
+      core: { id: 'core', nameKo: '코어 루트', nameEn: 'Core Route', levelOffset: 2, securityMult: 1.2, rewardMult: 1.35 }
+    };
+
+    function getActiveRoute() {
+      const routeId = (state.targeting && state.targeting.route) || 'internal';
+      return serverRoutes[routeId] || serverRoutes.internal;
+    }
+
+    function getActiveServer() {
+      const serverId = (state.targeting && state.targeting.serverId) || 'school_lab';
+      return servers.find(s => s.id === serverId) || servers[0];
+    }
 
     // 상점 아이템 + 카테고리 + 희귀도
     const shopItems = [
@@ -1403,6 +1810,12 @@ function applyLanguageToUI(){
         cost: 520,
         rarity: 'UNCOMMON',
         category: 'ENERGY',
+        canBuy: () => {
+          if (state.energy >= state.energyMax) {
+            return { ok: false, reason: getLang() === 'en' ? 'Energy is already full.' : '에너지가 이미 가득 찼습니다.' };
+          }
+          return { ok: true };
+        },
         buy: () => {
           state.energy = state.energyMax;
           state.energyTimerMs = 0;
@@ -1570,6 +1983,210 @@ function applyLanguageToUI(){
       }
     ];
 
+    // COIN SHOP 아이템 (시즌 보상, 희귀 아이템)
+    const coinShopItems = [
+      {
+        id: 'coin_seasonal_bundle_1',
+        name: '시즌 번들 I',
+        desc: '경험치 +200, 토큰 +5. 시즌 종료 시 교환 가능한 시즌 전용 패키지.',
+        cost: 150,
+        rarity: 'RARE',
+        category: 'ECONOMY',
+        buy: () => {
+          state.exp = (state.exp || 0) + 200;
+          state.items.weeklyToken = (state.items.weeklyToken || 0) + 5;
+          state.stats.expTotal = (state.stats.expTotal || 0) + 200;
+        }
+      },
+      {
+        id: 'coin_seasonal_bundle_2',
+        name: '시즌 번들 II',
+        desc: '경험치 +500, 토큰 +12, 크레딧 +1000. 상위 시즌 패키지.',
+        cost: 350,
+        rarity: 'EPIC',
+        category: 'ECONOMY',
+        buy: () => {
+          state.exp = (state.exp || 0) + 500;
+          state.items.weeklyToken = (state.items.weeklyToken || 0) + 12;
+          state.credits = (state.credits || 0) + 1000;
+          state.stats.expTotal = (state.stats.expTotal || 0) + 500;
+        }
+      },
+      {
+        id: 'coin_code_shard_boost',
+        name: '코드 조각 부스터',
+        desc: '코드 조각 +50. 코드 강화에 필요한 조각을 빠르게 모을 수 있습니다.',
+        cost: 200,
+        rarity: 'EPIC',
+        category: 'SYSTEM',
+        buy: () => {
+          state.codeShardsStored = (state.codeShardsStored || 0) + 50;
+          state.stats.codeShardsTotal = (state.stats.codeShardsTotal || 0) + 50;
+        }
+      },
+      {
+        id: 'coin_prestige_reset',
+        name: '프레스티지 리셋',
+        desc: 'ZERO-DAY 취약점 +3, 모든 진행도 초기화(크레딧/경험치 보상).',
+        cost: 100,
+        rarity: 'LEGENDARY',
+        category: 'SYSTEM',
+        once: true,
+        buy: () => {
+          state.items.zeroDayVulnerability = (state.items.zeroDayVulnerability || 0) + 3;
+          // 프레스티지 리셋 로직은 별도 구현 필요
+          showToast(getLang() === 'en' ? 'Prestige reset unlocked (feature coming)' : '프레스티지 기능 준비 중입니다.', 'shop');
+        }
+      },
+      // ── SEASON SHOP ITEMS (시즌 상점 — PASS에서 이동) ──
+      {
+        id: 'ss_coin_frame',
+        name: '코인 프레임',
+        desc: '프로필 프레임 (코스메틱). 프로필을 꾸며 당신의 개성을 표현하세요.',
+        cost: 80,
+        rarity: 'UNCOMMON',
+        category: 'ECONOMY',
+        once: true,
+        buy: () => {
+          state.season = state.season || {};
+          state.season.shopPurchases = state.season.shopPurchases || {};
+          state.season.shopPurchases['ss_coin_frame'] = Date.now();
+        }
+      },
+      {
+        id: 'ss_title_ghost',
+        name: '칭호: GHOST',
+        desc: '칭호 코스메틱. ZERO-DAY 마스터의 증거를 프로필에 표시합니다.',
+        cost: 120,
+        rarity: 'EPIC',
+        category: 'ECONOMY',
+        once: true,
+        buy: () => {
+          state.season = state.season || {};
+          state.season.shopPurchases = state.season.shopPurchases || {};
+          state.season.shopPurchases['ss_title_ghost'] = Date.now();
+        }
+      },
+      {
+        id: 'ss_energy_assist',
+        name: '소형 에너지 패키지',
+        desc: '에너지 팩 +2, 크레딧 +150. 빠른 진행을 위한 부스트 패키지.',
+        cost: 30,
+        rarity: 'COMMON',
+        category: 'ENERGY',
+        buy: () => {
+          state.items.energyPack = (state.items.energyPack || 0) + 2;
+          state.credits = (state.credits || 0) + 150;
+          state.stats.creditsEarnedTotal = (state.stats.creditsEarnedTotal || 0) + 150;
+        }
+      },
+      {
+        id: 'ss_oneday_pack',
+        name: 'OneDay 소형 팩',
+        desc: 'OneDay +200. ZERO-DAY에서 향상된 성능으로 더 깊이 탐사할 수 있습니다.',
+        cost: 50,
+        rarity: 'RARE',
+        category: 'SYSTEM',
+        buy: () => {
+          state.items.oneDay = (state.items.oneDay || 0) + 200;
+          state.stats.zeroDayOneDayEarnedTotal = (state.stats.zeroDayOneDayEarnedTotal || 0) + 200;
+        }
+      },
+      // v3.0.0: ZERO-DAY 스킨 — Glass Console (COIN 200)
+      {
+        id: 'zd_skin_glass_console',
+        name: 'ZD 스킨: Glass Console',
+        desc: 'ZERO-DAY 터미널 스킨. 반투명 콘솔 효과로 시각적 차별화.',
+        cost: 200,
+        rarity: 'EPIC',
+        category: 'SYSTEM',
+        once: true,
+        buy: () => {
+          state.zeroDay = state.zeroDay || {};
+          state.zeroDay.skins = state.zeroDay.skins || [];
+          if (!state.zeroDay.skins.includes('glass_console')) {
+            state.zeroDay.skins.push('glass_console');
+          }
+        }
+      }
+    ];
+
+    // ONEDAY SHOP 아이템 (ZERO-DAY 성장 관련)
+    const oneDayShopItems = [
+      {
+        id: 'oneday_vuln_shard_x5',
+        name: '취약점 조각 x5',
+        desc: '취약점 조각 +5. 취약점 제작에 필요한 조각입니다.',
+        cost: 40,
+        rarity: 'COMMON',
+        category: 'SYSTEM',
+        buy: () => {
+          state.items.zeroDayVulnerabilityShard = (state.items.zeroDayVulnerabilityShard || 0) + 5;
+        }
+      },
+      {
+        id: 'oneday_vuln_shard_x10',
+        name: '취약점 조각 x10',
+        desc: '취약점 조각 +10. 대량 구매 옵션.',
+        cost: 75,
+        rarity: 'UNCOMMON',
+        category: 'SYSTEM',
+        buy: () => {
+          state.items.zeroDayVulnerabilityShard = (state.items.zeroDayVulnerabilityShard || 0) + 10;
+        }
+      },
+      {
+        id: 'oneday_node_scan_boost',
+        name: '노드 스캔 부스터',
+        desc: 'ZERO-DAY 노드 스캔 정확도 +20%. 다음 PVE 런에서만 적용됩니다.',
+        cost: 25,
+        rarity: 'COMMON',
+        category: 'SYSTEM',
+        buy: () => {
+          modifiers.zdNodeScanAccuracy = (modifiers.zdNodeScanAccuracy || 1.0) + 0.2;
+          state.stats.oneDayBoostsUsed = (state.stats.oneDayBoostsUsed || 0) + 1;
+        }
+      },
+      {
+        id: 'oneday_extraction_shield',
+        name: '추출 보호막',
+        desc: '추출 시 탐지 +30% 감소. 스팀 상태에서 데이터를 더 안전하게 추출합니다.',
+        cost: 35,
+        rarity: 'UNCOMMON',
+        category: 'SYSTEM',
+        buy: () => {
+          modifiers.zdExtractionDetectionReduction = (modifiers.zdExtractionDetectionReduction || 0) + 0.3;
+          state.stats.oneDayBoostsUsed = (state.stats.oneDayBoostsUsed || 0) + 1;
+        }
+      }
+    ];
+
+    // ── SUPPORT DESK 상품 정의 ──────────────────────────────────────────────
+    const SUPPORT_PRODUCTS = [
+      {
+        id: 'support_start',
+        name: 'Support Pack Start',
+        price: '₩1,500',
+        tag: 'START',
+        rewards: { coin: 10, energyPack: 2, dailyBonusBox: 1 },
+        rewardLabel:    'COIN ×10 + 에너지팩 ×2 + 데일리 보너스 박스 ×1',
+        rewardLabelEn:  'COIN ×10 + Energy Pack ×2 + Daily Bonus Box ×1',
+        desc:   'HCSiG 체험에 감사를 전하는 작은 후원입니다.',
+        descEn: 'A small thanks for trying HCSiG.'
+      },
+      {
+        id: 'support_plus',
+        name: 'Support Pack Plus',
+        price: '₩3,300',
+        tag: 'PLUS',
+        rewards: { coin: 25, energyPack: 5, dailyBonusBox: 3 },
+        rewardLabel:    'COIN ×25 + 에너지팩 ×5 + 데일리 보너스 박스 ×3',
+        rewardLabelEn:  'COIN ×25 + Energy Pack ×5 + Daily Bonus Box ×3',
+        desc:   'HCSiG 개발을 더 크게 응원하는 후원입니다.',
+        descEn: 'Bigger support for HCSiG development.'
+      }
+    ];
+
     // 상점/경험치 계수
     const modifiers = {
       creditMultiplierSession: 1.0,
@@ -1606,11 +2223,11 @@ function applyLanguageToUI(){
     // 미션 정의
     const missionDefs = {
       daily: [
-        { id: 'daily_scan5',   name: '일일 스캐너 I',     type: 'scans',         target: 5,   rewardCredits: 50,  desc: '코드 스캔 5회 수행' },
+        { id: 'daily_scan5',   name: '일일 스캐너 I',     type: 'scans',         target: 5,   rewardCredits: 50,  rewardCoin: 1, desc: '코드 스캔 5회 수행' },
         { id: 'daily_scan10',  name: '일일 스캐너 II',    type: 'scans',         target: 10,  rewardCredits: 80,  desc: '코드 스캔 10회 수행' },
-        { id: 'daily_hack3',   name: '일일 침입자 I',     type: 'hackSuccess',   target: 3,   rewardCredits: 80,  desc: '서버 해킹 성공 3회' },
+        { id: 'daily_hack3',   name: '일일 침입자 I',     type: 'hackSuccess',   target: 3,   rewardCredits: 80,  rewardCoin: 1, desc: '서버 해킹 성공 3회' },
         { id: 'daily_hack5',   name: '일일 침입자 II',    type: 'hackSuccess',   target: 5,   rewardCredits: 100, desc: '서버 해킹 성공 5회' },
-        { id: 'daily_energy30',name: '에너지 소비자',      type: 'energySpent',   target: 30,  rewardCredits: 70,  desc: '에너지 30 소모하기' },
+        { id: 'daily_energy30',name: '에너지 소비자',      type: 'energySpent',   target: 30,  rewardCredits: 70,  rewardCoin: 1, desc: '에너지 30 소모하기' },
         { id: 'daily_action10_pack', name: '보급 루틴',    type: 'actions',       target: 10,  rewardCredits: 60,  rewardEnergyPack: 1, desc: '코드 스캔/서버 해킹 총 10회 수행' }
       ,
         { id: 'daily_risk1',     name: '일일 리스크',      type: 'riskHackSuccess', target: 1,   rewardCredits: 90,  desc: '위험 해킹 모드로 서버 해킹 성공 1회' },
@@ -1627,7 +2244,9 @@ function applyLanguageToUI(){
         { id: 'weekly_hack_risk5', name: '위험한 한 주',        type: 'riskHackSuccess', target: 5, rewardCredits: 240, desc: '위험 해킹 모드로 서버 해킹 성공 5회' },
         { id: 'weekly_buy5',       name: '주간 소비',          type: 'shopPurchases', target: 5,   rewardCredits: 160, desc: '상점에서 5회 구매하기' },
         { id: 'weekly_credit800',  name: '주간 수익',          type: 'creditsEarnedTotal', target: 800, rewardCredits: 180, desc: '누적 획득 크레딧 800 달성' },
-        { id: 'weekly_energy0',    name: '방전 습관',          type: 'energy0Flag', target: 1,   rewardCredits: 150, desc: '이번 주 최소 1회 에너지를 0까지 소모' }
+        { id: 'weekly_energy0',    name: '방전 습관',          type: 'energy0Flag', target: 1,   rewardCredits: 150, desc: '이번 주 최소 1회 에너지를 0까지 소모' },
+        { id: 'weekly_zd_run1',    name: 'ZERO-DAY 입문',      type: 'zeroDayRunCount', target: 1,   rewardCredits: 0, rewardCoin: 5, desc: '이번 주 ZERO-DAY PVE 1회 진행' },
+        { id: 'weekly_scan70',     name: '주간 집중 스캔',      type: 'scans',       target: 70,  rewardCredits: 0, rewardCoin: 10, desc: '코드 스캔 70회 수행' }
       ],
       month: [
         { id: 'month_scan100',     name: '월간 스캐너',        type: 'scans',           target: 100, rewardCredits: 300, desc: '코드 스캔 100회 수행' },
@@ -1850,12 +2469,23 @@ function applyLanguageToUI(){
     ];
     achievementDefs.push(...extraAchievementDefs);
 
-    function createAchievementSeries(prefix, metric, targets, names, descTemplate, hiddenStart = targets.length, hardStart = Math.ceil(targets.length * 0.7)) {
+    // v3.0.0: 6단계 난이도 자동 분포 (intro / easy / normal / hard / chaos / impossible)
+    function pickAchievementDifficulty(index, totalCount) {
+      const ratio = index / Math.max(1, totalCount - 1);
+      if (ratio >= 0.92) return 'impossible';   // 최상위 8%
+      if (ratio >= 0.78) return 'chaos';        // 22%
+      if (ratio >= 0.58) return 'hard';         // 20%
+      if (ratio >= 0.36) return 'normal';       // 22%
+      if (ratio >= 0.14) return 'easy';         // 22%
+      return 'intro';                           // 14%
+    }
+
+    function createAchievementSeries(prefix, metric, targets, names, descTemplate, hiddenStart = targets.length, hardStart = null) {
       return targets.map((target, index) => ({
         id: `${prefix}_${index + 1}`,
         name: names[index],
         desc: descTemplate.replace('{v}', target),
-        difficulty: index >= hardStart ? 'hard' : (index >= Math.ceil(targets.length * 0.35) ? 'normal' : 'easy'),
+        difficulty: pickAchievementDifficulty(index, targets.length),
         hidden: index >= hiddenStart,
         metric,
         target
@@ -1949,7 +2579,7 @@ function applyLanguageToUI(){
         ['극한의 끝'], 'EXTREME 해킹 성공 {v}회를 달성했습니다.', 0),
       ...createAchievementSeries('v200_hidden_mission', 'missionsCompleted', [200],
         ['퀘스트 아카이브'], '퀘스트를 누적 {v}개 완료했습니다.', 0)
-    ].map(def => def.id.startsWith('v200_hidden_') ? { ...def, hidden: true, difficulty: 'hard' } : def);
+    ].map(def => def.id.startsWith('v200_hidden_') ? { ...def, hidden: true, difficulty: 'chaos' } : def);
 
     achievementDefs.push(...v200AchievementDefs);
 
@@ -2150,6 +2780,8 @@ function applyLanguageToUI(){
     const tabLogs = document.getElementById('tabLogs');
     const tabSettings = document.getElementById('tabSettings');
     const tabSave = document.getElementById('tabSave');
+    const tabCredits = document.getElementById('tabCredits');
+    const tabManual = document.getElementById('tabManual');
 
     const updateVersionTitle = document.getElementById('updateVersionTitle');
     const updateLinesList = document.getElementById('updateLinesList');
@@ -2229,181 +2861,312 @@ function applyLanguageToUI(){
     let logsHidden = false;
     let scanRunning = false;
     let tutorialOpenedOnce = false;
+    let autoRunIntervalId = null;
 
     function getTutorialSteps() {
       if (getLang() === 'en') {
         return [
           {
             title: 'Welcome',
-            goal: 'First loop: code -> active code -> NORMAL hack',
-            text: 'Your first win is simple. Get one code, activate it, then clear one NORMAL server hack.',
-            checklist: ['Energy is spent on scans and hacks.', 'Codes are your equipment.', 'Credits upgrade your setup.'],
-            hint: 'Tap Next to start the first loop.'
+            goal: 'First route: get one code -> equip it -> clear one NORMAL hack',
+            text: 'HCSiG is about breaking servers, earning credits, and growing your tools. Codes are the hacking tools you equip before scans, hacks, Data Tower, and ZERO-DAY.',
+            checklist: ['Codes are your main tools.', 'Credits pay for upgrades and items.', 'Energy recovers over time: 1 energy every 60 seconds, up to 20.'],
+            hint: 'Tap Next and we will walk through the safest first route.'
           },
           {
             title: '1. Scan a Code',
             goal: 'Get your first code',
             text: 'On HOME, press Scan Code. A scan costs 1 energy and gives a small amount of EXP.',
-            checklist: ['A new code is added to CODES.', 'Duplicate codes become shards.', 'Shards are used later for Sync.'],
+            checklist: ['A new code is stored in INVENTORY > CODES.', 'A duplicate becomes shards instead of a new copy.', 'If energy hits 0, wait 60 seconds for 1 point to recover.'],
             hint: 'The guide moves aside while you act. Press Scan Code now, or tap Next to keep reading.',
             waitAction: 'scan'
           },
           {
             title: '2. Activate a Code',
             goal: 'Choose the code you want to use',
-            text: 'Open CODES and select one owned code. The active code affects hacking and Data Tower attempts.',
-            checklist: ['Higher power helps more.', 'Sync raises success bonus.', 'Evolution raises rarity when the code is ready.'],
+            text: 'Open INVENTORY > CODES and select one owned code. The active code is the code used for hacks and Data Tower attempts.',
+            checklist: ['Higher PWR helps right away.', 'Your active code is your current loadout.', 'You do not need Sync or Evolve yet.'],
             hint: 'The guide will not block the screen. Tap a code card, or press Next to continue.',
             waitAction: 'selectCode'
           },
           {
             title: '3. Hack a Server',
             goal: 'Clear one NORMAL hack',
-            text: 'Return HOME, keep NORMAL selected, choose an available server, then press Server Hack.',
-            checklist: ['NORMAL is the safest starting mode.', 'Success gives credits and EXP.', 'Failure only means you try again after recovering energy.'],
+            text: 'Return HOME, keep NORMAL selected, choose a server you can enter now, then press Server Hack.',
+            checklist: ['NORMAL is the safest starting mode.', 'A server is available when you meet its level requirement.', 'Success gives credits and EXP.'],
             hint: 'Keep NORMAL selected and try Server Hack, or press Next to keep reading.',
             waitAction: 'hack'
           },
           {
-            title: 'Hack Modes',
-            goal: 'Pick the right risk level',
-            text: 'NORMAL is stable. RISK lowers success for bigger credits. EXTREME opens at Lv.5 and rewards stronger runs.',
-            checklist: ['Use NORMAL while learning.', 'Use RISK when your success chance feels safe.', 'Use EXTREME after Lv.5 and better upgrades.'],
-            hint: 'You do not need EXTREME at the beginning.'
+            title: '4. EVENT and Beginner Roulette',
+            goal: 'Check your free daily event rewards',
+            text: 'EVENT is where season progress and weekly goals live. New accounts also get Beginner Roulette: one free claim per day for 10 days.',
+            checklist: ['PASS is your monthly season track.', 'WEEKLY CHALLENGE resets every Monday at 05:00 KST.', 'Beginner Roulette is a free daily reward for your first 10 days.'],
+            hint: 'If you want a quick bonus, open EVENT after your first hack.'
           },
           {
-            title: 'CPU and GPU',
-            goal: 'Understand your two upgrade paths',
-            text: 'CPU is control and stability. GPU is reward output for repeated play and harder clears.',
-            checklist: ['CPU helps success and safer runs.', 'GPU boosts repeat/challenge rewards.', 'Upgrade both over time.'],
-            hint: 'Early on, CPU makes the game feel smoother. GPU shines as you repeat content.'
+            title: '5. Hack Modes',
+            goal: 'Use NORMAL first, then branch out later',
+            text: 'NORMAL is the default mode. RISK trades success rate for more credits, and EXTREME unlocks later when your account is stronger.',
+            checklist: ['Stay on NORMAL while learning.', 'Use RISK only when your success rate feels comfortable.', 'You can ignore EXTREME at the beginning.'],
+            hint: 'Your first goal is one stable NORMAL clear, not a risky run.'
           },
           {
-            title: 'Growing Codes',
-            goal: 'Make one favorite code stronger',
-            text: 'CODES is where you Upgrade, Sync, and Evolve codes. Pick a reliable active code and build around it.',
-            checklist: ['Upgrade uses credits.', 'Sync uses duplicate shards.', 'Evolve requires enough level and raises rarity.'],
-            hint: 'A focused code is usually better than many untouched codes.'
+            title: '6. CPU and GPU',
+            goal: 'Know what each upgrade actually does',
+            text: 'CPU helps your hacks feel steadier. GPU boosts the rewards from repeated or harder content.',
+            checklist: ['CPU improves control and stability.', 'GPU is stronger for reward growth later.', 'Early on, one or two CPU upgrades usually feel best.'],
+            hint: 'If you are unsure what to buy first, CPU is the safer early choice.'
           },
           {
-            title: 'SHOP',
+            title: '7. Growing Codes',
+            goal: 'Strengthen one reliable code first',
+            text: 'When you have spare credits or duplicate shards, go back to INVENTORY > CODES and strengthen one code you trust.',
+            checklist: ['Upgrade spends credits for steady PWR.', 'Sync uses duplicate shards later for extra success support.', 'Evolve is a later milestone, not a first-hour task.'],
+            hint: 'One well-built active code is easier to use than many untouched codes.'
+          },
+          {
+            title: '8. SHOP',
             goal: 'Use the shop when progress slows down',
-            text: 'SHOP sells energy, system, economy, and utility items. Filters keep the long list manageable.',
-            checklist: ['Energy packs keep sessions moving.', 'Permanent items help long-term growth.', 'Check daily limits before spending.'],
-            hint: 'If you are stuck with no energy, come back after recovery or use an energy pack.'
+            text: 'SHOP is your supply station. If energy is low or a run feels stuck, use filters and buy only what solves the current problem.',
+            checklist: ['Energy items keep sessions moving.', 'System and utility items smooth out rough runs.', 'Always check daily limits before spending.'],
+            hint: 'You do not need every item. Buy for the problem in front of you.'
           },
           {
-            title: 'LAB',
-            goal: 'Open longer goals',
-            text: 'LAB contains Data Tower and WEEKLY CHALLENGE. These are your main goals after the first hacks.',
-            checklist: ['Data Tower has 100 stages.', 'Weekly Challenge resets Monday 05:00 KST.', 'Rewards are claimed manually.'],
-            hint: 'Do not rush Data Tower. Upgrade first, then climb.'
+            title: '9. LAB and Data Tower',
+            goal: 'See where the long-term challenge lives',
+            text: 'LAB opens your longer goals. Data Tower is a 100-floor climb that is meant to be cleared over time, not in one sitting.',
+            checklist: ['Data Tower is long-term content.', 'You can come back after upgrading.', 'It is normal to leave LAB for later on day one.'],
+            hint: 'Build up through basic hacks first, then start climbing.'
           },
           {
-            title: 'LIST, More, and Cloud',
+            title: '10. ZERO-DAY DISCOVERY',
+            goal: 'Know what ZERO-DAY is before you tap it',
+            text: 'ZERO-DAY DISCOVERY is a short time-attack mode in LAB. You inject data before the patch bar fills, then recover before the cutoff to keep your rewards.',
+            checklist: ['Short, high-focus runs.', 'Recover before the cutoff to secure rewards.', 'It is fine to ignore ZERO-DAY until basic hacks feel comfortable.'],
+            hint: 'Think of ZERO-DAY as a side mode you unlock into, not your first homework.'
+          },
+          {
+            title: '11. LIST, More, and Cloud',
             goal: 'Know where records and account tools live',
-            text: 'LIST contains missions and achievements. More contains codex, logs, settings, cloud account, and tutorial replay.',
-            checklist: ['Cloud account is the main save path.', 'Logs explain what just happened.', 'Tutorial replay is always in More.'],
-            hint: 'GitHub Pages can reload often, so cloud login is the safest way to keep progress.'
+            text: 'LIST contains missions and achievements. More contains Live Net, settings, cloud account, credits, the manual, and tutorial replay.',
+            checklist: ['Cloud save is the safest way to keep progress across refreshes and devices.', 'Live Net and logs explain what just happened.', 'You can replay this guide anytime from More.'],
+            hint: 'If you plan to keep playing, cloud login is the safest save route.'
           },
           {
-            title: 'Ready',
+            title: '12. Ready',
             goal: 'Recommended first route',
-            text: 'Scan until you own a code, activate it, clear NORMAL hacks, then use credits on code and CPU upgrades.',
-            checklist: ['First: Scan Code.', 'Second: select the code in CODES.', 'Third: hack servers on NORMAL.'],
+            text: 'Scan until you own a code, activate it, clear NORMAL hacks, claim Beginner Roulette when it is available, then spend credits on one code and early CPU upgrades.',
+            checklist: ['First: Scan Code.', 'Second: equip the code in INVENTORY > CODES.', 'Third: clear NORMAL hacks and keep momentum.'],
             hint: 'Tap Start. You are ready.'
+          }
+        ];
+      }
+      if (getLang() === 'ja') {
+        return [
+          {
+            title: 'ようこそ',
+            goal: '最初の流れ: コード確保 → 装備 → NORMALハック',
+            text: 'HCSiGではサーバーを突破してクレジットを稼ぎ、装備を育てていきます。コードはスキャン、ハック、データタワー、ZERO-DAYで使うハッキング用の装備です。',
+            checklist: ['コードはあなたの主力装備です。', 'クレジットで成長や補給を進めます。', 'エネルギーは60秒ごとに1回復し、最大20まで溜まります。'],
+            hint: '次へ進むと、最初の安全な進行ルートを案内します。'
+          },
+          {
+            title: '1. コードスキャン',
+            goal: '最初のコードを確保しましょう',
+            text: 'HOMEでコードスキャンを押してください。スキャンはエネルギーを1消費し、少量のEXPを獲得します。',
+            checklist: ['新しいコードは INVENTORY > CODES に保存されます。', '重複コードは新規ではなくシャードになります。', 'エネルギーが0なら60秒待つと1回復します。'],
+            hint: 'ガイドは下に退きます。今すぐコードスキャンを押すか、そのまま次へ進んでも大丈夫です。',
+            waitAction: 'scan'
+          },
+          {
+            title: '2. 使用コードを選ぶ',
+            goal: '使うコードを1つ装備しましょう',
+            text: 'INVENTORY > CODES を開いて、所持コードを1つ選択してください。アクティブコードがハックとデータタワーに使われます。',
+            checklist: ['PWRが高いほどすぐに役立ちます。', '現在のアクティブコードがあなたの装備です。', '今は同期や進化を気にしなくて大丈夫です。'],
+            hint: '画面は塞がれません。コードカードを押すか、次へ進んでください。',
+            waitAction: 'selectCode'
+          },
+          {
+            title: '3. サーバーハック',
+            goal: 'NORMALで1回成功してみましょう',
+            text: 'HOMEに戻り、NORMALを維持したまま、今入れるサーバーを選んでサーバーハックを押してください。',
+            checklist: ['NORMALは最初に最も安定しています。', '必要レベルを満たすサーバーなら今すぐ挑戦できます。', '成功するとクレジットとEXPを獲得します。'],
+            hint: 'まずはNORMALで1回成功すれば十分です。',
+            waitAction: 'hack'
+          },
+          {
+            title: '4. EVENTと初心者ルーレット',
+            goal: '毎日の無料報酬を確認しましょう',
+            text: 'EVENTではシーズン進行と週間目標を管理します。新規アカウントには、10日間毎日1回受け取れる初心者ルーレットもあります。',
+            checklist: ['PASSは月間シーズン進行です。', 'WEEKLY CHALLENGEは毎週月曜05:00 KSTに更新されます。', '初心者ルーレットは最初の10日間の無料報酬です。'],
+            hint: '最初のハックが終わったら、EVENTも一度見てみましょう。'
+          },
+          {
+            title: '5. ハックモード',
+            goal: '最初はNORMALで十分です',
+            text: 'NORMALが基本モードです。RISKは成功率を下げて報酬を上げ、EXTREMEは後半向けの高難度モードです。',
+            checklist: ['慣れるまではNORMALを使いましょう。', '成功率に余裕が出たらRISKへ。', '最初はEXTREMEを無視して大丈夫です。'],
+            hint: '最初の目標は、危険な挑戦ではなく安定した1勝です。'
+          },
+          {
+            title: '6. CPUとGPU',
+            goal: '役割をはっきり分けて覚えましょう',
+            text: 'CPUはハックを安定させ、GPUは周回や高難度での報酬効率を伸ばします。',
+            checklist: ['CPUは安定感を上げます。', 'GPUは後半の報酬効率で強くなります。', '序盤はCPU強化のほうが体感しやすいです。'],
+            hint: 'どちらを上げるか迷ったら、最初はCPUが無難です。'
+          },
+          {
+            title: '7. コード成長',
+            goal: 'まずは1つの主力コードを育てましょう',
+            text: 'クレジットや重複シャードが溜まったら、INVENTORY > CODES に戻って主力コードを育ててください。',
+            checklist: ['強化はクレジットでPWRを安定して伸ばします。', '同期は後から重複シャードで補助性能を上げます。', '進化は後半の目標で、最初から急ぐ必要はありません。'],
+            hint: '浅く広くより、1枚をしっかり育てるほうが序盤は楽です。'
+          },
+          {
+            title: '8. SHOP',
+            goal: '詰まった時だけ必要な補給をしましょう',
+            text: 'SHOPは補給所です。エネルギー不足や進行停滞を感じた時に、今必要なものだけ買えば十分です。',
+            checklist: ['エネルギー系はテンポ維持に便利です。', 'システム/ユーティリティ系は周回を楽にします。', 'デイリー制限を確認して使いましょう。'],
+            hint: '全部を買う必要はありません。今の問題を解決する物だけで十分です。'
+          },
+          {
+            title: '9. LABとデータタワー',
+            goal: '長期目標の場所を知っておきましょう',
+            text: 'LABでは長期コンテンツに触れます。データタワーは100階構成で、1日で終わらせる前提ではありません。',
+            checklist: ['データタワーは長期挑戦です。', '強化してから戻ってきても大丈夫です。', '初日に無理して進めなくて構いません。'],
+            hint: 'まずは基本ハックで育ってから登り始めましょう。'
+          },
+          {
+            title: '10. ZERO-DAY DISCOVERY',
+            goal: '押す前にどんなモードかだけ知っておきましょう',
+            text: 'ZERO-DAY DISCOVERY は LAB の短時間タイムアタックです。パッチバーが埋まる前にデータを注入し、回収して報酬を持ち帰ります。',
+            checklist: ['短時間で集中するサイドモードです。', '締め切り前に回収すると報酬を確保できます。', '基本ハックに慣れるまでは後回しでも大丈夫です。'],
+            hint: '最初の必修ではなく、慣れてから触る挑戦モードだと思ってください。'
+          },
+          {
+            title: '11. LIST・その他・クラウド',
+            goal: '記録とアカウントの場所を覚えましょう',
+            text: 'LISTにはミッションと実績があります。More には Live Net、設定、クラウドアカウント、クレジット、説明書、チュートリアル再表示があります。',
+            checklist: ['クラウド保存が最も安全な進行保存方法です。', 'Live Net とログで直近の出来事を確認できます。', 'このガイドは More からいつでも再表示できます。'],
+            hint: '長く遊ぶなら、クラウドログインを先に済ませるのが安全です。'
+          },
+          {
+            title: '12. 準備完了',
+            goal: '最初のおすすめ進行順',
+            text: 'コードをスキャンして装備し、NORMALハックでクレジットを集め、初心者ルーレットを受け取ってからコードとCPUを強化しましょう。',
+            checklist: ['1つ目: コードスキャン。', '2つ目: INVENTORY > CODES で装備。', '3つ目: NORMALハックで流れを作る。'],
+            hint: '開始を押せばそのまま進められます。'
           }
         ];
       }
       return [
         {
           title: '환영합니다',
-          goal: '첫 루프: 코드 확보 → 활성 코드 선택 → NORMAL 해킹',
-          text: '처음 목표는 간단합니다. 코드 1개를 얻고 활성화한 뒤 NORMAL 서버 해킹 1회를 성공시키면 게임 흐름이 잡힙니다.',
-          checklist: ['에너지는 스캔과 해킹에 사용됩니다.', '코드는 장비처럼 성장합니다.', '크레딧으로 코드와 장비를 강화합니다.'],
-          hint: '다음을 누르면 첫 플레이 루프부터 안내합니다.'
+          goal: '첫 루프: 코드 확보 → 장착 → NORMAL 해킹',
+          text: 'HCSiG는 서버를 뚫어 크레딧을 벌고, 장비를 키워 다음 도전에 올라가는 게임입니다. 코드는 스캔, 해킹, 데이터 타워, ZERO-DAY에서 쓰는 해킹 장비라고 생각하면 됩니다.',
+          checklist: ['코드는 당신의 핵심 장비입니다.', '크레딧으로 성장과 보급을 진행합니다.', '에너지는 60초마다 1칸 회복되고, 최대 20칸까지 찹니다.'],
+          hint: '다음을 누르면 가장 안전한 첫 진행 루트부터 안내합니다.'
         },
         {
           title: '1. 코드 스캔',
           goal: '첫 코드를 확보하세요',
           text: 'HOME에서 코드 스캔 버튼을 누르세요. 스캔은 에너지 1을 사용하고 소량의 EXP를 줍니다.',
-          checklist: ['새 코드는 CODES에 추가됩니다.', '이미 가진 코드는 중복 조각이 됩니다.', '조각은 나중에 동기화에 사용됩니다.'],
+          checklist: ['새 코드는 INVENTORY > CODES에 저장됩니다.', '이미 가진 코드는 새 복사본 대신 조각이 됩니다.', '에너지가 0이면 60초를 기다리면 1칸이 돌아옵니다.'],
           hint: '안내창은 아래로 물러납니다. 지금 코드 스캔을 누르거나, 다음으로 넘겨도 됩니다.',
           waitAction: 'scan'
         },
         {
           title: '2. 활성 코드 선택',
           goal: '사용할 코드를 하나 고르세요',
-          text: 'CODES로 이동해 보유 코드 하나를 선택하세요. 활성 코드는 해킹과 데이터 타워 도전에 영향을 줍니다.',
-          checklist: ['파워가 높을수록 도움이 됩니다.', '동기화는 성공률 보정을 올립니다.', '진화는 준비된 코드를 더 높은 등급으로 올립니다.'],
+          text: 'INVENTORY > CODES로 이동해 보유 코드 하나를 선택하세요. 활성 코드는 해킹과 데이터 타워에서 실제로 사용되는 현재 장비입니다.',
+          checklist: ['파워가 높을수록 바로 체감이 납니다.', '지금은 활성 코드 하나만 정하면 충분합니다.', '동기화와 진화는 나중에 배워도 됩니다.'],
           hint: '안내창이 화면 조작을 막지 않습니다. 코드 카드를 누르거나, 다음으로 넘겨도 됩니다.',
           waitAction: 'selectCode'
         },
         {
           title: '3. 서버 해킹',
           goal: 'NORMAL 해킹 1회를 시도하세요',
-          text: 'HOME으로 돌아와 NORMAL을 유지하고, 입장 가능한 서버를 고른 뒤 서버 해킹 버튼을 누르세요.',
-          checklist: ['NORMAL은 초반에 가장 안정적입니다.', '성공하면 크레딧과 EXP를 얻습니다.', '실패해도 회복 후 다시 시도하면 됩니다.'],
+          text: 'HOME으로 돌아와 NORMAL을 유지하고, 지금 입장 가능한 서버를 고른 뒤 서버 해킹 버튼을 누르세요.',
+          checklist: ['NORMAL은 초반에 가장 안정적입니다.', '서버 이름 옆 요구 레벨을 만족하면 지금 들어갈 수 있습니다.', '성공하면 크레딧과 EXP를 얻습니다.'],
           hint: 'NORMAL을 유지하고 서버 해킹을 눌러보세요. 읽기만 하려면 다음으로 넘겨도 됩니다.',
           waitAction: 'hack'
         },
         {
-          title: '해킹 난이도',
-          goal: '상황에 맞는 위험도를 고르세요',
-          text: 'NORMAL은 안정적입니다. RISK는 성공률이 낮아지는 대신 크레딧이 커지고, EXTREME은 Lv.5부터 열리는 고난도 선택입니다.',
-          checklist: ['처음에는 NORMAL을 추천합니다.', '성공률이 충분하면 RISK를 사용하세요.', 'EXTREME은 Lv.5 이후 성장한 뒤 도전하세요.'],
-          hint: '초반에는 EXTREME을 신경 쓰지 않아도 됩니다.'
+          title: '4. EVENT와 초보자 룰렛',
+          goal: '매일 받을 수 있는 무료 보상을 기억하세요',
+          text: 'EVENT에는 시즌 PASS와 WEEKLY CHALLENGE가 있습니다. 신규 계정은 여기에 더해 10일 동안 매일 1회 무료로 받는 초보자 룰렛도 사용할 수 있습니다.',
+          checklist: ['PASS는 월간 시즌 진행입니다.', 'WEEKLY CHALLENGE는 매주 월요일 05:00 KST에 갱신됩니다.', '초보자 룰렛은 첫 10일 동안의 일일 무료 보상입니다.'],
+          hint: '첫 해킹이 끝나면 EVENT도 한 번 확인해보세요.'
         },
         {
-          title: 'CPU와 GPU',
-          goal: '두 성장 축을 구분하세요',
-          text: 'CPU는 제어와 안정성, GPU는 반복 플레이와 고난도 성공 보상 증폭을 담당합니다.',
-          checklist: ['CPU는 성공률과 안정감에 좋습니다.', 'GPU는 반복/도전 보상을 키웁니다.', '장기적으로 둘 다 올리는 것이 좋습니다.'],
-          hint: '초반 체감은 CPU가 더 부드럽고, GPU는 반복 콘텐츠에서 빛납니다.'
+          title: '5. 해킹 난이도',
+          goal: '처음에는 NORMAL만 생각해도 충분합니다',
+          text: 'NORMAL이 기본 모드입니다. RISK는 성공률을 낮추는 대신 보상을 키우고, EXTREME은 계정이 더 성장한 뒤 열리는 고난도 선택입니다.',
+          checklist: ['처음에는 NORMAL을 추천합니다.', '성공률에 여유가 생기면 RISK를 써도 됩니다.', '초반에는 EXTREME을 신경 쓰지 않아도 됩니다.'],
+          hint: '지금 목표는 위험한 고점이 아니라, 안정적인 첫 승리입니다.'
         },
         {
-          title: '코드 성장',
-          goal: '마음에 드는 코드 하나를 키우세요',
-          text: 'CODES에서는 강화, 동기화, 진화를 진행합니다. 먼저 믿을 만한 활성 코드 하나를 정하고 키우는 것이 좋습니다.',
-          checklist: ['강화는 크레딧을 사용합니다.', '동기화는 중복 조각을 사용합니다.', '진화는 레벨 조건을 만족하면 등급을 올립니다.'],
-          hint: '초반에는 여러 코드를 조금씩보다 한 코드를 확실히 키우는 편이 쉽습니다.'
+          title: '6. CPU와 GPU',
+          goal: '두 성장 축의 역할만 정확히 구분하세요',
+          text: 'CPU는 해킹을 더 안정적으로 만들고, GPU는 반복 플레이와 고난도 보상의 효율을 키웁니다.',
+          checklist: ['CPU는 안정감과 제어에 좋습니다.', 'GPU는 후반 보상 효율에서 빛납니다.', '초반에는 CPU 1~2단계가 체감이 큰 편입니다.'],
+          hint: '무엇부터 올릴지 모르겠다면 초반에는 CPU가 가장 무난합니다.'
         },
         {
-          title: 'SHOP',
-          goal: '막힐 때 상점을 확인하세요',
-          text: 'SHOP에서는 에너지, 시스템, 경제, 유틸 아이템을 구매합니다. 목록이 길면 필터를 사용하세요.',
-          checklist: ['에너지 팩은 플레이 흐름을 이어줍니다.', '영구 아이템은 장기 성장에 좋습니다.', '일일 제한과 1회 제한을 확인하세요.'],
-          hint: '에너지가 부족하면 회복을 기다리거나 에너지 팩을 사용하면 됩니다.'
+          title: '7. 코드 성장',
+          goal: '주력 코드 하나를 먼저 키우세요',
+          text: '크레딧이나 중복 조각이 쌓이면 INVENTORY > CODES로 돌아와 믿을 만한 코드 하나를 집중적으로 키우는 편이 쉽습니다.',
+          checklist: ['강화는 크레딧으로 PWR을 올립니다.', '동기화는 나중에 중복 조각으로 보정을 올립니다.', '진화는 초반 필수 과제가 아니라 후반 목표입니다.'],
+          hint: '여러 코드를 조금씩보다 한 코드를 확실히 키우는 편이 초반에는 편합니다.'
         },
         {
-          title: 'LAB',
-          goal: '장기 목표를 여세요',
-          text: 'LAB에는 데이터 타워와 WEEKLY CHALLENGE가 있습니다. 기본 해킹에 익숙해진 뒤 도전하면 좋습니다.',
-          checklist: ['데이터 타워는 100개 스테이지입니다.', '주간 챌린지는 월요일 05:00 KST에 갱신됩니다.', '주간 보상은 CLAIM 버튼으로 직접 받습니다.'],
-          hint: '데이터 타워는 서두르지 말고 성장 후 올라가면 됩니다.'
+          title: '8. SHOP',
+          goal: '막혔을 때만 필요한 보급을 챙기세요',
+          text: 'SHOP은 보급소입니다. 에너지가 부족하거나 흐름이 끊길 때, 지금 필요한 문제만 해결하는 식으로 쓰면 충분합니다.',
+          checklist: ['에너지 아이템은 세션을 이어가기 좋습니다.', '시스템/유틸 아이템은 도전을 부드럽게 만듭니다.', '구매 전에 일일 제한을 확인하세요.'],
+          hint: '모든 아이템을 살 필요는 없습니다. 지금 막힌 이유를 푸는 물건만 사면 됩니다.'
         },
         {
-          title: 'LIST, 더보기, 클라우드',
-          goal: '기록과 계정 위치를 기억하세요',
-          text: 'LIST에는 미션과 업적이 있습니다. 더보기에는 도감, 로그, 설정, 클라우드 계정, 튜토리얼 다시 보기가 있습니다.',
-          checklist: ['클라우드 계정이 기본 저장 경로입니다.', '로그는 방금 일어난 일을 설명합니다.', '튜토리얼은 더보기에서 다시 볼 수 있습니다.'],
-          hint: 'GitHub Pages는 새로고침이 잦을 수 있으니 클라우드 로그인 상태가 가장 안전합니다.'
+          title: '9. LAB과 데이터 타워',
+          goal: '장기 도전이 어디에 있는지만 먼저 알아두세요',
+          text: 'LAB은 긴 호흡의 콘텐츠를 여는 곳입니다. 데이터 타워는 100층 구성이라 첫날에 끝내는 콘텐츠가 아닙니다.',
+          checklist: ['데이터 타워는 장기 목표입니다.', '성장한 뒤 다시 와도 전혀 늦지 않습니다.', '처음에는 해킹 루프부터 익혀도 충분합니다.'],
+          hint: '처음 며칠은 기본 해킹에 익숙해지고, 그 다음 천천히 올라가세요.'
         },
         {
-          title: '준비 완료',
+          title: '10. ZERO-DAY DISCOVERY',
+          goal: '누르기 전에 어떤 모드인지 정도만 알고 가세요',
+          text: 'ZERO-DAY DISCOVERY는 LAB의 짧은 타임어택 모드입니다. 패치 바가 차기 전에 데이터를 주입하고, 끊기기 전에 회수해 보상을 챙깁니다.',
+          checklist: ['짧고 집중력이 필요한 사이드 모드입니다.', '끊기기 전에 회수하면 보상을 지킬 수 있습니다.', '기본 해킹이 익숙해질 때까지 미뤄도 괜찮습니다.'],
+          hint: '첫 숙제가 아니라, 나중에 열어보는 도전 모드라고 생각하면 됩니다.'
+        },
+        {
+          title: '11. LIST, 더보기, 클라우드',
+          goal: '기록과 계정 기능 위치를 기억하세요',
+          text: 'LIST에는 미션과 업적이 있습니다. 더보기에는 LIVE NET, 설정, 클라우드 계정, 크레딧, 설명서, 튜토리얼 다시 보기가 있습니다.',
+          checklist: ['클라우드 저장이 가장 안전한 저장 경로입니다.', 'LIVE NET과 로그는 방금 무슨 일이 있었는지 설명합니다.', '이 가이드는 더보기에서 언제든 다시 열 수 있습니다.'],
+          hint: '계속 플레이할 생각이라면 클라우드 로그인을 먼저 해두는 편이 안전합니다.'
+        },
+        {
+          title: '12. 준비 완료',
           goal: '추천 첫 진행 순서',
-          text: '코드를 스캔하고, CODES에서 활성화한 뒤, NORMAL 해킹을 반복하며 크레딧으로 코드와 CPU를 강화하세요.',
-          checklist: ['첫째: 코드 스캔.', '둘째: CODES에서 코드 선택.', '셋째: NORMAL 서버 해킹.'],
+          text: '코드를 스캔하고 장착한 뒤, NORMAL 해킹으로 크레딧을 모으고, EVENT에서 초보자 룰렛을 챙긴 뒤 코드와 CPU를 강화하세요.',
+          checklist: ['첫째: 코드 스캔.', '둘째: INVENTORY > CODES에서 장착.', '셋째: NORMAL 서버 해킹으로 흐름 만들기.'],
           hint: '시작하기를 누르면 바로 플레이할 수 있습니다.'
         }
       ];
     }
 
-    function getDayKey() {
-      return new Date().toISOString().slice(0, 10);
-    }
     const DAY_MS = 24 * 60 * 60 * 1000;
     const KST_WEEK_RESET_OFFSET_MS = 4 * 60 * 60 * 1000; // UTC + 9h, then 05:00 KST reset.
+    function getResetLogicalDate(ms = Date.now()) {
+      return new Date(ms + KST_WEEK_RESET_OFFSET_MS);
+    }
+    function getDayKey(ms = Date.now()) {
+      const d = getResetLogicalDate(ms);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }
     function getKstWeeklyStartMs(ms = Date.now()) {
       const logical = new Date(ms + KST_WEEK_RESET_OFFSET_MS);
       const day = logical.getUTCDay();
@@ -2417,9 +3180,9 @@ function applyLanguageToUI(){
     function getNextWeeklyResetMs(ms = Date.now()) {
       return getKstWeeklyStartMs(ms) + (7 * DAY_MS) - KST_WEEK_RESET_OFFSET_MS;
     }
-    function getMonthKey() {
-      const d = new Date();
-      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    function getMonthKey(ms = Date.now()) {
+      const d = getResetLogicalDate(ms);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     }
 
     const weeklyChallengeDefs = [
@@ -2477,6 +3240,65 @@ function applyLanguageToUI(){
       };
     }
 
+    // PROGRESS 난이도 4종 정의
+    // v3.0.0: PROGRESS 난이도 — 스펙 기준 picks 3/4/5/6, 보상 배율 0.75/1.0/1.25/1.5
+    const PROGRESS_TIERS = {
+      foundation: {
+        id: 'foundation', ko: '기초', en: 'Foundation',
+        desc: '입문용 구성. 쉬운 목표 위주로 주간 루틴을 익힙니다.',
+        descEn: 'Beginner config. Focus on easy goals to learn the weekly routine.',
+        picks: { normal: 3, medium: 0, hard: 0 }, // 총 3개
+        rewardMult: 0.75
+      },
+      apprentice: {
+        id: 'apprentice', ko: '견습', en: 'Apprentice',
+        desc: '기본+중급 혼합. 균형 잡힌 주간 도전입니다.',
+        descEn: 'Normal+Medium mix. A balanced weekly challenge.',
+        picks: { normal: 2, medium: 2, hard: 0 }, // 총 4개
+        rewardMult: 1.0
+      },
+      advanced: {
+        id: 'advanced', ko: '심화', en: 'Advanced',
+        desc: '중급+고급 위주. 고점수를 노릴 수 있습니다.',
+        descEn: 'Medium+Hard focus. Aim for higher scores.',
+        picks: { normal: 1, medium: 2, hard: 2 }, // 총 5개
+        rewardMult: 1.25
+      },
+      expert: {
+        id: 'expert', ko: '전문가', en: 'Expert',
+        desc: '전문가 구성. 고급 목표 중심의 고난도 주간 도전.',
+        descEn: 'Expert config. Hard-goal-heavy weekly challenge.',
+        picks: { normal: 0, medium: 3, hard: 3 }, // 총 6개
+        rewardMult: 1.5
+      }
+    };
+
+    function getProgressTier() {
+      const key = (state.weeklyChallenge && state.weeklyChallenge.progressTierCurrent) || 'foundation';
+      return PROGRESS_TIERS[key] || PROGRESS_TIERS.foundation;
+    }
+
+    function getQueuedProgressTier() {
+      const key = state.weeklyChallenge && state.weeklyChallenge.progressTierNext;
+      return PROGRESS_TIERS[key] || null;
+    }
+
+    function setProgressTier(tierId) {
+      if (!PROGRESS_TIERS[tierId]) return;
+      ensureWeeklyChallengeDefaults();
+      const wc = state.weeklyChallenge;
+      if ((wc.progressTierCurrent || 'foundation') === tierId) {
+        wc.progressTierNext = null;
+        showToast(getLang() === 'en' ? 'Current weekly difficulty will stay the same.' : '현재 주간 난이도를 유지합니다.', 'system');
+      } else {
+        wc.progressTierNext = tierId;
+        const tier = PROGRESS_TIERS[tierId];
+        showToast(getLang() === 'en' ? `Next reset: ${tier.en}` : `다음 리셋 적용: ${tier.ko}`, 'achievement');
+      }
+      scheduleSilentSave();
+      renderWeeklyPanel();
+    }
+
     function getWeeklyGoalsForWeek(weekKey = getWeekKey()) {
       function pick(pool, count) {
         return weeklyChallengeDefs
@@ -2484,13 +3306,17 @@ function applyLanguageToUI(){
           .sort((a, b) => hashString(`${weekKey}:${pool}:${a.id}`) - hashString(`${weekKey}:${pool}:${b.id}`))
           .slice(0, count);
       }
-      return [...pick('normal', 2), ...pick('medium', 2), ...pick('hard', 1)];
+      const tier = getProgressTier();
+      const p = tier.picks;
+      return [...pick('normal', p.normal), ...pick('medium', p.medium), ...pick('hard', p.hard)];
     }
 
     function ensureWeeklyChallengeDefaults() {
       state.items = state.items || {};
       state.items.energyPack = state.items.energyPack || 0;
       state.items.weeklyToken = state.items.weeklyToken || 0;
+      state.items.coin = state.items.coin || 0;
+      state.items.oneDay = state.items.oneDay || 0;
       state.weeklyChallenge = state.weeklyChallenge || {};
       const wc = state.weeklyChallenge;
       wc.progress = wc.progress && typeof wc.progress === 'object' ? wc.progress : {};
@@ -2498,8 +3324,14 @@ function applyLanguageToUI(){
       wc.badges = wc.badges && typeof wc.badges === 'object' ? wc.badges : {};
       wc.score = Math.max(0, Math.round(Number(wc.score || 0)));
       wc.bonusClaimed = !!wc.bonusClaimed;
+      wc.progressTierCurrent = PROGRESS_TIERS[wc.progressTierCurrent] ? wc.progressTierCurrent : 'foundation';
+      wc.progressTierNext = PROGRESS_TIERS[wc.progressTierNext] ? wc.progressTierNext : null;
       const weekKey = getWeekKey();
       if (wc.weekKey !== weekKey) {
+        if (wc.progressTierNext && PROGRESS_TIERS[wc.progressTierNext]) {
+          wc.progressTierCurrent = wc.progressTierNext;
+          wc.progressTierNext = null;
+        }
         wc.weekKey = weekKey;
         wc.progress = {};
         wc.claimed = {};
@@ -2593,20 +3425,37 @@ function applyLanguageToUI(){
       return `${days}일 ${hours}시간 ${mins}분`;
     }
 
+    // v3.0.0: pool 기준 패스 포인트 (스펙: 일반 80, 중간 140, 어려움 240)
+    const WEEKLY_PASS_POINTS_BY_POOL = { normal: 80, medium: 140, hard: 240 };
+
     function claimWeeklyGoal(goalId) {
       ensureWeeklyChallengeDefaults();
       const def = getSelectedWeeklyGoal(goalId);
       if (!def || state.weeklyChallenge.claimed[def.id] || !isWeeklyGoalComplete(def)) return;
       state.weeklyChallenge.claimed[def.id] = true;
-      state.weeklyChallenge.score = (state.weeklyChallenge.score || 0) + def.score;
-      state.credits += def.credits;
-      state.stats.creditsEarnedTotal = (state.stats.creditsEarnedTotal || 0) + def.credits;
-      state.items.weeklyToken = (state.items.weeklyToken || 0) + def.tokens;
+
+      // v3.0.0: PROGRESS 난이도 보상 배율 적용
+      const tier = getProgressTier();
+      const mult = tier.rewardMult || 1.0;
+
+      const credits = Math.max(1, Math.round((def.credits || 0) * mult));
+      const tokens  = Math.max(0, Math.round((def.tokens || 0) * mult));
+      const score   = Math.max(0, Math.round((def.score || 0) * mult));
+      // pool 기준 패스 포인트 × 난이도 배율
+      const basePP  = def.passPoints || WEEKLY_PASS_POINTS_BY_POOL[def.pool] || 80;
+      const pp      = Math.max(1, Math.round(basePP * mult));
+
+      state.weeklyChallenge.score = (state.weeklyChallenge.score || 0) + score;
+      state.credits += credits;
+      state.stats.creditsEarnedTotal = (state.stats.creditsEarnedTotal || 0) + credits;
+      state.items.weeklyToken = (state.items.weeklyToken || 0) + tokens;
+      addPassPoints(pp);
+      state.stats.weeklyGoalClaimCount = (state.stats.weeklyGoalClaimCount || 0) + 1;
       playSfx('achievement');
       const title = localizeWeekly(def, 'title');
-      log(`[WEEKLY CLAIM] ${title} (+${def.score} score, +${def.tokens} token, +${def.credits} credits)`, 'system');
+      log(`[WEEKLY CLAIM] ${title} (+${score} score, +${tokens} token, +${credits} credits, +${pp}pp · ${tier.ko || tier.id} ×${mult})`, 'system');
       showToast(`WEEKLY CLAIM: ${title}`, 'achievement');
-      emitActivity('weekly_goal_claimed', { value: def.score, refId: def.id });
+      emitActivity('weekly_goal_claimed', { value: score, refId: def.id });
       renderWeeklyPanel();
       updateStatsUI();
       saveGame(true);
@@ -2619,16 +3468,26 @@ function applyLanguageToUI(){
       if (!allClaimed || state.weeklyChallenge.bonusClaimed) return;
       const weekKey = state.weeklyChallenge.weekKey;
       state.weeklyChallenge.bonusClaimed = true;
-      state.weeklyChallenge.score = (state.weeklyChallenge.score || 0) + 700;
+
+      // v3.0.0: 올클리어 보너스 — 400pp + PROGRESS 난이도 배율
+      const tier = getProgressTier();
+      const mult = tier.rewardMult || 1.0;
+      const score = Math.max(0, Math.round(700 * mult));
+      const tokens = Math.max(1, Math.round(5 * mult));
+      const pp = Math.max(1, Math.round(400 * mult));
+
+      state.weeklyChallenge.score = (state.weeklyChallenge.score || 0) + score;
       state.weeklyChallenge.badges[weekKey] = {
         id: `weekly-${weekKey}`,
         title: `WEEKLY OPS ${weekKey}`,
         claimedAt: Date.now()
       };
       state.stats.weeklyAllClearCount = (state.stats.weeklyAllClearCount || 0) + 1;
-      state.items.weeklyToken = (state.items.weeklyToken || 0) + 5;
+      state.items.weeklyToken = (state.items.weeklyToken || 0) + tokens;
+      addPassPoints(pp);
+      state.stats.weeklyGoalClaimCount = (state.stats.weeklyGoalClaimCount || 0) + 1;
       playSfx('achievement');
-      log(`[WEEKLY ALL CLEAR] ${weekKey} (+700 score, Weekly Token +5)`, 'system');
+      log(`[WEEKLY ALL CLEAR] ${weekKey} (+${score} score, Weekly Token +${tokens}, +${pp}pp · ${tier.ko || tier.id} ×${mult})`, 'system');
       showToast(getLang() === 'en' ? 'Weekly all clear badge acquired' : '주간 올클리어 배지 획득', 'achievement');
       emitActivity('weekly_all_clear', { value: 700, refId: weekKey });
       renderWeeklyPanel();
@@ -2636,11 +3495,43 @@ function applyLanguageToUI(){
       saveGame(true);
     }
 
+    function renderProgressTierSelector() {
+      const el = document.getElementById('progressTierSelector');
+      if (!el) return;
+      const currentTier = getProgressTier();
+      const queuedTier = getQueuedProgressTier();
+      const isEn = getLang() === 'en';
+      el.innerHTML = `
+        <div class="progress-tier-header">
+          <span class="badge">PROGRESS</span>
+          <strong>${isEn ? 'Weekly Difficulty' : '주간 난이도'}</strong>
+          <span class="progress-tier-note">${queuedTier
+            ? (isEn ? `Next reset → ${queuedTier.en}` : `다음 리셋 → ${queuedTier.ko}`)
+            : (isEn ? `Current → ${currentTier.en}` : `현재 → ${currentTier.ko}`)}</span>
+        </div>
+        <div class="progress-tier-grid">
+          ${Object.values(PROGRESS_TIERS).map(tier => {
+            const totalPicks = (tier.picks.normal||0) + (tier.picks.medium||0) + (tier.picks.hard||0);
+            const isCurrent = tier.id === currentTier.id;
+            const isQueued = queuedTier && tier.id === queuedTier.id;
+            return `
+            <button type="button" class="progress-tier-btn ${isCurrent ? 'active' : ''} ${isQueued ? 'queued' : ''}"
+              data-progress-tier="${tier.id}">
+              <strong>${isEn ? tier.en : tier.ko}${isCurrent ? (isEn ? ' · CURRENT' : ' · 현재') : ''}${isQueued ? (isEn ? ' · NEXT' : ' · 다음') : ''}</strong>
+              <span>${isEn ? tier.descEn : tier.desc}</span>
+              <span class="progress-tier-picks">${isEn ? 'Goals' : '목표'} ${totalPicks} · ${isEn ? 'Reward' : '보상'} ×${tier.rewardMult || 1.0}</span>
+            </button>
+          `;}).join('')}
+        </div>
+      `;
+    }
+
     function renderWeeklyPanel() {
       const goalList = document.getElementById('weeklyGoalList');
       const bonusCard = document.getElementById('weeklyBonusCard');
       if (!goalList || !bonusCard) return;
       ensureWeeklyChallengeDefaults();
+      renderProgressTierSelector();
       const goals = getWeeklyGoalsForWeek();
       const claimedCount = goals.filter(def => state.weeklyChallenge.claimed[def.id]).length;
       const completeCount = goals.filter(isWeeklyGoalComplete).length;
@@ -2718,6 +3609,14 @@ function applyLanguageToUI(){
       bonusCard.appendChild(bonusButton);
     }
 
+    function renderEventPanel() {
+      const eventEl = document.getElementById('eventModal');
+      if (!eventEl) return;
+      // Tab switching for PASS vs WEEKLY is handled by existing tab logic
+      // Just ensure pass panel is rendered when switching
+      try { renderPassPanel(); } catch(e) {}
+    }
+
     function ensureTutorialDefaults() {
       state.tutorial = state.tutorial || {};
       if (state.tutorial.version !== TUTORIAL_VERSION) {
@@ -2786,9 +3685,29 @@ function applyLanguageToUI(){
       setNodeDisplay(btnTutorialFinish, idx === tutorialSteps.length - 1 ? '' : 'none');
     }
 
+    // 튜토리얼 버튼 하이라이트
+    const TUTORIAL_HIGHLIGHT_MAP = {
+      scan:       ['btnScan'],
+      selectCode: ['appViewCodes', 'appMainNav [data-main-view="codes"]'],
+      hack:       ['btnHack']
+    };
+
+    function applyTutorialHighlight(step) {
+      document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+      if (!step || !step.waitAction) return;
+      const targets = TUTORIAL_HIGHLIGHT_MAP[step.waitAction] || [];
+      targets.forEach(sel => {
+        try {
+          const el = document.getElementById(sel) || document.querySelector(sel);
+          if (el) el.classList.add('tutorial-highlight');
+        } catch(e) {}
+      });
+    }
+
     function openTutorial(forceRestart = false) {
       state.tutorial = state.tutorial || {};
       ensureTutorialDefaults();
+      const isReplay = forceRestart && state.tutorial.seen;
       if (forceRestart) {
         state.tutorial.step = 0;
         state.tutorial.completed = false;
@@ -2798,11 +3717,19 @@ function applyLanguageToUI(){
         tutorialBackdrop.classList.add('show');
         tutorialBackdrop.classList.remove('interactive');
         tutorialBackdrop.setAttribute('aria-hidden', 'false');
+        // 재보기 글리치 효과
+        if (isReplay) {
+          tutorialBackdrop.classList.add('tutorial-glitch');
+          setTimeout(() => tutorialBackdrop && tutorialBackdrop.classList.remove('tutorial-glitch'), 700);
+        }
       }
       document.body.classList.add('tutorial-open');
       document.body.classList.remove('tutorial-interactive');
       tutorialOpenedOnce = true;
       renderTutorial();
+      const steps = getTutorialSteps();
+      const idx = Math.min(Math.max(0, state.tutorial.step || 0), steps.length - 1);
+      applyTutorialHighlight(steps[idx]);
       saveGame(true);
     }
 
@@ -2828,6 +3755,7 @@ function applyLanguageToUI(){
       if (state.tutorial.step < tutorialSteps.length - 1) {
         state.tutorial.step += 1;
         renderTutorial();
+        applyTutorialHighlight(tutorialSteps[state.tutorial.step]);
         saveGame(true);
       }
     }
@@ -2836,7 +3764,9 @@ function applyLanguageToUI(){
       ensureTutorialDefaults();
       if (state.tutorial.step > 0) {
         state.tutorial.step -= 1;
+        const tutorialSteps = getTutorialSteps();
         renderTutorial();
+        applyTutorialHighlight(tutorialSteps[state.tutorial.step]);
       }
     }
 
@@ -2917,6 +3847,1136 @@ function applyLanguageToUI(){
       if (chkRiskMode) chkRiskMode.checked = state.hackMode === 'risk';
     }
 
+    // ── v3.0.1: 보상/행동 가능 상태 헬퍼 ────────────────────────────────────
+    function isWeeklyBonusClaimable() {
+      try {
+        ensureWeeklyChallengeDefaults();
+        const goals = getWeeklyGoalsForWeek();
+        if (!goals.length) return false;
+        const allClaimed = goals.every(def => state.weeklyChallenge.claimed && state.weeklyChallenge.claimed[def.id]);
+        return allClaimed && !state.weeklyChallenge.bonusClaimed;
+      } catch(e) { return false; }
+    }
+
+    function hasUnclaimedPassTiers() {
+      try {
+        ensureSeasonState();
+        const currentTier = state.season.passTier || 0;
+        if (currentTier < 1) return false;
+        const claimed = state.season.passClaimed || {};
+        for (let i = 1; i <= currentTier; i++) {
+          if (!claimed[String(i)]) return true;
+        }
+        return false;
+      } catch(e) { return false; }
+    }
+
+    function updateHeaderGlow() {
+      try {
+        ensureMissionResets();
+        const prog = state.missionProgress.daily || {};
+        const incompleteDailyCount = missionDefs.daily
+          ? missionDefs.daily.filter(def => !prog.completed || !prog.completed[def.id]).length
+          : 0;
+
+        const rewardReady = isWeeklyBonusClaimable() || hasUnclaimedPassTiers();
+
+        const btnListEl  = document.getElementById('btnList');
+        const btnEventEl = document.getElementById('btnEvent');
+
+        // LIST 버튼 — 일일 미션 남음 (action 필요)
+        if (btnListEl) btnListEl.classList.toggle('header-glow-action', incompleteDailyCount > 0);
+
+        // EVENT 버튼 — 수령 가능한 보상 있음 (reward ready)
+        if (btnEventEl) btnEventEl.classList.toggle('header-glow-reward', rewardReady);
+
+        // TODAY 박스 글로우
+        const todayBox = document.getElementById('todaySummaryBox');
+        if (todayBox) {
+          todayBox.classList.toggle('today-has-actions', incompleteDailyCount > 0);
+          todayBox.classList.toggle('today-all-done', incompleteDailyCount === 0);
+        }
+      } catch(e) { console.warn('[HeaderGlow]', e); }
+    }
+
+    // ── v3.0.1: HOME "오늘 할 일" 요약 ──────────────────────────────────────
+    function renderTodaySummary() {
+      const el = document.getElementById('todaySummaryContent');
+      if (!el) return;
+      try {
+        ensureMissionResets();
+        const prog = state.missionProgress.daily || {};
+        const completedCount = missionDefs.daily
+          ? missionDefs.daily.filter(def => prog.completed && prog.completed[def.id]).length
+          : 0;
+        const totalCount = missionDefs.daily ? missionDefs.daily.length : 0;
+
+        const weeklyProg = state.weeklyChallenge || {};
+        const weeklyGoals = Array.isArray(weeklyProg.goals) ? weeklyProg.goals : [];
+        const weeklyLeft = weeklyGoals.filter(g => !g.done).length;
+        const seasonInfo = getSeasonPhaseInfo();
+
+        const energyCurrent = state.energy || 0;
+        const energyMax = state.energyMax || 20;
+        const energyFull = energyCurrent >= energyMax;
+        const packCount = (state.items && state.items.energyPack) || 0;
+
+        const items = [];
+
+        // 에너지
+        const energyLabel = `${t('todayEnergy')} ${energyCurrent}/${energyMax}${packCount > 0 ? ` · ${t('todayEnergyPack')} ×${packCount}` : ''}`;
+        items.push({ cls: energyFull ? 'today-item today-item-ok' : 'today-item', text: energyLabel });
+
+        // 일일 미션
+        const missionsLabel = `${t('todayDailyMissions')} ${completedCount}/${totalCount} ${t('todayComplete')}`;
+        const missionsOk = completedCount >= totalCount;
+        items.push({ cls: missionsOk ? 'today-item today-item-ok' : 'today-item today-item-action', text: missionsLabel });
+
+        // 주간 목표 (남은 게 있을 때만)
+        if (weeklyLeft > 0) {
+          items.push({ cls: 'today-item today-item-action', text: `${t('todayWeeklyGoals')} ${weeklyLeft} ${t('todayRemaining')}` });
+        }
+
+        items.push({
+          cls: seasonInfo.state === 'active' ? 'today-item today-item-ok' : 'today-item today-item-action',
+          text: seasonInfo.todaySummary
+        });
+
+        el.innerHTML = items.map(item =>
+          `<div class="${item.cls}"><span class="today-item-text">${item.text}</span></div>`
+        ).join('');
+      } catch(e) { console.warn('[TodaySummary]', e); }
+    }
+
+    // ── v3.0.1: INVENTORY → ITEMS 패널 ──────────────────────────────────────
+    function renderItemsPanel() {
+      const el = document.getElementById('itemsContent');
+      if (!el) return;
+      try {
+        ensureReleaseRewardDefaults();
+        const energyPack = (state.items && state.items.energyPack) || 0;
+        const coin = (state.items && state.items.coin) || 0;
+        const weeklyToken = (state.items && state.items.weeklyToken) || 0;
+        const dailyBonusBox = (state.items && state.items.dailyBonusBox) || 0;
+        const rom = (state.items && state.items.rom) || 0;
+        const codeProtection = (state.items && state.items.codeProtection) || 0;
+        const pickResidualData = (state.items && state.items.pickResidualData) || 0;
+        const oneDay = (state.items && state.items.oneDay) || 0;
+        const vuln = (state.items && state.items.zeroDayVulnerability) || 0;
+        const vulnShard = (state.items && state.items.zeroDayVulnerabilityShard) || 0;
+        const traceAmple = (state.items && state.items.traceAmple) || 0;
+        const nullSeed = (state.items && state.items.nullSeed) || 0;
+        const canUsePack = energyPack > 0 && state.energy < state.energyMax;
+        const useLabel = getLang() === 'en' ? 'Use' : (getLang() === 'ja' ? '使用' : '사용');
+
+        // AUTO-RUN 상태 계산
+        ensureAutoRunDefaults();
+        resetAutoRunDaily();
+        const ar = state.autoRun;
+        const activeType = ar.type;   // null | 'scan' | 'hack'
+        const scanUsesLeft = Math.max(0, 3 - (ar.dailyScanUses || 0));
+        const hackUsesLeft = Math.max(0, 3 - (ar.dailyHackUses || 0));
+        const timeLeft = activeType ? getAutoRunTimeLeftStr() : '';
+
+        const scanActive = activeType === 'scan';
+        const hackActive = activeType === 'hack';
+        const anyActive  = !!activeType;
+
+        // 각 카드 상태별 HTML 생성 함수
+        function makeAutoRunCardInner(isThisActive, isPaused, usesLeft, timeLeft) {
+          if (isThisActive && !isPaused) {
+            // 실행 중
+            return `
+              <div class="auto-run-timer">${timeLeft}</div>
+              <div class="auto-run-tag">${t('autoRunActive')}</div>
+              <button type="button" class="auto-run-card-btn auto-run-pause-btn" data-action="pause">
+                ${t('autoRunPause')}
+              </button>`;
+          } else if (isThisActive && isPaused) {
+            // 일시 중지 중
+            return `
+              <div class="auto-run-timer auto-run-timer-paused">${timeLeft}</div>
+              <div class="auto-run-tag auto-run-tag-paused">${t('autoRunPaused')}</div>
+              <div class="auto-run-pause-row">
+                <button type="button" class="auto-run-card-btn auto-run-resume-btn" data-action="resume">
+                  ${t('autoRunResume')}
+                </button>
+                <button type="button" class="auto-run-card-btn auto-run-end-btn" data-action="end">
+                  ${t('autoRunEnd')}
+                </button>
+              </div>`;
+          } else {
+            // 대기 중 (idle)
+            const blocked = anyActive || usesLeft <= 0;
+            const startLabel = usesLeft <= 0 ? '—' : (getLang()==='en' ? 'Start' : (getLang()==='ja' ? '開始' : '시작'));
+            return `
+              <div class="auto-run-uses">${t('autoRunUsesLeft')}: ${usesLeft}</div>
+              <button type="button" class="auto-run-card-btn" data-action="start" ${blocked ? 'disabled' : ''}>
+                ${startLabel}
+              </button>`;
+          }
+        }
+
+        const scanInner = makeAutoRunCardInner(scanActive, ar.paused, scanUsesLeft, timeLeft);
+        const hackInner = makeAutoRunCardInner(hackActive, ar.paused, hackUsesLeft, timeLeft);
+
+        el.innerHTML = `
+          <div class="items-section-title">${t('itemsConsumables')}</div>
+          <div class="items-grid">
+            <div class="item-card">
+              <div class="item-card-name">${t('todayEnergyPack')}</div>
+              <div class="item-card-count">×${energyPack}</div>
+              <button type="button" class="item-card-btn" id="itemsBtnUseEnergyPack" ${canUsePack ? '' : 'disabled'}>${useLabel}</button>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">Daily Bonus Box</div>
+              <div class="item-card-count">×${dailyBonusBox}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">${langText('코드 보호권', 'Code Protection', 'コード保護券')}</div>
+              <div class="item-card-count">×${codeProtection}</div>
+            </div>
+          </div>
+          <div class="items-section-title">${t('itemsCurrency')}</div>
+          <div class="items-grid">
+            <div class="item-card">
+              <div class="item-card-name">COIN</div>
+              <div class="item-card-count">×${coin}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">TOKEN</div>
+              <div class="item-card-count">×${weeklyToken}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">OneDay</div>
+              <div class="item-card-count">×${oneDay}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">ROM</div>
+              <div class="item-card-count">×${rom}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">${t('vulnerability')}</div>
+              <div class="item-card-count">×${vuln}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">${t('vulnerabilityShard')}</div>
+              <div class="item-card-count">×${vulnShard}</div>
+            </div>
+          </div>
+          <div class="items-section-title">${t('timeSwapLabel')}</div>
+          <div class="items-grid">
+            ${['2h','5h','10h'].map(v => {
+              const cnt = (state.items && state.items['timeSwap'+v]) || 0;
+              const canUse = cnt > 0;
+              const useLabel = getLang() === 'en' ? 'Use' : (getLang() === 'ja' ? '使用' : '사용');
+              return `<div class="item-card">
+                <div class="item-card-name">${t('timeSwap'+v)}</div>
+                <div class="item-card-count">×${cnt}</div>
+                <button type="button" class="item-card-btn" data-ts-variant="${v}" ${canUse ? '' : 'disabled'}>${useLabel}</button>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="items-section-title">${t('itemsGrowth')}</div>
+          <div class="items-grid">
+            <div class="item-card">
+              <div class="item-card-name">${t('traceAmpleLabel')}</div>
+              <div class="item-card-count">×${traceAmple}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">${t('nullSeedLabel')}</div>
+              <div class="item-card-count">×${nullSeed}</div>
+            </div>
+            <div class="item-card">
+              <div class="item-card-name">${langText('PICK 잔류 데이터', 'PICK Residual Data', 'PICK残留データ')}</div>
+              <div class="item-card-count">×${pickResidualData}</div>
+            </div>
+          </div>
+          <div class="items-section-title">${t('autoRunLabel')}</div>
+          <div class="auto-run-grid">
+            <div class="auto-run-card${scanActive ? (ar.paused ? ' auto-run-paused-state' : ' auto-run-active') : ''}" data-ar-type="scan">
+              <div class="auto-run-card-name">${t('autoScanLabel')}</div>
+              <div class="auto-run-card-cost">10 COIN</div>
+              <div class="auto-run-card-info">10s · 1h · 3/day</div>
+              ${scanInner}
+            </div>
+            <div class="auto-run-card${hackActive ? (ar.paused ? ' auto-run-paused-state' : ' auto-run-active') : ''}" data-ar-type="hack">
+              <div class="auto-run-card-name">${t('autoHackLabel')}</div>
+              <div class="auto-run-card-cost">15 COIN</div>
+              <div class="auto-run-card-info">20s · 30m · 3/day</div>
+              ${hackInner}
+            </div>
+          </div>
+          <div class="items-coming-note small">${langText(
+            '· Daily Bonus Box, ROM, 코드 보호권, PICK 잔류 데이터는 시즌 보상과 보상함에서 획득합니다.<br/>· ROM은 시즌 진행 중 열리는 CODE 안정화·복구 시스템에 사용됩니다.',
+            '· Daily Bonus Box, ROM, Code Protection, and PICK Residual Data come from season rewards and reward boxes.<br/>· ROM will be used by the CODE stabilization and recovery systems that unlock during the season.',
+            '· Daily Bonus Box、ROM、コード保護券、PICK残留データはシーズン報酬と報酬箱から獲得します。<br/>· ROMはシーズン中に開放されるCODE安定化・復旧システムで使用されます。'
+          )}</div>
+        `;
+
+        const useBtn = el.querySelector('#itemsBtnUseEnergyPack');
+        if (useBtn) {
+          useBtn.addEventListener('click', () => {
+            const mainBtn = document.getElementById('btnUseEnergyPack');
+            if (mainBtn) mainBtn.click();
+            setTimeout(() => renderItemsPanel(), 50);
+          });
+        }
+
+        // 타임 스와프 버튼 이벤트
+        el.querySelectorAll('[data-ts-variant]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const variant = btn.getAttribute('data-ts-variant');
+            useTimeSwap(variant);
+          });
+        });
+
+        // AUTO-RUN 버튼 이벤트 (data-action / data-ar-type 방식)
+        el.querySelectorAll('.auto-run-card [data-action]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const action = btn.getAttribute('data-action');
+            const card = btn.closest('[data-ar-type]');
+            const type = card ? card.getAttribute('data-ar-type') : null;
+            if (action === 'start')  startAutoRun(type);
+            if (action === 'pause')  pauseAutoRun();
+            if (action === 'resume') resumeAutoRun();
+            if (action === 'end')    stopAutoRun();
+          });
+        });
+      } catch(e) { console.warn('[ItemsPanel]', e); }
+    }
+
+    // ────────────────────────────────────────────────
+    // AUTO-RUN 시스템
+    // ────────────────────────────────────────────────
+
+    function ensureAutoRunDefaults() {
+      if (!state.autoRun) {
+        state.autoRun = { type: null, endsAt: 0, paused: false, pausedTimeLeft: 0, dailyScanUses: 0, dailyHackUses: 0, lastResetDay: null };
+      }
+      if (state.autoRun.dailyScanUses === undefined) state.autoRun.dailyScanUses = 0;
+      if (state.autoRun.dailyHackUses === undefined) state.autoRun.dailyHackUses = 0;
+      if (state.autoRun.lastResetDay === undefined) state.autoRun.lastResetDay = null;
+      if (state.autoRun.endsAt === undefined) state.autoRun.endsAt = 0;
+      if (state.autoRun.type === undefined) state.autoRun.type = null;
+      if (state.autoRun.paused === undefined) state.autoRun.paused = false;
+      if (state.autoRun.pausedTimeLeft === undefined) state.autoRun.pausedTimeLeft = 0;
+    }
+
+    function resetAutoRunDaily() {
+      ensureAutoRunDefaults();
+      const dayKey = getDayKey();
+      if (state.autoRun.lastResetDay !== dayKey) {
+        state.autoRun.dailyScanUses = 0;
+        state.autoRun.dailyHackUses = 0;
+        state.autoRun.lastResetDay = dayKey;
+      }
+    }
+
+    function getAutoRunTimeLeftStr() {
+      ensureAutoRunDefaults();
+      if (!state.autoRun.type) return '';
+      const msLeft = state.autoRun.paused
+        ? Math.max(0, state.autoRun.pausedTimeLeft)
+        : Math.max(0, state.autoRun.endsAt - Date.now());
+      const totalSec = Math.ceil(msLeft / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function startAutoRun(type) {
+      ensureAutoRunDefaults();
+      resetAutoRunDaily();
+
+      if (autoRunIntervalId !== null) {
+        log(t('autoRunAlreadyActive'), 'system');
+        showToast(t('autoRunAlreadyActive'), 'warn');
+        return;
+      }
+
+      const MAX_DAILY = 3;
+      const COST_SCAN = 10;
+      const COST_HACK = 15;
+      const DURATION_SCAN_MS = 60 * 60 * 1000;  // 1시간
+      const DURATION_HACK_MS = 30 * 60 * 1000;  // 30분
+      const INTERVAL_SCAN_MS = 10 * 1000;        // 10초
+      const INTERVAL_HACK_MS = 20 * 1000;        // 20초
+
+      if (type === 'scan') {
+        if (state.autoRun.dailyScanUses >= MAX_DAILY) {
+          log(t('autoRunDailyLimit'), 'system');
+          showToast(t('autoRunDailyLimit'), 'warn');
+          return;
+        }
+        const coin = (state.items && state.items.coin) || 0;
+        if (coin < COST_SCAN) {
+          log(t('autoRunNoCoin') + ` (필요: ${COST_SCAN} COIN, 보유: ${coin})`, 'system');
+          showToast(t('autoRunNoCoin'), 'warn');
+          return;
+        }
+        state.items.coin -= COST_SCAN;
+        state.stats.coinSpentTotal = (state.stats.coinSpentTotal || 0) + COST_SCAN;
+        state.autoRun.dailyScanUses++;
+        state.autoRun.type = 'scan';
+        state.autoRun.endsAt = Date.now() + DURATION_SCAN_MS;
+        autoRunIntervalId = setInterval(() => autoRunTick(), INTERVAL_SCAN_MS);
+        log(t('autoRunStartScan'), 'system');
+        showToast(t('autoRunStartScan'), 'system');
+
+      } else if (type === 'hack') {
+        if (state.autoRun.dailyHackUses >= MAX_DAILY) {
+          log(t('autoRunDailyLimit'), 'system');
+          showToast(t('autoRunDailyLimit'), 'warn');
+          return;
+        }
+        const coin = (state.items && state.items.coin) || 0;
+        if (coin < COST_HACK) {
+          log(t('autoRunNoCoin') + ` (필요: ${COST_HACK} COIN, 보유: ${coin})`, 'system');
+          showToast(t('autoRunNoCoin'), 'warn');
+          return;
+        }
+        state.items.coin -= COST_HACK;
+        state.stats.coinSpentTotal = (state.stats.coinSpentTotal || 0) + COST_HACK;
+        state.autoRun.dailyHackUses++;
+        state.autoRun.type = 'hack';
+        state.autoRun.endsAt = Date.now() + DURATION_HACK_MS;
+        autoRunIntervalId = setInterval(() => autoRunTick(), INTERVAL_HACK_MS);
+        log(t('autoRunStartHack'), 'system');
+        showToast(t('autoRunStartHack'), 'system');
+      }
+
+      updateStatsUI();
+      saveGame();
+    }
+
+    function pauseAutoRun() {
+      ensureAutoRunDefaults();
+      if (!state.autoRun.type || state.autoRun.paused) return;
+      if (autoRunIntervalId !== null) {
+        clearInterval(autoRunIntervalId);
+        autoRunIntervalId = null;
+      }
+      state.autoRun.pausedTimeLeft = Math.max(0, state.autoRun.endsAt - Date.now());
+      state.autoRun.paused = true;
+      updateStatsUI();
+      saveGame();
+    }
+
+    function resumeAutoRun() {
+      ensureAutoRunDefaults();
+      if (!state.autoRun.type || !state.autoRun.paused) return;
+      const INTERVAL_SCAN_MS = 10 * 1000;
+      const INTERVAL_HACK_MS = 20 * 1000;
+      state.autoRun.endsAt = Date.now() + (state.autoRun.pausedTimeLeft || 0);
+      state.autoRun.paused = false;
+      state.autoRun.pausedTimeLeft = 0;
+      const interval = state.autoRun.type === 'scan' ? INTERVAL_SCAN_MS : INTERVAL_HACK_MS;
+      autoRunIntervalId = setInterval(() => autoRunTick(), interval);
+      updateStatsUI();
+      saveGame();
+    }
+
+    function stopAutoRun(reason) {
+      if (autoRunIntervalId !== null) {
+        clearInterval(autoRunIntervalId);
+        autoRunIntervalId = null;
+      }
+      ensureAutoRunDefaults();
+      const prevType = state.autoRun.type;
+      state.autoRun.type = null;
+      state.autoRun.endsAt = 0;
+      state.autoRun.paused = false;
+      state.autoRun.pausedTimeLeft = 0;
+      if (prevType) {
+        const msg = reason !== undefined ? reason : t('autoRunStopped');
+        if (msg) {
+          log(msg, 'system');
+          showToast(msg, 'system');
+        }
+      }
+      updateStatsUI();
+      saveGame();
+    }
+
+    function autoRunTick() {
+      ensureAutoRunDefaults();
+      if (!state.autoRun.type) { stopAutoRun(null); return; }
+      if (Date.now() >= state.autoRun.endsAt) { stopAutoRun(t('autoRunEnded')); return; }
+
+      const type = state.autoRun.type;
+      const energyCost = type === 'scan' ? 1 : 2;
+
+      // 에너지 부족 시 에너지 팩 자동 사용
+      if (state.energy < energyCost) {
+        const packCount = (state.items && state.items.energyPack) || 0;
+        if (packCount > 0) {
+          state.items.energyPack = packCount - 1;
+          state.energy = state.energyMax;
+          state.energyTimerMs = 0;
+          state.stats.energyPacksUsed = (state.stats.energyPacksUsed || 0) + 1;
+          log(getLang() === 'en'
+            ? `[AUTO-RUN] Energy depleted — using Energy Pack automatically. (${packCount - 1} remaining)`
+            : `[AUTO-RUN] 에너지 소진 — 에너지 팩 자동 사용 (남은 팩: ${packCount - 1}개)`, 'system');
+          updateStatsUI();
+        } else {
+          stopAutoRun(t('autoRunNoEnergy'));
+          return;
+        }
+      }
+
+      if (type === 'scan') {
+        if (!scanRunning) scanForCode();
+      } else if (type === 'hack') {
+        doHack();
+      }
+    }
+
+    function initAutoRunOnLoad() {
+      ensureAutoRunDefaults();
+      resetAutoRunDaily();
+      // 페이지 새로고침 시 인터벌이 소실됨 → 상태에 따라 처리
+      if (state.autoRun.type) {
+        if (state.autoRun.paused) {
+          // 일시 중지 상태였으면 그대로 유지 (사용자가 재개 가능)
+          autoRunIntervalId = null;
+        } else {
+          // 실행 중이었으면 → 남은 시간이 있으면 일시 중지로 전환, 없으면 종료
+          const remaining = state.autoRun.endsAt - Date.now();
+          if (remaining > 0) {
+            state.autoRun.paused = true;
+            state.autoRun.pausedTimeLeft = remaining;
+          } else {
+            state.autoRun.type = null;
+            state.autoRun.endsAt = 0;
+            state.autoRun.paused = false;
+            state.autoRun.pausedTimeLeft = 0;
+          }
+          autoRunIntervalId = null;
+        }
+      }
+    }
+
+    // ────────────────────────────────────────────────
+    // 타임 스와프
+    // ────────────────────────────────────────────────
+
+    function useTimeSwap(variant) {
+      // variant: '2h' | '5h' | '10h'
+      const hoursMap = { '2h': 2, '5h': 5, '10h': 10 };
+      const hours = hoursMap[variant];
+      if (!hours) return;
+      const itemKey = 'timeSwap' + variant;
+      const count = (state.items && state.items[itemKey]) || 0;
+      if (count <= 0) { showToast(t('timeSwapNone'), 'warn'); return; }
+
+      ensureAutoRunDefaults();
+      const arActive = !!state.autoRun.type;
+      const energyFull = state.energy >= state.energyMax;
+      const ms = hours * 60 * 60 * 1000;
+
+      if (!arActive && energyFull) {
+        showToast(t('timeSwapFull'), 'warn');
+        return;
+      }
+
+      let useForAutoRun = false;
+      if (arActive && !energyFull) {
+        // 둘 다 가능 → 선택
+        const lang = getLang();
+        const msg = lang === 'en'
+          ? `Time Swap ${variant} — Choose:\n\n[OK] Extend AUTO-RUN by ${hours}h\n[Cancel] Skip energy recovery (${hours}h)`
+          : (lang === 'ja'
+            ? `タイムスワップ ${variant} — 選択:\n\n[OK] AUTO-RUNを${hours}時間延長\n[キャンセル] エネルギー回復を${hours}時間短縮`
+            : `타임 스와프 ${variant} — 사용 방식 선택:\n\n[확인] AUTO-RUN 시간 +${hours}시간 연장\n[취소] 에너지 회복 대기시간 ${hours}시간 단축`);
+        useForAutoRun = window.confirm(msg);
+      } else {
+        useForAutoRun = arActive;
+      }
+
+      state.items[itemKey] = count - 1;
+
+      if (useForAutoRun) {
+        if (state.autoRun.paused) {
+          state.autoRun.pausedTimeLeft = (state.autoRun.pausedTimeLeft || 0) + ms;
+        } else {
+          state.autoRun.endsAt += ms;
+        }
+        const hoursLabel = hours + (getLang() === 'en' ? 'h' : '시간');
+        log(`[타임 스와프] AUTO-RUN +${hoursLabel}`, 'system');
+        showToast(t('timeSwapExtended'), 'system');
+      } else {
+        // 에너지 회복 대기시간 단축
+        const intervalMs = getEnergyIntervalMs();
+        const ticksToGain = Math.floor(ms / intervalMs);
+        const energyToGain = Math.min(ticksToGain, state.energyMax - state.energy);
+        state.energy = Math.min(state.energyMax, state.energy + energyToGain);
+        if (state.energy >= state.energyMax) state.energyTimerMs = 0;
+        const gained = energyToGain > 0 ? ` (+${energyToGain})` : '';
+        log(`[타임 스와프] 에너지 회복 단축${gained}`, 'system');
+        showToast(t('timeSwapEnergySkipped'), 'system');
+      }
+
+      updateStatsUI();
+      saveGame();
+    }
+
+    // ────────────────────────────────────────────────
+    // 초보자 한정 룰렛
+    // ────────────────────────────────────────────────
+
+    function ensureBeginnerRouletteDefaults() {
+      if (!state.beginnerRoulette) {
+        state.beginnerRoulette = { firstSeenAt: null, claimedDays: [] };
+      }
+      if (!Array.isArray(state.beginnerRoulette.claimedDays)) {
+        state.beginnerRoulette.claimedDays = [];
+      }
+    }
+
+    function ensureSupportDefaults() {
+      if (!Array.isArray(state.supporterTags)) state.supporterTags = [];
+      if (typeof state.items.dailyBonusBox !== 'number') state.items.dailyBonusBox = 0;
+    }
+
+    function isBeginnerRouletteActive() {
+      ensureBeginnerRouletteDefaults();
+      const br = state.beginnerRoulette;
+      if (!br.firstSeenAt) return true; // 첫 오픈 시 활성화
+      const daysSince = (Date.now() - br.firstSeenAt) / (1000 * 60 * 60 * 24);
+      return daysSince < 10 && br.claimedDays.length < 10;
+    }
+
+    function canClaimBeginnerRouletteToday() {
+      ensureBeginnerRouletteDefaults();
+      if (!isBeginnerRouletteActive()) return false;
+      const today = getDayKey();
+      return !state.beginnerRoulette.claimedDays.includes(today);
+    }
+
+    function claimBeginnerRoulette() {
+      ensureBeginnerRouletteDefaults();
+      if (!canClaimBeginnerRouletteToday()) return null;
+
+      // 최초 수령 시 firstSeenAt 기록
+      if (!state.beginnerRoulette.firstSeenAt) {
+        state.beginnerRoulette.firstSeenAt = Date.now();
+      }
+
+      // 확정 보상: 타임 스와프 2h × 1
+      state.items.timeSwap2h = (state.items.timeSwap2h || 0) + 1;
+
+      // 랜덤 추가 보상
+      const roll = Math.random();
+      let bonusKey = null, bonusAmt = 0, bonusLabel = '';
+      if (roll < 0.33) {
+        // 33% COIN 1000
+        state.items.coin = (state.items.coin || 0) + 1000;
+        state.stats.coinEarnedTotal = (state.stats.coinEarnedTotal || 0) + 1000;
+        bonusKey = 'coin'; bonusAmt = 1000;
+        bonusLabel = 'COIN +1000';
+      } else if (roll < 0.33 + 0.12) {
+        // 12% TRACE 앰플 125
+        state.items.traceAmple = (state.items.traceAmple || 0) + 125;
+        bonusKey = 'traceAmple'; bonusAmt = 125;
+        bonusLabel = 'TRACE 앰플 +125';
+      } else if (roll < 0.33 + 0.12 + 0.20) {
+        // 20% 타임 스와프 5h
+        state.items.timeSwap5h = (state.items.timeSwap5h || 0) + 1;
+        bonusKey = 'timeSwap5h'; bonusAmt = 1;
+        bonusLabel = t('timeSwap5h') + ' +1';
+      } else if (roll < 0.33 + 0.12 + 0.20 + 0.20) {
+        // 20% 타임 스와프 10h
+        state.items.timeSwap10h = (state.items.timeSwap10h || 0) + 1;
+        bonusKey = 'timeSwap10h'; bonusAmt = 1;
+        bonusLabel = t('timeSwap10h') + ' +1';
+      } else {
+        // 15% NULL 시드 40
+        state.items.nullSeed = (state.items.nullSeed || 0) + 40;
+        bonusKey = 'nullSeed'; bonusAmt = 40;
+        bonusLabel = 'NULL 시드 +40';
+      }
+
+      // 오늘 수령 기록
+      state.beginnerRoulette.claimedDays.push(getDayKey());
+
+      const result = { guaranteed: t('timeSwap2h') + ' +1', bonus: bonusLabel };
+      log(`[룰렛] ${result.guaranteed} + ${result.bonus}`, 'system');
+      showToast(`🎰 ${result.guaranteed} / ${result.bonus}`, 'achievement');
+
+      updateStatsUI();
+      saveGame();
+      return result;
+    }
+
+    function renderBeginnerRoulette() {
+      const el = document.getElementById('beginnerRouletteMount');
+      if (!el) return;
+      try {
+        ensureBeginnerRouletteDefaults();
+        const br = state.beginnerRoulette;
+        const active = isBeginnerRouletteActive();
+        const canClaim = canClaimBeginnerRouletteToday();
+        const claimedCount = br.claimedDays.length;
+        const lang = getLang();
+
+        if (!active) {
+          el.innerHTML = `<div class="roulette-expired">${t('rouletteExpired')}</div>`;
+          return;
+        }
+
+        const dayStr = t('rouletteDayCount').replace('{cur}', claimedCount);
+        const probTable = lang === 'en'
+          ? `<table class="roulette-prob-table"><tr><th>Reward</th><th>Chance</th></tr>
+             <tr><td>COIN +1000</td><td>33%</td></tr>
+             <tr><td>TRACE Ample +125</td><td>12%</td></tr>
+             <tr><td>Time Swap 5h +1</td><td>20%</td></tr>
+             <tr><td>Time Swap 10h +1</td><td>20%</td></tr>
+             <tr><td>NULL Seed +40</td><td>15%</td></tr></table>`
+          : `<table class="roulette-prob-table"><tr><th>보상</th><th>확률</th></tr>
+             <tr><td>COIN +1,000</td><td>33%</td></tr>
+             <tr><td>TRACE 앰플 +125</td><td>12%</td></tr>
+             <tr><td>타임 스와프 5h +1</td><td>20%</td></tr>
+             <tr><td>타임 스와프 10h +1</td><td>20%</td></tr>
+             <tr><td>NULL 시드 +40</td><td>15%</td></tr></table>`;
+
+        el.innerHTML = `
+          <div class="roulette-header">
+            <div class="roulette-title">${t('rouletteTitle')}</div>
+            <div class="roulette-progress">${dayStr}</div>
+          </div>
+          <p class="roulette-desc">${t('rouletteDesc')}</p>
+          <div class="roulette-guaranteed">
+            <span class="roulette-label">${t('rouletteGuaranteed')}</span>
+            <span class="roulette-reward">${t('timeSwap2h')} ×1</span>
+          </div>
+          <div class="roulette-bonus-section">
+            <div class="roulette-label">${t('rouletteBonus')}</div>
+            ${probTable}
+          </div>
+          <button type="button" class="roulette-claim-btn${canClaim ? '' : ' disabled'}" id="btnBeginnerRouletteClaim" ${canClaim ? '' : 'disabled'}>
+            ${canClaim ? t('rouletteClaim') : t('rouletteAlreadyClaimed')}
+          </button>
+        `;
+
+        const claimBtn = el.querySelector('#btnBeginnerRouletteClaim');
+        if (claimBtn && canClaim) {
+          claimBtn.addEventListener('click', () => {
+            const result = claimBeginnerRoulette();
+            if (result) renderBeginnerRoulette();
+          });
+        }
+      } catch(e) { console.warn('[BeginnerRoulette]', e); }
+    }
+
+    // ── SUPPORT DESK: Firebase 함수들 ────────────────────────────────────────
+
+    async function submitSupportClaim(productId, payerName) {
+      if (!window.HCSIG_FB || !window.HCSIG_FIREBASE_READY) return { ok: false, err: 'Firebase에 연결되어 있지 않습니다.' };
+      const cu = window.HCSIG_CURRENT_USER;
+      if (!cu) return { ok: false, err: '로그인이 필요합니다.' };
+
+      const product = SUPPORT_PRODUCTS.find(p => p.id === productId);
+      if (!product) return { ok: false, err: '잘못된 상품입니다.' };
+
+      // 동일 상품 처리 중인 신청 확인 (복합 인덱스 회피 → 클라이언트 필터)
+      try {
+        const existing = await window.HCSIG_FB.db.collection('supportClaims')
+          .where('uid', '==', cu.uid)
+          .get();
+        const active = existing.docs.find(d => {
+          const data = d.data();
+          return data.productId === productId && ['pending', 'approved', 'code_issued'].includes(data.status);
+        });
+        if (active) return { ok: false, err: '이미 처리 중인 신청이 있습니다. 내역 탭을 확인해주세요.' };
+      } catch(e) { /* 쿼리 실패 시 계속 진행 */ }
+
+      const doc = {
+        uid: cu.uid,
+        email: cu.email || '',
+        productId,
+        productName: product.name,
+        price: product.price,
+        payerName: (payerName || '').trim(),
+        status: 'pending',
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      try {
+        const ref = await window.HCSIG_FB.db.collection('supportClaims').add(doc);
+        return { ok: true, claimId: ref.id };
+      } catch(e) {
+        return { ok: false, err: '신청 저장에 실패했습니다: ' + (e.message || e.code || e) };
+      }
+    }
+
+    async function loadMyClaims() {
+      if (!window.HCSIG_FB || !window.HCSIG_FIREBASE_READY) return [];
+      const cu = window.HCSIG_CURRENT_USER;
+      if (!cu) return [];
+      try {
+        // orderBy 생략 → 복합 인덱스 불필요, 클라이언트 정렬
+        const snap = await window.HCSIG_FB.db.collection('supportClaims')
+          .where('uid', '==', cu.uid)
+          .get();
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // submittedAt 내림차순 (Timestamp or null)
+        docs.sort((a, b) => {
+          const ta = a.submittedAt && a.submittedAt.toMillis ? a.submittedAt.toMillis() : 0;
+          const tb = b.submittedAt && b.submittedAt.toMillis ? b.submittedAt.toMillis() : 0;
+          return tb - ta;
+        });
+        return docs;
+      } catch(e) {
+        console.warn('[loadMyClaims]', e);
+        return [];
+      }
+    }
+
+    async function redeemSupportCode(rawCode) {
+      if (!window.HCSIG_FB || !window.HCSIG_FIREBASE_READY) return { ok: false, err: 'Firebase에 연결되어 있지 않습니다.' };
+      const cu = window.HCSIG_CURRENT_USER;
+      if (!cu) return { ok: false, err: '로그인이 필요합니다.' };
+
+      const code = rawCode.trim().toUpperCase();
+      if (!code.startsWith('HCSIG-')) return { ok: false, err: '코드 형식이 올바르지 않습니다. (HCSIG-XXXX-XXXXXX)' };
+
+      try {
+        const snap = await window.HCSIG_FB.db.collection('redeemCodes')
+          .where('code', '==', code)
+          .limit(1)
+          .get();
+        if (snap.empty) return { ok: false, err: '존재하지 않는 코드입니다.' };
+
+        const docRef = snap.docs[0].ref;
+        const data = snap.docs[0].data();
+
+        if (data.status === 'redeemed') return { ok: false, err: '이미 사용된 코드입니다.' };
+        if (data.status !== 'active') return { ok: false, err: '현재 사용할 수 없는 코드입니다.' };
+        if (data.uid && data.uid !== cu.uid) return { ok: false, err: '이 코드는 다른 계정 전용입니다.' };
+
+        const product = SUPPORT_PRODUCTS.find(p => p.id === data.productId);
+        if (!product) return { ok: false, err: '보상 정보를 찾을 수 없습니다. 관리자에게 문의하세요.' };
+
+        // 보상 지급
+        state.items.coin         = (state.items.coin         || 0) + (product.rewards.coin         || 0);
+        state.items.energyPack   = (state.items.energyPack   || 0) + (product.rewards.energyPack   || 0);
+        state.items.dailyBonusBox = (state.items.dailyBonusBox || 0) + (product.rewards.dailyBonusBox || 0);
+        state.supporterTags = state.supporterTags || [];
+        if (product.tag && !state.supporterTags.includes(product.tag)) {
+          state.supporterTags.push(product.tag);
+        }
+
+        // Firestore: 코드 사용 완료 표시
+        await docRef.update({
+          status: 'redeemed',
+          redeemedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          redeemedByUid: cu.uid,
+          redeemedByEmail: cu.email || ''
+        });
+
+        // Firestore: 신청 상태 업데이트
+        if (data.claimId) {
+          try {
+            await window.HCSIG_FB.db.collection('supportClaims').doc(data.claimId).update({
+              status: 'redeemed',
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } catch(e2) { /* 선택적 업데이트 — 실패해도 보상은 지급됨 */ }
+        }
+
+        // v3.0.2d fix: 실제 결제 보상이므로 즉시 저장 (scheduleSilentSave 대신)
+        saveGame(true);
+        updateStatsUI();
+        return { ok: true, product };
+      } catch(e) {
+        return { ok: false, err: '코드 처리 중 오류가 발생했습니다: ' + (e.message || e.code || e) };
+      }
+    }
+
+    // ── SUPPORT DESK 패널 렌더 ────────────────────────────────────────────────
+
+    function tagClassName(tag) {
+      return String(tag || 'tag').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tag';
+    }
+
+    function renderSupportPanel(initialSubTab) {
+      const el = document.getElementById('supportPanelMount');
+      if (!el) return;
+      try {
+        const lang = getLang();
+        const cu = window.HCSIG_CURRENT_USER || null;
+        const isLoggedIn = !!cu;
+
+        // 현재 서포터 태그 확인
+        const myTags = state.supporterTags || [];
+
+        el.innerHTML = `
+          <div class="sd-header">
+            <div class="sd-badge">SUPPORT DESK</div>
+            <div class="sd-account-row">
+              <span class="sd-account-label">${lang === 'en' ? 'Account' : '계정'}:</span>
+              <span class="sd-account-value" id="sdAccountValue">${isLoggedIn ? (cu.email || cu.uid) : (lang === 'en' ? '(not logged in)' : '(로그인 전)')}</span>
+              ${isLoggedIn ? `<button class="sd-copy-btn" id="btnSdCopyId" title="${lang === 'en' ? 'Copy' : '복사'}">⎘</button>` : ''}
+            </div>
+            ${myTags.length > 0 ? `<div class="sd-tags-row">${myTags.map(tag => `<span class="sd-tag sd-tag-${tagClassName(tag)}">${tag}</span>`).join('')}</div>` : ''}
+          </div>
+
+          <div class="sd-subtab-bar">
+            <button class="sd-subtab-btn active" id="btnSupportSubApply"  data-sd-tab="apply" >${lang === 'en' ? 'Apply'   : '신청하기'}</button>
+            <button class="sd-subtab-btn"        id="btnSupportSubHistory" data-sd-tab="history">${lang === 'en' ? 'History' : '내역'}</button>
+            <button class="sd-subtab-btn"        id="btnSupportSubRedeem"  data-sd-tab="redeem">${lang === 'en' ? 'REDEEM'  : 'REDEEM'}</button>
+          </div>
+
+          <!-- 신청하기 탭 -->
+          <div class="sd-tab-panel" id="sdTabApply">
+            <div class="sd-form-label" style="margin-bottom:6px;">${lang === 'en' ? 'Select Pack' : '상품을 선택하세요'}</div>
+            <div class="sd-products" id="sdProductCards">
+              ${SUPPORT_PRODUCTS.map((p, i) => `
+                <div class="sd-product-card ${i === 0 ? 'sd-product-selected' : ''}" data-pid="${p.id}" role="radio" aria-checked="${i === 0 ? 'true' : 'false'}" tabindex="0">
+                  <div class="sd-product-top">
+                    <span class="sd-product-name">${p.name}</span>
+                    <span class="sd-product-price">${p.price}</span>
+                  </div>
+                  <div class="sd-product-reward">${lang === 'en' ? p.rewardLabelEn : p.rewardLabel}</div>
+                  <div class="sd-product-desc small">${lang === 'en' ? p.descEn : p.desc}</div>
+                  <div class="sd-product-check">✓</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="sd-form">
+              <div class="sd-form-row">
+                <label class="sd-form-label" for="supportPayerName">${lang === 'en' ? 'Payer Name' : '입금자명'}</label>
+                <input class="sd-form-input" id="supportPayerName" type="text" maxlength="20"
+                  placeholder="${lang === 'en' ? 'Name used for payment' : '결제 시 사용한 이름'}"/>
+              </div>
+              <div class="sd-form-how small">
+                ${lang === 'en'
+                  ? '① Select pack above → ② Transfer to the account below → ③ Enter your name → ④ Submit'
+                  : '① 위에서 상품 선택 → ② 아래 계좌로 이체 → ③ 입금자명 입력 → ④ 신청 제출'}
+              </div>
+              <div class="sd-bank-box">
+                <span class="sd-bank-label">${lang === 'en' ? 'Payment Account' : '결제 계좌'}</span>
+                <span class="sd-bank-value">토스뱅크 1002-3349-0522 조용완</span>
+                <button class="sd-bank-copy" id="btnSdBankCopy">복사</button>
+              </div>
+              ${isLoggedIn
+                ? `<button class="sd-submit-btn" id="btnSdSubmit">${lang === 'en' ? 'Submit Claim' : '신청 제출'}</button>`
+                : `<div class="sd-login-notice">${lang === 'en' ? '⚠ Please log in first (MORE → Cloud Account)' : '⚠ 먼저 로그인해주세요 (더보기 → 클라우드 계정)'}</div>`}
+              <div class="sd-submit-msg" id="sdSubmitMsg"></div>
+            </div>
+          </div>
+
+          <!-- 내역 탭 -->
+          <div class="sd-tab-panel hidden" id="sdTabHistory">
+            <div class="sd-history-loading" id="sdHistoryLoading">${lang === 'en' ? 'Loading...' : '불러오는 중...'}</div>
+            <div class="sd-history-list" id="sdHistoryList"></div>
+          </div>
+
+          <!-- REDEEM 탭 -->
+          <div class="sd-tab-panel hidden" id="sdTabRedeem">
+            <div class="sd-redeem-desc small">
+              ${lang === 'en'
+                ? 'When a code is issued (status: code_issued), enter it below to receive your rewards.'
+                : '관리자가 코드를 발급하면(상태: code_issued), 아래에 코드를 입력해 보상을 받으세요.'}
+            </div>
+            <div class="sd-redeem-row">
+              <input class="sd-redeem-input" id="sdRedeemInput" type="text"
+                placeholder="HCSIG-XXXX-XXXXXX" maxlength="30" autocomplete="off"/>
+              <button class="sd-redeem-btn" id="btnSdRedeem">${lang === 'en' ? 'Redeem' : '코드 적용'}</button>
+            </div>
+            <div class="sd-redeem-msg" id="sdRedeemMsg"></div>
+          </div>
+        `;
+
+        // ── 계정 복사 버튼 ──────────────────────────────────────────────────
+        const copyBtn = el.querySelector('#btnSdCopyId');
+        if (copyBtn && isLoggedIn) {
+          copyBtn.addEventListener('click', () => {
+            const text = cu.email ? `${cu.email} (${cu.uid})` : cu.uid;
+            navigator.clipboard.writeText(text).catch(() => {});
+            showToast(lang === 'en' ? 'Copied!' : '복사되었습니다.', 'system');
+          });
+        }
+
+        // ── 상품 카드 클릭 선택 ──────────────────────────────────────────────
+        const productCards = el.querySelectorAll('.sd-product-card[data-pid]');
+        productCards.forEach(card => {
+          const selectCard = () => {
+            productCards.forEach(c => {
+              c.classList.remove('sd-product-selected');
+              c.setAttribute('aria-checked', 'false');
+            });
+            card.classList.add('sd-product-selected');
+            card.setAttribute('aria-checked', 'true');
+          };
+          card.addEventListener('click', selectCard);
+          card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCard(); } });
+        });
+
+        // ── 계좌 복사 버튼 ──────────────────────────────────────────────────
+        const bankCopyBtn = el.querySelector('#btnSdBankCopy');
+        if (bankCopyBtn) {
+          bankCopyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText('1002-3349-0522').catch(() => {});
+            showToast(lang === 'en' ? 'Account number copied!' : '계좌번호가 복사되었습니다.', 'system');
+          });
+        }
+
+        // ── Sub-tab 전환 ─────────────────────────────────────────────────────
+        const sdTabs = { apply: 'sdTabApply', history: 'sdTabHistory', redeem: 'sdTabRedeem' };
+        function switchSdTab(tabId) {
+          el.querySelectorAll('.sd-subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.sdTab === tabId));
+          el.querySelectorAll('.sd-tab-panel').forEach(p => p.classList.add('hidden'));
+          const panel = el.querySelector('#' + (sdTabs[tabId] || 'sdTabApply'));
+          if (panel) panel.classList.remove('hidden');
+          if (tabId === 'history') loadAndRenderHistory();
+        }
+
+        el.querySelectorAll('.sd-subtab-btn').forEach(btn => {
+          btn.addEventListener('click', () => switchSdTab(btn.dataset.sdTab));
+        });
+
+        // 초기 sub-tab 선택
+        if (initialSubTab && sdTabs[initialSubTab]) switchSdTab(initialSubTab);
+
+        // ── 신청 제출 버튼 ───────────────────────────────────────────────────
+        const submitBtn = el.querySelector('#btnSdSubmit');
+        const submitMsg = el.querySelector('#sdSubmitMsg');
+        if (submitBtn) {
+          submitBtn.addEventListener('click', async () => {
+            const selectedCard = el.querySelector('.sd-product-card.sd-product-selected');
+            const productId  = (selectedCard?.dataset?.pid || SUPPORT_PRODUCTS[0]?.id || '').trim();
+            const payerName  = (el.querySelector('#supportPayerName')?.value || '').trim();
+            if (!payerName) {
+              submitMsg.textContent = lang === 'en' ? '⚠ Please enter the payer name.' : '⚠ 입금자명을 입력해주세요.';
+              submitMsg.className = 'sd-submit-msg sd-msg-error';
+              return;
+            }
+            submitBtn.disabled = true;
+            submitMsg.textContent = lang === 'en' ? 'Submitting...' : '신청 중...';
+            submitMsg.className = 'sd-submit-msg';
+            const result = await submitSupportClaim(productId, payerName);
+            submitBtn.disabled = false;
+            if (result.ok) {
+              submitMsg.textContent = lang === 'en'
+                ? `✅ Submitted! (ID: ${result.claimId.slice(0,8)}…) We'll review within 24h.`
+                : `✅ 신청이 접수되었습니다! (ID: ${result.claimId.slice(0,8)}…) 24시간 내 검토 후 코드를 발급해드립니다.`;
+              submitMsg.className = 'sd-submit-msg sd-msg-ok';
+              el.querySelector('#supportPayerName').value = '';
+            } else {
+              submitMsg.textContent = '⚠ ' + result.err;
+              submitMsg.className = 'sd-submit-msg sd-msg-error';
+            }
+          });
+        }
+
+        // ── 내역 로드 ────────────────────────────────────────────────────────
+        async function loadAndRenderHistory() {
+          const listEl  = el.querySelector('#sdHistoryList');
+          const loadEl  = el.querySelector('#sdHistoryLoading');
+          if (!listEl) return;
+          // v3.0.2d fix: 클로저 캡처값 대신 live 값 사용 (Firebase 초기화 타이밍 이슈 방지)
+          const liveLoggedIn = !!(window.HCSIG_CURRENT_USER);
+          if (!liveLoggedIn) {
+            if (loadEl) loadEl.style.display = 'none';
+            listEl.innerHTML = `<div class="sd-history-empty">${lang === 'en' ? 'Please log in first.' : '로그인 후 확인하세요.'}</div>`;
+            return;
+          }
+          if (loadEl) loadEl.style.display = '';
+          listEl.innerHTML = '';
+          const claims = await loadMyClaims();
+          if (loadEl) loadEl.style.display = 'none';
+          if (!claims.length) {
+            listEl.innerHTML = `<div class="sd-history-empty">${lang === 'en' ? 'No claims yet.' : '신청 내역이 없습니다.'}</div>`;
+            return;
+          }
+          const statusLabel = {
+            pending:    lang === 'en' ? '⏳ Pending'    : '⏳ 검토 중',
+            approved:   lang === 'en' ? '✅ Approved'   : '✅ 승인됨',
+            code_issued:lang === 'en' ? '🎁 Code Issued': '🎁 코드 발급',
+            redeemed:   lang === 'en' ? '🏅 Redeemed'  : '🏅 사용 완료',
+            rejected:   lang === 'en' ? '❌ Rejected'   : '❌ 거절됨'
+          };
+          const statusClass = { pending:'sd-status-pending', approved:'sd-status-approved', code_issued:'sd-status-code', redeemed:'sd-status-redeemed', rejected:'sd-status-rejected' };
+          listEl.innerHTML = claims.map(c => {
+            const ts = c.submittedAt && c.submittedAt.toDate ? c.submittedAt.toDate().toLocaleDateString('ko-KR') : '—';
+            const st = c.status || 'pending';
+            return `
+              <div class="sd-claim-row">
+                <div class="sd-claim-info">
+                  <span class="sd-claim-name">${c.productName || c.productId}</span>
+                  <span class="sd-claim-price">${c.price || ''}</span>
+                  <span class="sd-claim-date">${ts}</span>
+                </div>
+                <div class="sd-claim-status ${statusClass[st] || ''}">
+                  ${statusLabel[st] || st}
+                  ${st === 'code_issued' ? `<button class="sd-goto-redeem" data-sd-tab="redeem">${lang === 'en' ? '→ Redeem' : '→ 코드 입력'}</button>` : ''}
+                </div>
+              </div>`;
+          }).join('');
+          // "→ 코드 입력" 버튼 클릭 시 REDEEM 탭으로 이동
+          listEl.querySelectorAll('.sd-goto-redeem').forEach(b => {
+            b.addEventListener('click', () => switchSdTab('redeem'));
+          });
+        }
+
+        // ── REDEEM CODE 적용 ─────────────────────────────────────────────────
+        const redeemInput = el.querySelector('#sdRedeemInput');
+        const redeemBtn   = el.querySelector('#btnSdRedeem');
+        const redeemMsg   = el.querySelector('#sdRedeemMsg');
+        if (redeemBtn) {
+          redeemBtn.addEventListener('click', async () => {
+            const code = (redeemInput?.value || '').trim();
+            if (!code) {
+              redeemMsg.textContent = lang === 'en' ? '⚠ Please enter a code.' : '⚠ 코드를 입력해주세요.';
+              redeemMsg.className = 'sd-redeem-msg sd-msg-error';
+              return;
+            }
+            redeemBtn.disabled = true;
+            redeemMsg.textContent = lang === 'en' ? 'Verifying...' : '코드 확인 중...';
+            redeemMsg.className = 'sd-redeem-msg';
+            const result = await redeemSupportCode(code);
+            redeemBtn.disabled = false;
+            if (result.ok) {
+              if (redeemInput) redeemInput.value = '';
+              const r = result.product.rewards;
+              const rLabel = lang === 'en'
+                ? `COIN +${r.coin}, Energy Pack +${r.energyPack}, Daily Bonus Box +${r.dailyBonusBox}`
+                : `COIN +${r.coin}, 에너지팩 +${r.energyPack}, 데일리 보너스 박스 +${r.dailyBonusBox}`;
+              redeemMsg.innerHTML = `<strong>${lang === 'en' ? '🎉 Code redeemed!' : '🎉 코드 적용 완료!'}</strong><br>${rLabel}`;
+              redeemMsg.className = 'sd-redeem-msg sd-msg-ok';
+              showToast(lang === 'en' ? '🎁 Support reward received!' : '🎁 후원 보상이 지급되었습니다!', 'system');
+              // v3.0.2d fix: 서포터 태그 뱃지 갱신 — 2.5초 후 재렌더 (성공 메시지 읽을 시간 확보)
+              setTimeout(() => {
+                const supportTabEl = document.getElementById('tabSupport');
+                if (supportTabEl && supportTabEl.classList.contains('active')) {
+                  _supportPanelLoginState = undefined; // 강제 재렌더
+                  renderSupportPanel('redeem');
+                }
+              }, 2500);
+            } else {
+              redeemMsg.textContent = '⚠ ' + result.err;
+              redeemMsg.className = 'sd-redeem-msg sd-msg-error';
+            }
+          });
+        }
+
+        // Enter 키로 REDEEM 제출
+        if (redeemInput) {
+          redeemInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && redeemBtn && !redeemBtn.disabled) redeemBtn.click();
+          });
+        }
+
+        // v3.0.2d: 렌더 완료 후 로그인 상태 기록 (updateStatsUI 재렌더 방지 기준점)
+        _supportPanelLoginState = !!(window.HCSIG_CURRENT_USER);
+
+      } catch(e) { console.warn('[SupportPanel]', e); }
+    }
+
     function updateStatsUI() {
       setNodeText(statLevel, state.level);
       setNodeText(statExp, state.exp + ' / ' + state.requiredExp);
@@ -2924,6 +4984,7 @@ function applyLanguageToUI(){
       setNodeText(statCpuTier, state.cpuTier);
       setNodeText(statGpuTier, state.gpuTier || 1);
       setNodeText(statEnergyValue, `${state.energy} / ${state.energyMax}`);
+      if (statEnergyValue) statEnergyValue.classList.toggle('energy-empty', state.energy <= 0);
 
       if (state.energy >= state.energyMax) {
         setNodeText(statEnergyTimer, t('full'));
@@ -2962,11 +5023,47 @@ function applyLanguageToUI(){
       renderAchievements();
       renderCodex();
       renderZeroDayPanel();
+      renderTodaySummary();
+      renderItemsPanel();
+      updateHeaderGlow();
+      renderBeginnerRoulette();
+      // v3.0.2d: SUPPORT 패널은 로그인 상태 변경 시에만 재렌더 (폼 입력 보호)
+      // 매 틱마다 재렌더하면 입금자명 등 폼 입력이 초기화되는 버그 방지
+      const tabSupportEl = document.getElementById('tabSupport');
+      if (tabSupportEl && tabSupportEl.classList.contains('active')) {
+        const _curLoginState = !!(window.HCSIG_CURRENT_USER);
+        if (_supportPanelLoginState !== _curLoginState) {
+          _supportPanelLoginState = _curLoginState;
+          renderSupportPanel();
+        }
+      }
     }
 
 
+    // v3.0.2d: SUPPORT 패널 로그인 상태 추적 (불필요한 재렌더 방지 → 폼 입력 보호)
+    let _supportPanelLoginState = undefined; // undefined = 아직 렌더 전
+
+    // v3.0.0 fix: 같은 WARN/메시지 중복 토스트 방지 (1.2초 윈도우)
+    const _recentToasts = new Map(); // key: kind+msg, value: timestamp
+    const TOAST_DEDUP_MS = 1200;
+
     function showToast(message, kind = 'info') {
       if (!toastContainer) return;
+      // 동일 메시지가 최근 1.2초 안에 표시됐으면 무시
+      const dedupKey = String(kind) + '|' + String(message);
+      const lastShown = _recentToasts.get(dedupKey);
+      const now = Date.now();
+      if (lastShown && now - lastShown < TOAST_DEDUP_MS) {
+        return; // 중복 — 스킵
+      }
+      _recentToasts.set(dedupKey, now);
+      // 메모리 누적 방지: 5초 이상 된 항목 제거
+      if (_recentToasts.size > 50) {
+        for (const [k, t] of _recentToasts) {
+          if (now - t > 5000) _recentToasts.delete(k);
+        }
+      }
+
       const toast = document.createElement('div');
       toast.className = 'toast';
 
@@ -3143,58 +5240,68 @@ function applyLanguageToUI(){
       if (!isSfxEnabled()) return;
       const ctx = getAudioContext();
       if (!ctx) return;
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
-      const now = ctx.currentTime + 0.005;
-      const v = getSfxVolume();
 
+      // ctx.resume()은 비동기 — resume 완료 후 currentTime을 읽어야
+      // suspended 상태에서 스케줄된 시각이 과거가 되는 문제를 방지
+      function doPlay() {
+        if (!isSfxEnabled()) return;
+        const now = ctx.currentTime + 0.005;
+        const v = getSfxVolume();
+
+      // gain 기준: v=1.0(100%)일 때 0.15~0.30 범위가 적절
       switch (name) {
         case 'tap':
           if (Date.now() - sfxState.lastTapAt < 55) return;
           sfxState.lastTapAt = Date.now();
-          playTone(ctx, now, 520, 0.045, 'triangle', 0.035 * v, 760);
+          playTone(ctx, now, 520, 0.045, 'triangle', 0.20 * v, 760);
           break;
         case 'scanStart':
-          playNoise(ctx, now, 0.11, 0.028 * v, 1800);
-          playTone(ctx, now + 0.04, 440, 0.08, 'sawtooth', 0.018 * v, 880);
+          playNoise(ctx, now, 0.11, 0.17 * v, 1800);
+          playTone(ctx, now + 0.04, 440, 0.08, 'sawtooth', 0.12 * v, 880);
           break;
         case 'scanComplete':
-          playTone(ctx, now, 660, 0.07, 'sine', 0.04 * v, 990);
-          playTone(ctx, now + 0.065, 990, 0.08, 'sine', 0.032 * v, 1320);
+          playTone(ctx, now, 660, 0.07, 'sine', 0.22 * v, 990);
+          playTone(ctx, now + 0.065, 990, 0.08, 'sine', 0.18 * v, 1320);
           break;
         case 'success':
-          playTone(ctx, now, 523.25, 0.08, 'triangle', 0.045 * v, 659.25);
-          playTone(ctx, now + 0.07, 783.99, 0.11, 'triangle', 0.04 * v, 1046.5);
+          playTone(ctx, now, 523.25, 0.08, 'triangle', 0.26 * v, 659.25);
+          playTone(ctx, now + 0.07, 783.99, 0.11, 'triangle', 0.22 * v, 1046.5);
           break;
         case 'fail':
-          playTone(ctx, now, 260, 0.12, 'sawtooth', 0.04 * v, 140);
-          playNoise(ctx, now + 0.03, 0.10, 0.016 * v, 360);
+          playTone(ctx, now, 260, 0.12, 'sawtooth', 0.24 * v, 140);
+          playNoise(ctx, now + 0.03, 0.10, 0.10 * v, 360);
           break;
         case 'upgrade':
-          playTone(ctx, now, 392, 0.07, 'square', 0.026 * v, 587);
-          playTone(ctx, now + 0.065, 784, 0.10, 'triangle', 0.042 * v, 1175);
+          playTone(ctx, now, 392, 0.07, 'square', 0.16 * v, 587);
+          playTone(ctx, now + 0.065, 784, 0.10, 'triangle', 0.24 * v, 1175);
           break;
         case 'achievement':
-          playTone(ctx, now, 660, 0.08, 'sine', 0.038 * v, 880);
-          playTone(ctx, now + 0.07, 990, 0.09, 'sine', 0.036 * v, 1320);
-          playTone(ctx, now + 0.15, 1320, 0.12, 'triangle', 0.03 * v, 1760);
+          playTone(ctx, now, 660, 0.08, 'sine', 0.22 * v, 880);
+          playTone(ctx, now + 0.07, 990, 0.09, 'sine', 0.20 * v, 1320);
+          playTone(ctx, now + 0.15, 1320, 0.12, 'triangle', 0.18 * v, 1760);
           break;
         case 'level':
-          playTone(ctx, now, 392, 0.10, 'triangle', 0.035 * v, 523);
-          playTone(ctx, now + 0.09, 659, 0.11, 'triangle', 0.04 * v, 880);
-          playTone(ctx, now + 0.19, 1046, 0.13, 'sine', 0.032 * v, 1318);
+          playTone(ctx, now, 392, 0.10, 'triangle', 0.20 * v, 523);
+          playTone(ctx, now + 0.09, 659, 0.11, 'triangle', 0.24 * v, 880);
+          playTone(ctx, now + 0.19, 1046, 0.13, 'sine', 0.20 * v, 1318);
           break;
         case 'mode':
-          playTone(ctx, now, 330, 0.06, 'triangle', 0.028 * v, 660);
-          playTone(ctx, now + 0.05, 440, 0.07, 'square', 0.018 * v, 880);
+          playTone(ctx, now, 330, 0.06, 'triangle', 0.17 * v, 660);
+          playTone(ctx, now + 0.05, 440, 0.07, 'square', 0.12 * v, 880);
           break;
         case 'stage':
-          playNoise(ctx, now, 0.08, 0.018 * v, 900);
-          playTone(ctx, now + 0.035, 220, 0.09, 'sawtooth', 0.026 * v, 440);
+          playNoise(ctx, now, 0.08, 0.12 * v, 900);
+          playTone(ctx, now + 0.035, 220, 0.09, 'sawtooth', 0.16 * v, 440);
           break;
         default:
-          playTone(ctx, now, 600, 0.06, 'sine', 0.025 * v, 720);
+          playTone(ctx, now, 600, 0.06, 'sine', 0.15 * v, 720);
+      }
+      } // end doPlay
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(doPlay).catch(() => {});
+      } else {
+        doPlay();
       }
     }
 
@@ -3263,6 +5370,18 @@ function applyLanguageToUI(){
       renderZeroDayPanel();
     }
 
+    function refreshProgressUiAndSave() {
+      updateStatsUI();
+      renderShop();
+      renderCodex();
+      renderCodeList();
+      renderCodeDetail();
+      renderStagePanel();
+      renderWeeklyPanel();
+      renderZeroDayPanel();
+      scheduleSilentSave();
+    }
+
     function getEnergyIntervalMs() {
       ensureModifierDefaults();
       return Math.round(ENERGY_INTERVAL_MS * (modifiers.fastRecoveryTicks > 0 ? 0.75 : 1));
@@ -3294,6 +5413,13 @@ function applyLanguageToUI(){
       if (state.energy <= 0) {
         state.energy = 0;
         unlockAchievement('energy_zero');
+        // 방전 습관 / 한계 돌파 미션용 플래그 기록
+        state.missionProgress.daily.energy0Reached  = true;
+        state.missionProgress.weekly.energy0Reached = true;
+        state.missionProgress.month.energy0Reached  = true;
+        checkMissions('daily');
+        checkMissions('weekly');
+        checkMissions('month');
       }
 
       if (state.energy < state.energyMax && state.energyTimerMs <= 0) {
@@ -3369,8 +5495,35 @@ function applyLanguageToUI(){
         level: 1,
         usage: 0,
         shards: 0,
-        syncLevel: 0
+        syncLevel: 0,
+        obtainedAt: Date.now()
       });
+    }
+
+    function grantCodeFromTemplate(templateId, opts = {}) {
+      const def = codeDefs[templateId];
+      if (!def) return null;
+      const existing = getOwnedCode(templateId);
+      if (existing) {
+        const shardGain = Math.max(5, Number(opts.duplicateShards || 0) || getShardGainByRarity(def.rarity));
+        existing.shards = (existing.shards || 0) + shardGain;
+        state.stats.codeShardsTotal = (state.stats.codeShardsTotal || 0) + shardGain;
+        return { type: 'duplicate', code: existing, shards: shardGain };
+      }
+      const instance = {
+        id: def.id,
+        name: def.name,
+        rarity: def.rarity,
+        power: def.basePower,
+        level: 1,
+        usage: 0,
+        shards: 0,
+        syncLevel: 0,
+        obtainedAt: Date.now()
+      };
+      ownedCodes.push(instance);
+      if (!state.activeCodeId) state.activeCodeId = def.id;
+      return { type: 'new', code: instance, shards: 0 };
     }
 
 
@@ -3420,9 +5573,16 @@ function applyLanguageToUI(){
         title.textContent = owned ? def.name : '???';
         const meta = document.createElement('div');
         meta.className = 'small';
-        meta.textContent = owned
-          ? `[${localizeRarityLabel(def.rarity)}] ${t('basePower')} ${def.basePower} · ${t('ownedLvPwr', { lv: owned.level, pwr: owned.power })}`
-          : `[${localizeRarityLabel(def.rarity)}] ${t('undiscoveredCode')}`;
+        if (owned) {
+          const ownedText = getLang() === 'en'
+            ? `Owned Lv.${owned.level} / PWR ${owned.power}`
+            : getLang() === 'ja'
+              ? `所持 Lv.${owned.level} / PWR ${owned.power}`
+              : `보유 Lv.${owned.level} / PWR ${owned.power}`;
+          meta.textContent = `[${localizeRarityLabel(def.rarity)}] ${t('basePower')} ${def.basePower} · ${ownedText}`;
+        } else {
+          meta.textContent = `[${localizeRarityLabel(def.rarity)}] ${t('undiscoveredCode')}`;
+        }
         nameWrap.appendChild(title);
         nameWrap.appendChild(meta);
 
@@ -3508,36 +5668,60 @@ function applyLanguageToUI(){
 
         const left = document.createElement('div');
         left.className = 'code-card-main';
+        const def = codeDefs[code.id];
         const nameEl = document.createElement('strong');
         nameEl.textContent = code.name;
         const rarityClass = 'rarity-' + code.rarity.toLowerCase();
         nameEl.classList.add(rarityClass);
         const shardEl = document.createElement('span');
-        shardEl.textContent = `${localizeRarityLabel(code.rarity)} · 조각 ${code.shards || 0}`;
+        const tagParts = [localizeRarityLabel(code.rarity)];
+        if (def && def.codeClass) tagParts.push(def.codeClass);
+        if (def && def.seasonId) tagParts.push('S1');
+        shardEl.textContent = `${tagParts.join(' · ')} · ${getLang() === 'en' ? 'Shards' : getLang() === 'ja' ? 'シャード' : '조각'} ${code.shards || 0}`;
         left.appendChild(nameEl);
         left.appendChild(shardEl);
 
-        const right = document.createElement('span');
-        right.className = 'meta';
-        right.textContent = `Lv.${code.level} · PWR ${code.power}`;
+        const right = document.createElement('div');
+        right.className = 'code-card-right';
+
+        const metaEl = document.createElement('span');
+        metaEl.className = 'meta';
+        metaEl.textContent = `Lv.${code.level} · PWR ${code.power}`;
+
+        const detailBtn = document.createElement('button');
+        detailBtn.type = 'button';
+        detailBtn.className = 'code-detail-btn';
+        detailBtn.textContent = getLang() === 'en' ? 'Detail' : '상세';
+        detailBtn.setAttribute('aria-label', `${code.name} 상세 보기`);
+
+        right.appendChild(metaEl);
+        right.appendChild(detailBtn);
 
         li.appendChild(left);
         li.appendChild(right);
 
-        const openCode = () => {
+        const selectCode = () => {
           state.activeCodeId = code.id;
           updateStatsUI();
           log(t('activeCode', { name: code.name }), 'system');
           onTutorialAction('selectCode');
           renderCodeList();
           renderCodeDetail();
-          openCodeDetailModal(code.id);
         };
-        li.addEventListener('click', openCode);
+        detailBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectCode();
+          openCodeDetailModal(code.id);
+        });
+        li.addEventListener('click', () => {
+          selectCode();
+          openCodeDetailModal(code.id);
+        });
         li.addEventListener('keydown', (event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            openCode();
+            selectCode();
+            openCodeDetailModal(code.id);
           }
         });
 
@@ -3564,26 +5748,73 @@ function applyLanguageToUI(){
       const evolveReady = code.level >= 5;
       const syncBonusText = Math.round((getSyncSuccessBonus(syncLevel + 1) - getSyncSuccessBonus(syncLevel)) * 100);
       const shardBoostCost = getShardEnhanceCost(code);
+      const lang = getLang();
+      const seasonMeta = def && def.seasonId
+        ? (lang === 'en'
+          ? `Season code: ${def.seasonId === 'season_1' ? 'Foundation Season PICK' : def.seasonId}`
+          : lang === 'ja'
+            ? `シーズンコード: ${def.seasonId === 'season_1' ? 'Foundation Season PICK' : def.seasonId}`
+            : `시즌 코드: ${def.seasonId === 'season_1' ? 'Foundation Season PICK' : def.seasonId}`)
+        : '';
+      const labels = lang === 'en'
+        ? {
+          level: `Level: Lv.${code.level}`,
+          power: `Power: ${code.power}`,
+          usage: `Uses: ${usage}`,
+          shards: `Duplicate Shards: ${shardCount}`,
+          sync: `Sync Level: ${syncLevel}`,
+          upgrade: `Next upgrade cost: ${upgradeCost} credits`,
+          syncCost: `Next sync cost: ${syncCost} shards / expected success bonus +${syncBonusText}%`,
+          shard: `Shard boost cost: ${shardBoostCost} shards / PWR +2`,
+          evolve: evolveReady ? 'Evolution requirement: Met' : 'Evolution requirement: Need Lv.5+',
+          ability: 'Ability'
+        }
+        : lang === 'ja'
+          ? {
+            level: `レベル: Lv.${code.level}`,
+            power: `パワー: ${code.power}`,
+            usage: `使用回数: ${usage}`,
+            shards: `重複シャード: ${shardCount}`,
+            sync: `同期段階: ${syncLevel}`,
+            upgrade: `次の強化コスト: ${upgradeCost} クレジット`,
+            syncCost: `次の同期コスト: シャード ${syncCost} / 予想成功率補正 +${syncBonusText}%`,
+            shard: `シャード強化コスト: シャード ${shardBoostCost} / PWR +2`,
+            evolve: evolveReady ? '進化条件: 達成' : '進化条件: Lv.5以上必要',
+            ability: '能力'
+          }
+          : {
+            level: `레벨: Lv.${code.level}`,
+            power: `파워: ${code.power}`,
+            usage: `사용 횟수: ${usage}`,
+            shards: `중복 조각: ${shardCount}`,
+            sync: `동기화 단계: ${syncLevel}`,
+            upgrade: `다음 강화 비용: ${upgradeCost} 크레딧`,
+            syncCost: `다음 동기화 비용: 조각 ${syncCost} / 예상 성공률 보정 +${syncBonusText}%`,
+            shard: `조각 강화 비용: 조각 ${shardBoostCost} / PWR +2`,
+            evolve: evolveReady ? '진화 조건: 충족' : '진화 조건: Lv.5 이상 필요',
+            ability: '능력'
+          };
       return `
         <div class="code-modal-identity">
           <strong class="${rarityClass}">${code.name}</strong>
           <span class="rarity-tag ${rarityClass}">[${localizeRarityLabel(code.rarity)}]</span>
         </div>
         <div class="code-modal-stat-grid">
-          <div class="small">${t('levelLabel', { v: code.level })}</div>
-          <div class="small">${t('powerLabel', { v: code.power })}</div>
-          <div class="small">${t('usageLabel', { v: usage })}</div>
-          <div class="small">${t('shardsLabel', { v: shardCount })}</div>
-          <div class="small">${t('syncLabel', { v: syncLevel })}</div>
+          <div class="small">${labels.level}</div>
+          <div class="small">${labels.power}</div>
+          <div class="small">${labels.usage}</div>
+          <div class="small">${labels.shards}</div>
+          <div class="small">${labels.sync}</div>
+          ${seasonMeta ? `<div class="small">${seasonMeta}</div>` : ''}
         </div>
         <div class="code-modal-cost-grid">
-          <div class="small code-next-meta">${t('nextUpgrade', { v: upgradeCost })}</div>
-          <div class="small code-next-meta">${t('nextSync', { a: syncCost, b: syncBonusText })}</div>
-          <div class="small code-next-meta">${t('shardEnhanceCost', { cost: shardBoostCost })}</div>
-          <div class="small code-next-meta">${evolveReady ? t('evolveReady') : t('evolveNeed')}</div>
+          <div class="small code-next-meta">${labels.upgrade}</div>
+          <div class="small code-next-meta">${labels.syncCost}</div>
+          <div class="small code-next-meta">${labels.shard}</div>
+          <div class="small code-next-meta">${labels.evolve}</div>
         </div>
         <div class="code-modal-ability">
-          <div class="small">${t('ability')}</div>
+          <div class="small">${labels.ability}</div>
           <p class="small">${ability}</p>
         </div>
       `;
@@ -3674,340 +5905,1468 @@ function applyLanguageToUI(){
       };
     }
 
-    const ZERO_DAY_MAX_DEPTH = 12;
+    // ══════════════════════════════════════════════════════
+    //  SEASON / PASS SYSTEM
+    // ══════════════════════════════════════════════════════
+    const PASS_MAX_TIER = 30;
+    const PASS_POINTS_PER_TIER = 100;
+    const SEASON_1 = {
+      id: 'season_1',
+      name: 'Foundation Season',
+      startsAt: new Date('2026-05-01T00:00:00+09:00'),
+      endsAt: new Date('2026-05-31T23:59:59+09:00')
+    };
+    const SEASON_START_DATE = SEASON_1.startsAt;
+    const SEASON_END_DATE = SEASON_1.endsAt;
+    const RELEASE_300_TS = SEASON_1.startsAt.getTime();
 
-    function zeroCopy(ko, en) {
-      return getLang() === 'en' ? en : ko;
+    function formatCountdownShort(msLeft, lang = getLang()) {
+      if (msLeft <= 0) return lang === 'en' ? 'now' : lang === 'ja' ? 'まもなく' : '곧 시작';
+      if (msLeft >= DAY_MS) {
+        const days = Math.ceil(msLeft / DAY_MS);
+        return `D-${days}`;
+      }
+      const totalMinutes = Math.max(1, Math.ceil(msLeft / 60000));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
     }
 
-    function clampNumber(value, min, max) {
-      return Math.max(min, Math.min(max, Number(value) || 0));
+    function getSeasonPhaseInfo(nowMs = Date.now()) {
+      const lang = getLang();
+      if (nowMs < SEASON_START_DATE.getTime()) {
+        const countdown = formatCountdownShort(SEASON_START_DATE.getTime() - nowMs, lang);
+        return {
+          state: 'locked',
+          badge: 'PRESEASON',
+          seasonLabel: lang === 'en' ? 'Season 1 · Foundation' : lang === 'ja' ? 'シーズン1 · Foundation' : '시즌 1 · Foundation',
+          seasonName: lang === 'en' ? 'Season 1 — Foundation Season' : lang === 'ja' ? 'シーズン1 — Foundation Season' : '시즌 1 — Foundation Season',
+          countdownLabel: lang === 'en' ? `Starts in ${countdown}` : lang === 'ja' ? `開始まで ${countdown}` : `시작까지 ${countdown}`,
+          dateLabel: '2026-05-01 00:00 KST',
+          note: lang === 'en' ? 'PASS rewards unlock when Season 1 begins.' : lang === 'ja' ? 'シーズン1開始後にPASS報酬が解放されます。' : '시즌 1이 시작되면 PASS 보상이 활성화됩니다.',
+          todaySummary: lang === 'en' ? `Season 1 starts in ${countdown}` : lang === 'ja' ? `シーズン1開始まで ${countdown}` : `시즌 1 시작까지 ${countdown}`
+        };
+      }
+      if (nowMs <= SEASON_END_DATE.getTime()) {
+        const countdown = formatCountdownShort(SEASON_END_DATE.getTime() - nowMs, lang);
+        return {
+          state: 'active',
+          badge: lang === 'en' ? 'ACTIVE' : lang === 'ja' ? '稼働中' : '진행 중',
+          seasonLabel: lang === 'en' ? 'Season 1 · Foundation' : lang === 'ja' ? 'シーズン1 · Foundation' : '시즌 1 · Foundation',
+          seasonName: lang === 'en' ? 'Season 1 — Foundation Season' : lang === 'ja' ? 'シーズン1 — Foundation Season' : '시즌 1 — Foundation Season',
+          countdownLabel: lang === 'en' ? `Ends in ${countdown}` : lang === 'ja' ? `終了まで ${countdown}` : `종료까지 ${countdown}`,
+          dateLabel: '2026-05-31 23:59 KST',
+          note: lang === 'en' ? 'Season PICKS and base rewards are now live.' : lang === 'ja' ? 'シーズンPICKSと基本報酬が有効になりました。' : '시즌 PICKS와 기본 보상이 열렸습니다.',
+          todaySummary: lang === 'en' ? 'Foundation Season active · PICK reward live' : lang === 'ja' ? 'Foundation Season 진행 중 · PICK報酬確認' : 'Foundation Season 진행 중 · PICK 보상 확인'
+        };
+      }
+      return {
+        state: 'ended',
+        badge: lang === 'en' ? 'ENDED' : lang === 'ja' ? '終了' : '종료',
+        seasonLabel: lang === 'en' ? 'Season 1 · Legacy' : lang === 'ja' ? 'シーズン1 · Legacy' : '시즌 1 · Legacy',
+        seasonName: lang === 'en' ? 'Season 1 — Foundation Season' : lang === 'ja' ? 'シーズン1 — Foundation Season' : '시즌 1 — Foundation Season',
+        countdownLabel: lang === 'en' ? 'Legacy settlement pending' : lang === 'ja' ? 'Legacy 精算待機中' : 'Legacy 정산 대기',
+        dateLabel: '2026-05-31 23:59 KST',
+        note: lang === 'en' ? 'Season 1 has ended.' : lang === 'ja' ? 'シーズン1は終了しました。' : '시즌 1이 종료되었습니다.',
+        todaySummary: lang === 'en' ? 'Season 1 ended' : lang === 'ja' ? 'シーズン1終了' : '시즌 1 종료'
+      };
+    }
+
+    function getCurrentSeasonKey(now) {
+      const d = now ? new Date(now) : new Date();
+      if (d < SEASON_START_DATE) return 'preseason';
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      // adjust for KST offset (UTC+9)
+      const kstHours = d.getUTCHours() + 9;
+      const kstDay   = kstHours >= 24 ? d.getUTCDate() + 1 : d.getUTCDate();
+      // season key = YYYY-MM (of the KST month, based on the 1st 05:00 KST boundary)
+      const kstDate = new Date(d.getTime() + 9 * 3600 * 1000);
+      const ky = kstDate.getUTCFullYear();
+      const km = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
+      const seasonKey = `${ky}-${km}`;
+      return seasonKey;
+    }
+
+    function getSeasonNumber(key) {
+      if (!key || key === 'preseason') return 0;
+      const [y, m] = key.split('-').map(Number);
+      // Season 1 = 2026-05
+      const base = (2026 - 1970) * 12 + 4; // months since epoch to 2026-04
+      const months = (y - 1970) * 12 + (m - 1);
+      return Math.max(0, months - base);
+    }
+
+    function ensureSeasonState() {
+      const key = getCurrentSeasonKey();
+      if (!state.season) {
+        state.season = { currentKey: key, currentNumber: getSeasonNumber(key), passPoints: 0, passTier: 0, passClaimed: {}, shopPurchases: {}, pvpSeasonRecord: {} };
+      }
+      if (state.season.currentKey !== key) {
+        // v3.0.0: 시즌 전환 — 스펙대로 유지/리셋 분리
+        const prevKey = state.season.currentKey;
+
+        // ── 유지 (재화) ──
+        // state.items.coin       — COIN
+        // state.items.oneDay     — OneDay
+        // state.items.zeroDayVulnerability — 취약점
+        // state.items.zeroDayVulnerabilityShard — 취약점 조각
+        // (별도 처리 없음 — 그대로 유지됨)
+
+        // ── 리셋 ──
+        state.season.currentKey = key;
+        state.season.currentNumber = getSeasonNumber(key);
+        // 패스 진행도/수령 상태
+        state.season.passPoints = 0;
+        state.season.passTier = 0;
+        state.season.passClaimed = {};
+        state.season.shopPurchases = {};
+        // PVP 시즌 레이팅/시즌 보드
+        state.season.pvpSeasonRecord = {};
+        if (state.zeroDay && state.zeroDay.pvp) {
+          state.zeroDay.pvp.rating = 1000;
+          state.zeroDay.pvp.seasonWins = 0;
+          state.zeroDay.pvp.seasonLosses = 0;
+        }
+        // 주간 도전 상태 (강제 리셋 — 시즌과 별도로 매주 리셋되지만 시즌 시작 시점도 새로 시작)
+        if (state.weeklyChallenge) {
+          state.weeklyChallenge.weekKey = '';  // 다음 ensureWeeklyChallengeDefaults에서 새 weekKey로 재초기화
+          state.weeklyChallenge.progress = {};
+          state.weeklyChallenge.claimed = {};
+          state.weeklyChallenge.bonusClaimed = false;
+          state.weeklyChallenge.score = 0;
+        }
+
+        // 로그 + 토스트
+        const isStart = prevKey === 'preseason';
+        const msg = isStart
+          ? (getLang() === 'en' ? `Season ${state.season.currentNumber} has begun!` : `시즌 ${state.season.currentNumber} 시작!`)
+          : (getLang() === 'en' ? `New season: ${key} (PASS/PVP reset)` : `새 시즌: ${key} (PASS/PVP 리셋)`);
+        log(`[SEASON] ${msg}`, 'system');
+        try { showToast(msg, 'achievement'); } catch(e) {}
+      }
+    }
+
+    function ensureReleaseRewardDefaults(meta = {}) {
+      ensureSupportDefaults();
+      state.items = state.items || {};
+      state.items.dailyBonusBox = Number(state.items.dailyBonusBox || 0) || 0;
+      state.items.rom = Number(state.items.rom || 0) || 0;
+      state.items.codeProtection = Number(state.items.codeProtection || 0) || 0;
+      state.items.pickResidualData = Number(state.items.pickResidualData || 0) || 0;
+      state.claimFlags = (state.claimFlags && typeof state.claimFlags === 'object') ? state.claimFlags : {};
+      if (typeof state.claimFlags.firstLogin_3_0_0 !== 'boolean') state.claimFlags.firstLogin_3_0_0 = false;
+      if (typeof state.claimFlags.pre3ScaleCompensation !== 'boolean') state.claimFlags.pre3ScaleCompensation = false;
+
+      const shouldDetectLegacy = meta.forceDetectLegacy || meta.hasRawClaimFlags === false || typeof state.claimFlags.pre3ScaleEligible !== 'boolean';
+      if (shouldDetectLegacy) {
+        const savedAt = Number(meta.savedAt || state.lastSavedAt || state.lastSeenAt || 0) || 0;
+        const version = String(meta.version || '');
+        const major = Number.parseInt(version.split('.')[0], 10);
+        const eligibleByVersion = Number.isFinite(major) && major > 0 && major < 3;
+        const eligibleByDate = savedAt > 0 && savedAt < RELEASE_300_TS;
+        const eligibleBySource = meta.source === 'old-key' || meta.source === 'backup-prev';
+        state.claimFlags.pre3ScaleEligible = !!(eligibleByVersion || eligibleByDate || eligibleBySource);
+      }
+    }
+
+    function getHighestOwnedRarity() {
+      let best = 'COMMON';
+      let bestIdx = rarityOrder.indexOf(best);
+      ownedCodes.forEach(code => {
+        const idx = rarityOrder.indexOf(code && code.rarity);
+        if (idx > bestIdx) {
+          best = code.rarity;
+          bestIdx = idx;
+        }
+      });
+      return best;
+    }
+
+    function applyReleaseRewardBundle(bundle) {
+      if (!bundle) return;
+      state.items.dailyBonusBox = (state.items.dailyBonusBox || 0) + (bundle.dailyBonusBox || 0);
+      state.items.rom = (state.items.rom || 0) + (bundle.rom || 0);
+      state.items.codeProtection = (state.items.codeProtection || 0) + (bundle.codeProtection || 0);
+      state.items.pickResidualData = (state.items.pickResidualData || 0) + (bundle.pickResidualData || 0);
+      if (bundle.coin) {
+        state.items.coin = (state.items.coin || 0) + bundle.coin;
+        state.stats.coinEarnedTotal = (state.stats.coinEarnedTotal || 0) + bundle.coin;
+      }
+      if (bundle.oneDay) {
+        state.items.oneDay = (state.items.oneDay || 0) + bundle.oneDay;
+        state.stats.zeroDayOneDayEarnedTotal = (state.stats.zeroDayOneDayEarnedTotal || 0) + bundle.oneDay;
+      }
+      if (bundle.tag) {
+        state.supporterTags = state.supporterTags || [];
+        if (!state.supporterTags.includes(bundle.tag)) state.supporterTags.push(bundle.tag);
+      }
+    }
+
+    function maybeApplyReleaseBundles(meta = {}) {
+      ensureReleaseRewardDefaults(meta);
+      const notices = [];
+      let changed = false;
+      if (Date.now() < RELEASE_300_TS) return { changed, notices };
+
+      if (!state.claimFlags.firstLogin_3_0_0) {
+        applyReleaseRewardBundle({ rom: 20, codeProtection: 1, dailyBonusBox: 2 });
+        state.claimFlags.firstLogin_3_0_0 = true;
+        changed = true;
+        notices.push({
+          toast: langText('3.0.0 첫 접속 보상 지급', '3.0.0 first-login rewards granted', '3.0.0 初回ログイン報酬 지급'),
+          log: langText(
+            '[시즌] 3.0.0 첫 접속 보상 지급: ROM +20 · 코드 보호권 +1 · Daily Bonus Box +2',
+            '[Season] 3.0.0 first-login grant: ROM +20 · Code Protection +1 · Daily Bonus Box +2',
+            '[シーズン] 3.0.0 初回ログイン配布: ROM +20 · コード保護券 +1 · Daily Bonus Box +2'
+          ),
+          extraLog: langText(
+            '[시즌] ROM은 시즌 진행 중 열리는 CODE 안정화·복구 시스템에 사용됩니다.',
+            '[Season] ROM will be used by the CODE stabilization and recovery systems that unlock during the season.',
+            '[シーズン] ROMはシーズン中に開放されるCODE安定化・復旧システムで使用されます。'
+          )
+        });
+      }
+
+      if (!state.claimFlags.pre3ScaleCompensation) {
+        let bundle = null;
+        if (state.claimFlags.pre3ScaleEligible) {
+          const highest = getHighestOwnedRarity();
+          if (highest === 'OPERATION') {
+            bundle = {
+              rom: 50,
+              codeProtection: 1,
+              pickResidualData: 3,
+              tag: 'Pre-3.0 OPERATION Holder'
+            };
+          } else if (highest === 'LEGENDARY') {
+            bundle = {
+              rom: 30,
+              codeProtection: 1,
+              tag: 'Pre-3.0 Veteran'
+            };
+          } else if (['EPIC'].includes(highest)) {
+            bundle = {
+              rom: 15,
+              dailyBonusBox: 2
+            };
+          }
+        }
+        if (bundle) {
+          applyReleaseRewardBundle(bundle);
+          changed = true;
+          notices.push({
+            toast: langText('기존 유저 보상 지급', 'Legacy player grant delivered', '既存プレイヤー補償 지급'),
+            log: langText(
+              `[시즌] 기존 유저 보상 지급: ROM +${bundle.rom || 0}${bundle.codeProtection ? ' · 코드 보호권 +1' : ''}${bundle.pickResidualData ? ` · PICK 잔류 데이터 +${bundle.pickResidualData}` : ''}${bundle.dailyBonusBox ? ` · Daily Bonus Box +${bundle.dailyBonusBox}` : ''}${bundle.tag ? ` · ${bundle.tag}` : ''}`,
+              `[Season] Legacy compensation granted: ROM +${bundle.rom || 0}${bundle.codeProtection ? ' · Code Protection +1' : ''}${bundle.pickResidualData ? ` · PICK Residual Data +${bundle.pickResidualData}` : ''}${bundle.dailyBonusBox ? ` · Daily Bonus Box +${bundle.dailyBonusBox}` : ''}${bundle.tag ? ` · ${bundle.tag}` : ''}`,
+              `[シーズン] 既存プレイヤー補償 지급: ROM +${bundle.rom || 0}${bundle.codeProtection ? ' · コード保護券 +1' : ''}${bundle.pickResidualData ? ` · PICK残留データ +${bundle.pickResidualData}` : ''}${bundle.dailyBonusBox ? ` · Daily Bonus Box +${bundle.dailyBonusBox}` : ''}${bundle.tag ? ` · ${bundle.tag}` : ''}`
+            )
+          });
+        }
+        state.claimFlags.pre3ScaleCompensation = true;
+      }
+
+      return { changed, notices };
+    }
+
+    function flushReleaseNotices(notices) {
+      if (!Array.isArray(notices) || !notices.length) return;
+      notices.forEach((entry, index) => {
+        setTimeout(() => {
+          if (entry.log) log(entry.log, 'system');
+          if (entry.extraLog) log(entry.extraLog, 'system');
+          if (entry.toast) showToast(entry.toast, 'achievement');
+        }, 120 + index * 220);
+      });
+    }
+
+    function addPassPoints(pts) {
+      if (!pts || pts <= 0) return;
+      ensureSeasonState();
+      if (state.season.currentKey === 'preseason') return;
+      state.season.passPoints = (state.season.passPoints || 0) + pts;
+      // check tier ups
+      let newTier = Math.min(PASS_MAX_TIER, Math.floor(state.season.passPoints / PASS_POINTS_PER_TIER));
+      if (newTier > (state.season.passTier || 0)) {
+        state.season.passTier = newTier;
+        state.stats.passTierReached = Math.max(state.stats.passTierReached || 0, newTier);
+        showToast(getLang() === 'en' ? `Pass Tier ${newTier} reached!` : `패스 티어 ${newTier} 달성!`, 'achievement');
+      }
+    }
+
+    // PASS tier reward definitions (30 tiers)
+    const passTierRewards = Array.from({ length: 30 }, (_, i) => {
+      const tier = i + 1;
+      const isBig = tier % 5 === 0;
+      return {
+        tier,
+        credits: isBig ? 300 + tier * 20 : 80 + tier * 8,
+        energyPack: isBig ? 1 : 0,
+        weeklyToken: tier % 10 === 0 ? 2 : 0,
+        coin: tier === 15 ? 50 : (tier === 30 ? 150 : 0),
+        pickCode: tier === 5 ? 'zero_trace' : null,
+        label: `Tier ${tier}`
+      };
+    });
+
+    function claimPassTierReward(tier) {
+      ensureSeasonState();
+      const tNum = Number(tier);
+      if (isNaN(tNum) || tNum < 1 || tNum > PASS_MAX_TIER) return;
+      if ((state.season.passTier || 0) < tNum) {
+        showToast(getLang() === 'en' ? 'Tier not reached yet.' : '아직 해당 티어에 도달하지 않았습니다.', 'warn');
+        return;
+      }
+      const claimedKey = String(tNum);
+      if (state.season.passClaimed[claimedKey]) {
+        showToast(getLang() === 'en' ? 'Already claimed.' : '이미 수령했습니다.', 'warn');
+        return;
+      }
+      const reward = passTierRewards[tNum - 1];
+      if (!reward) return;
+      state.season.passClaimed[claimedKey] = Date.now();
+      if (reward.credits)     { state.credits += reward.credits; state.stats.creditsEarnedTotal += reward.credits; }
+      if (reward.energyPack)  { state.items.energyPack = (state.items.energyPack || 0) + reward.energyPack; }
+      if (reward.weeklyToken) { state.items.weeklyToken = (state.items.weeklyToken || 0) + reward.weeklyToken; }
+      if (reward.coin)        { state.items.coin = (state.items.coin || 0) + reward.coin; state.stats.coinEarnedTotal += reward.coin; }
+      let pickGrant = null;
+      if (reward.pickCode) {
+        pickGrant = grantCodeFromTemplate(reward.pickCode, { duplicateShards: 5 });
+      }
+      // v3.0.0: 티어 25 도달 시 Quartz Terminal 스킨 자동 해금 (시즌 보상)
+      if (tNum >= 25 && state.season.currentNumber >= 1) {
+        try { unlockZdSkin('quartz_terminal'); } catch(e) {}
+      }
+      const msgParts = [];
+      if (reward.credits) msgParts.push(getLang() === 'en' ? `Credits +${reward.credits}` : `크레딧 +${reward.credits}`);
+      if (reward.energyPack) msgParts.push(getLang() === 'en' ? `EnergyPack +${reward.energyPack}` : `에너지팩 +${reward.energyPack}`);
+      if (reward.coin) msgParts.push(`COIN +${reward.coin}`);
+      if (pickGrant && reward.pickCode) {
+        const pickName = (codeDefs[reward.pickCode] && codeDefs[reward.pickCode].name) || reward.pickCode;
+        msgParts.push(pickGrant.type === 'new'
+          ? `PICK ${pickName}`
+          : (getLang() === 'en' ? `${pickName} shards +${pickGrant.shards}` : `${pickName} 조각 +${pickGrant.shards}`));
+      }
+      const msg = getLang() === 'en'
+        ? `Pass Tier ${tNum} claimed: ${msgParts.join(' · ')}`
+        : `패스 티어 ${tNum} 수령: ${msgParts.join(' · ')}`;
+      log(msg, 'system');
+      showToast(msg, 'achievement');
+      updateStatsUI();
+      renderCodeList();
+      renderCodeDetail();
+      renderPassPanel();
+      saveGame(true);
+    }
+
+    function renderPassPanel() {
+      ensureSeasonState();
+      const el = document.getElementById('passPanel');
+      if (!el) return;
+      const key = state.season.currentKey || 'preseason';
+      const num = state.season.currentNumber || 0;
+      const pts = state.season.passPoints || 0;
+      const tier = state.season.passTier || 0;
+      const ptsInTier = pts % PASS_POINTS_PER_TIER;
+      const isPreseason = key === 'preseason';
+      const seasonInfo = getSeasonPhaseInfo();
+      const creditsSeasonEl = document.getElementById('creditsSeasonLabel');
+      if (creditsSeasonEl) creditsSeasonEl.textContent = seasonInfo.badge;
+
+      el.innerHTML = `
+        <div class="pass-header">
+          <span class="badge">${seasonInfo.seasonLabel}</span>
+          ${!isPreseason ? '' : ''}
+        </div>
+        ${isPreseason ? `
+        <!-- v3.0.0: 프리시즌 안내 카드 (여백 축소, 정보 밀도 향상) -->
+        <div class="pass-preseason-card">
+          <div class="pass-preseason-title">${seasonInfo.seasonName}</div>
+          <div class="pass-preseason-countdown">${seasonInfo.countdownLabel}</div>
+          <div class="pass-preseason-date">${seasonInfo.dateLabel}</div>
+          <div class="pass-preseason-note small">${seasonInfo.note}</div>
+        </div>
+        ` : `
+        <div class="pass-preseason-card">
+          <div class="pass-preseason-title">${seasonInfo.seasonName}</div>
+          <div class="pass-preseason-countdown">${seasonInfo.countdownLabel}</div>
+          <div class="pass-preseason-date">${seasonInfo.dateLabel}</div>
+          <div class="pass-preseason-note small">${seasonInfo.note}</div>
+        </div>
+        <div class="pass-progress-row">
+          <span>${getLang()==='en' ? 'Tier' : '티어'} ${tier} / ${PASS_MAX_TIER}</span>
+          <div class="pass-bar"><div class="pass-bar-fill" style="width:${Math.round(ptsInTier)}%"></div></div>
+          <span>${ptsInTier} / ${PASS_POINTS_PER_TIER} pts</span>
+        </div>
+        <div class="pass-tier-list">
+          ${passTierRewards.map(r => {
+            const reached  = tier >= r.tier;
+            const claimed  = !!state.season.passClaimed[String(r.tier)];
+            const canClaim = reached && !claimed;
+            const parts = [];
+            if (r.credits)     parts.push(`+${r.credits}cr`);
+            if (r.energyPack)  parts.push(`+${r.energyPack}EP`);
+            if (r.weeklyToken) parts.push(`+${r.weeklyToken}TK`);
+            if (r.coin)        parts.push(`+${r.coin}COIN`);
+            if (r.pickCode)    parts.push(`PICK ZERO_TRACE`);
+            return `<div class="pass-tier-row ${claimed ? 'claimed' : ''} ${canClaim ? 'can-claim' : ''} ${reached && !claimed ? 'reached' : ''}">
+              <span class="pass-tier-num">T${r.tier}</span>
+              <span class="pass-tier-reward">${parts.join(' ')}</span>
+              <button type="button" data-claim-tier="${r.tier}" ${canClaim ? '' : 'disabled'}>${claimed ? (getLang()==='en' ? 'Claimed' : '수령') : (getLang()==='en' ? 'Claim' : '수령')}</button>
+            </div>`;
+          }).join('')}
+        </div>
+        `}
+      `;
+      el.querySelectorAll('[data-claim-tier]').forEach(btn => {
+        btn.addEventListener('click', () => claimPassTierReward(btn.dataset.claimTier));
+      });
+    }
+
+    // OPS SHOP (inside WEEKLY CHALLENGE panel)
+    const opsShopDefs = [
+      { id: 'ops_quick_charge', nameKo: '퀵 차지 셀', nameEn: 'Quick Charge Cell', tokenCost: 1, scoreGate: 0, desc: '즉시 에너지 +8', descEn: 'Instantly restore +8 energy' },
+      { id: 'ops_credit_cache', nameKo: '크레딧 캐시', nameEn: 'Credit Cache', tokenCost: 2, scoreGate: 200, desc: '크레딧 +500', descEn: 'Credits +500' },
+      { id: 'ops_overclock', nameKo: '오버클럭 스크립트', nameEn: 'Overclock Script', tokenCost: 2, scoreGate: 300, desc: '다음 해킹 성공 확률 +15%p (1회)', descEn: 'Next hack success chance +15%p (once)' },
+      { id: 'ops_buffer', nameKo: '실패 완충 모듈', nameEn: 'Failure Buffer Module', tokenCost: 3, scoreGate: 400, desc: 'RISK/EXTREME 실패 페널티 에너지 면제 2회', descEn: 'Skip RISK/EXTREME failure energy penalty ×2' },
+      { id: 'ops_op_rotation', nameKo: 'OPERATION 코드 로테이션', nameEn: 'OPERATION Code Rotation', tokenCost: 5, scoreGate: 600, desc: 'OPERATION 코드 스캔 1회 보장 (희소)', descEn: 'Guaranteed OPERATION code scan ×1 (rare)' }
+    ];
+
+    function buyOpsShopItem(id) {
+      const def = opsShopDefs.find(d => d.id === id);
+      if (!def) return;
+      const token = state.items.weeklyToken || 0;
+      const score = (state.weeklyChallenge && state.weeklyChallenge.score) || 0;
+      if (score < def.scoreGate) { showToast(getLang()==='en' ? `Need SCORE ${def.scoreGate}+` : `SCORE ${def.scoreGate}+ 필요`, 'warn'); return; }
+      if (token < def.tokenCost) { showToast(getLang()==='en' ? 'Not enough TOKEN.' : 'TOKEN이 부족합니다.', 'warn'); return; }
+      state.items.weeklyToken = token - def.tokenCost;
+      state.stats.weeklyTokensSpentTotal = (state.stats.weeklyTokensSpentTotal || 0) + def.tokenCost;
+      state.stats.eventShopPurchaseCount = (state.stats.eventShopPurchaseCount || 0) + 1;
+      state.weeklyChallenge.shopPurchases = state.weeklyChallenge.shopPurchases || {};
+      state.weeklyChallenge.shopPurchases[id] = (state.weeklyChallenge.shopPurchases[id] || 0) + 1;
+      // apply item effect
+      if (id === 'ops_quick_charge')  { state.energy = Math.min(state.energyMax, state.energy + 8); }
+      if (id === 'ops_credit_cache')  { state.credits += 500; state.stats.creditsEarnedTotal += 500; }
+      if (id === 'ops_overclock')     { if (!state._opsOverclockCharges) state._opsOverclockCharges = 0; state._opsOverclockCharges += 1; }
+      if (id === 'ops_buffer')        { if (!state._opsBufferCharges) state._opsBufferCharges = 0; state._opsBufferCharges += 2; }
+      if (id === 'ops_op_rotation')   { state._opsForcedOpScan = true; }
+      const name = getLang()==='en' ? def.nameEn : def.nameKo;
+      showToast(getLang()==='en' ? `OPS: ${name} purchased` : `OPS 구매: ${name}`, 'achievement');
+      updateStatsUI();
+      saveGame(true);
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  ZERO-DAY 3.0 SYSTEM
+    // ══════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────────────────────────────────
+    // ZERO-DAY DISCOVERY v3.0.0 — 패치 타임어택 코어 루프
+    // 구 터미널 커맨드 방식(ZD_CMDS) 완전 폐기 → 주입/회수/중단 3액션으로 단순화
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // 난이도 설정: timerMs=패치 완료까지, injectPerTap=1탭당 주입량,
+    // traceBase=기본 TRACE 증가, traceHighAdd=90%+ 위험구간 추가 TRACE,
+    // maxInject=최대 주입량, baseScore=보상 기준, clearMin=CLEAR 인정 최소 주입량
+    const ZD_DISC_DIFFICULTIES = {
+      intro:  { label:'INTRO',  ko:'입문',   timerMs:60000, injectPerTap:6,  traceBase:0.022, traceHighAdd:0.08, maxInject:80,  baseScore:40,  clearMin:30, free:true  },
+      easy:   { label:'EASY',   ko:'쉬움',   timerMs:50000, injectPerTap:7,  traceBase:0.028, traceHighAdd:0.10, maxInject:100, baseScore:75,  clearMin:40, free:false },
+      normal: { label:'NORMAL', ko:'보통',   timerMs:40000, injectPerTap:8,  traceBase:0.035, traceHighAdd:0.14, maxInject:130, baseScore:130, clearMin:55, free:false },
+      hard:   { label:'HARD',   ko:'어려움', timerMs:30000, injectPerTap:9,  traceBase:0.045, traceHighAdd:0.20, maxInject:160, baseScore:210, clearMin:75, free:false },
+      danger: { label:'DANGER', ko:'위험',   timerMs:20000, injectPerTap:10, traceBase:0.060, traceHighAdd:0.32, maxInject:200, baseScore:340, clearMin:100,free:false },
+    };
+
+    // 타이머/홀드 인터벌 — 런 수명 관리
+    let _zdTimerId   = null;
+    let _zdHoldTimer = null;
+
+    function startZdDiscTimer() {
+      stopZdDiscTimer();
+      _zdTimerId = setInterval(() => {
+        const run = state.zeroDay && state.zeroDay.pve && state.zeroDay.pve.active;
+        if (!run) { stopZdDiscTimer(); return; }
+        const def = ZD_DISC_DIFFICULTIES[run.diff] || ZD_DISC_DIFFICULTIES.easy;
+        const patch = Math.min(1.0, (Date.now() - run.startedAt) / def.timerMs);
+        if (patch >= 1.0) {
+          stopZdDiscTimer();
+          stopZdHold();
+          finishZdDiscRun('cut', run, def);
+          return;
+        }
+        // 패널 live 갱신 (in-place 업데이트 — 홀드 중 버튼 유지)
+        if (document.getElementById('zeroDayPanel')) updateZdDiscLive();
+      }, 150);
+    }
+
+    function stopZdDiscTimer() {
+      if (_zdTimerId !== null) { clearInterval(_zdTimerId); _zdTimerId = null; }
+    }
+
+    function stopZdHold() {
+      if (_zdHoldTimer !== null) { clearInterval(_zdHoldTimer); _zdHoldTimer = null; }
+    }
+
+    function getZdPatch(run, def) {
+      if (!run || !run.startedAt || !def) return 0;
+      return Math.min(1.0, (Date.now() - run.startedAt) / def.timerMs);
     }
 
     function ensureZeroDayDefaults() {
-      state.zeroDay = state.zeroDay && typeof state.zeroDay === 'object' ? state.zeroDay : {};
-      const zd = state.zeroDay;
-      zd.mode = zd.mode === 'compete' ? 'compete' : 'single';
-      zd.active = zd.active && typeof zd.active === 'object' ? zd.active : null;
-      zd.bestDepth = Math.max(0, Math.round(Number(zd.bestDepth || 0)));
-      zd.bestSignal = Math.max(0, Math.round(Number(zd.bestSignal || 0)));
-      zd.bestScore = Math.max(0, Math.round(Number(zd.bestScore || 0)));
-      zd.runs = Math.max(0, Math.round(Number(zd.runs || 0)));
-      zd.extracts = Math.max(0, Math.round(Number(zd.extracts || 0)));
-      zd.traces = Math.max(0, Math.round(Number(zd.traces || 0)));
-      zd.totalSignal = Math.max(0, Math.round(Number(zd.totalSignal || 0)));
-      zd.lastResult = zd.lastResult && typeof zd.lastResult === 'object' ? zd.lastResult : null;
-      if (zd.active) {
-        zd.active.mode = zd.active.mode === 'compete' ? 'compete' : 'single';
-        zd.active.depth = clampNumber(zd.active.depth, 0, ZERO_DAY_MAX_DEPTH);
-        zd.active.detection = clampNumber(zd.active.detection, 0, 100);
-        zd.active.signal = Math.max(0, Math.round(Number(zd.active.signal || 0)));
-        zd.active.turns = Math.max(0, Math.round(Number(zd.active.turns || 0)));
-        zd.active.startedAt = Number(zd.active.startedAt || Date.now());
-        zd.active.log = Array.isArray(zd.active.log) ? zd.active.log.slice(-5) : [];
-      }
+      state.zeroDay = state.zeroDay || {};
+      state.zeroDay.onboardingCompleted = !!state.zeroDay.onboardingCompleted;
+      state.zeroDay.pve = state.zeroDay.pve || { active: null, bestDepth: 0, bestScore: 0, runs: 0, extracts: 0, difficulty: 'easy' };
+      state.zeroDay.pvp = state.zeroDay.pvp || { active: null, rating: 1000, seasonWins: 0, seasonLosses: 0, attacksTotal: 0, defensesTotal: 0 };
+      state.zeroDay.defense = state.zeroDay.defense || { slots: 3, cards: [], usesThisMatch: 0 };
+      state.zeroDay.unlocks = state.zeroDay.unlocks || {};
+      state.zeroDay.tier = state.zeroDay.tier || 1;
+      state.zeroDay.skins = state.zeroDay.skins || [];
+      state.zeroDay.activeSkin = state.zeroDay.activeSkin || 'zero_shell';
+      // v3.0.0 fix: 취약점 재화 키를 ensureZeroDayDefaults에서도 보장 (단일 진실)
+      state.items = state.items || {};
+      state.items.zeroDayVulnerability = Number(state.items.zeroDayVulnerability || 0);
+      state.items.zeroDayVulnerabilityShard = Number(state.items.zeroDayVulnerabilityShard || 0);
+      state.items.oneDay = Number(state.items.oneDay || 0);
       state.stats = state.stats || {};
-      state.stats.zeroDayRunCount = state.stats.zeroDayRunCount || zd.runs || 0;
-      state.stats.zeroDayExtractCount = state.stats.zeroDayExtractCount || zd.extracts || 0;
-      state.stats.zeroDayTraceCount = state.stats.zeroDayTraceCount || zd.traces || 0;
-      state.stats.zeroDayBestDepth = Math.max(state.stats.zeroDayBestDepth || 0, zd.bestDepth || 0);
-      state.stats.zeroDayBestScore = Math.max(state.stats.zeroDayBestScore || 0, zd.bestScore || 0);
-      state.stats.zeroDaySignalTotal = Math.max(state.stats.zeroDaySignalTotal || 0, zd.totalSignal || 0);
+      state.stats.zeroDayPveClearCount = state.stats.zeroDayPveClearCount || 0;
+      state.stats.zeroDayPveEscapeCount = state.stats.zeroDayPveEscapeCount || 0;
+      state.stats.zeroDayPvpAttackWinCount = state.stats.zeroDayPvpAttackWinCount || 0;
     }
 
-    function getZeroDayModeInfo(mode) {
-      const id = mode === 'compete' ? 'compete' : 'single';
-      return id === 'compete'
-        ? { id, label: zeroCopy('경쟁모드', 'Compete'), startEnergy: 4, detectionBase: 10, detectionMult: 1.25, signalMult: 1.18, scoreMult: 1.25 }
-        : { id, label: zeroCopy('싱글모드', 'Single'), startEnergy: 3, detectionBase: 5, detectionMult: 1, signalMult: 1, scoreMult: 1 };
+    // v3.0.0 fix: 취약점 단일 게터 — 표시/검사/차감 모두 이 함수를 통해 일관된 값 보장
+    function getZdVulnCount() {
+      return Number((state.items && state.items.zeroDayVulnerability) || 0);
+    }
+    function setZdVulnCount(n) {
+      state.items = state.items || {};
+      state.items.zeroDayVulnerability = Math.max(0, Number(n) || 0);
+    }
+    function consumeZdVuln(n = 1) {
+      const cur = getZdVulnCount();
+      if (cur < n) return false;
+      setZdVulnCount(cur - n);
+      return true;
     }
 
-    function appendZeroDayLog(run, message) {
-      if (!run) return;
-      run.log = Array.isArray(run.log) ? run.log : [];
-      run.log.unshift(message);
-      run.log = run.log.slice(0, 5);
+    // v3.0.0: ZD_NODE_TYPES / ZD_NODE_POOLS / generateZdNodeSequence / getZdDetectionStage / ZD_PVE_DIFFICULTIES
+    // 구 터미널 커맨드 기반 노드 시스템 → ZERO-DAY DISCOVERY 타임어택으로 완전 교체됨 (폐기)
+
+    // ══════════════════════════════════════════════════════
+    //  v3.0.0: ZERO-DAY 방어자 카드 시스템
+    // ══════════════════════════════════════════════════════
+    const ZD_DEFENSE_CARDS = {
+      mask:     { id:'mask',     ko:'위장',     en:'Mask',       desc:'공격자의 정찰 명령을 1회 차단', descEn:'Block 1 attacker recon command', effect:{ blockRecon: 1 } },
+      delay:    { id:'delay',    ko:'지연',     en:'Delay',      desc:'공격자의 다음 행동에 +20% 탐지', descEn:'+20% detection on attacker next action', effect:{ detectionPenalty: 0.2 } },
+      trace:    { id:'trace',    ko:'역추적',   en:'Trace',      desc:'공격자가 사용한 마지막 명령을 카드 사용 슬롯에 차단(중복 불가)', descEn:'Block attacker last command type', effect:{ blockLastType: true } },
+      surveil:  { id:'surveil',  ko:'감시',     en:'Surveil',    desc:'공격자의 다음 명령을 노출 (UI 힌트)', descEn:'Reveal attacker next command (UI hint)', effect:{ revealNext: true } },
+      lockdown: { id:'lockdown', ko:'봉쇄',     en:'Lockdown',   desc:'공격자의 침투 명령을 1회 무효화', descEn:'Negate 1 attacker infiltrate command', effect:{ blockInfiltrate: 1 } }
+    };
+
+    // 슬롯 확장 비용 (스펙: 3 기본 / 4슬롯 500 OneDay / 5슬롯 1500 OneDay)
+    const ZD_SLOT_EXPAND_COST = {
+      4: 500,
+      5: 1500
+    };
+
+    // ══════════════════════════════════════════════════════
+    //  v3.0.0: ZERO-DAY 스킨 3종
+    // ══════════════════════════════════════════════════════
+    const ZD_SKINS = {
+      zero_shell: {
+        id:'zero_shell', ko:'Zero Shell', en:'Zero Shell',
+        desc:'기본 ZERO-DAY 터미널. 표준 모노 그린 컬러 스킴.',
+        descEn:'Default ZERO-DAY terminal. Standard mono-green color scheme.',
+        unlocked:true,
+        cssClass:'zd-skin-zero-shell'
+      },
+      glass_console: {
+        id:'glass_console', ko:'Glass Console', en:'Glass Console',
+        desc:'반투명 콘솔 효과. COIN 상점에서 200 COIN으로 구매.',
+        descEn:'Translucent console effect. Buy with 200 COIN in shop.',
+        unlocked:false,
+        cost:{ currency:'coin', amount:200 },
+        cssClass:'zd-skin-glass-console'
+      },
+      quartz_terminal: {
+        id:'quartz_terminal', ko:'Quartz Terminal', en:'Quartz Terminal',
+        desc:'결정 표시 효과 + 청량한 컬러. 시즌 1 PASS 티어 25 보상.',
+        descEn:'Crystal display effect + cool tones. Season 1 PASS Tier 25 reward.',
+        unlocked:false,
+        unlockVia:{ type:'pass_tier', season:1, tier:25 },
+        cssClass:'zd-skin-quartz-terminal'
+      }
+    };
+
+    function isZdSkinUnlocked(skinId) {
+      const skin = ZD_SKINS[skinId];
+      if (!skin) return false;
+      if (skin.unlocked) return true;
+      return !!(state.zeroDay.skins && state.zeroDay.skins.includes(skinId));
     }
 
-    function getZeroDayMetrics(run = null, code = null) {
+    function unlockZdSkin(skinId, silent) {
+      if (!ZD_SKINS[skinId]) return false;
+      state.zeroDay.skins = state.zeroDay.skins || [];
+      if (state.zeroDay.skins.includes(skinId)) return false;
+      state.zeroDay.skins.push(skinId);
+      if (!silent) {
+        const skin = ZD_SKINS[skinId];
+        const name = getLang()==='en' ? skin.en : skin.ko;
+        showToast((getLang()==='en'?'ZD Skin Unlocked: ':'ZD 스킨 해금: ') + name, 'achievement');
+        log(`[ZERO-DAY] ${getLang()==='en'?'Skin unlocked':'스킨 해금'}: ${name}`, 'system');
+      }
+      return true;
+    }
+
+    function applyActiveZdSkin() {
+      const skinId = (state.zeroDay && state.zeroDay.activeSkin) || 'zero_shell';
+      const el = document.getElementById('zeroDayPanel');
+      if (!el) return;
+      // 모든 zd-skin-* 클래스 제거 후 활성 스킨 적용
+      Array.from(el.classList).forEach(c => {
+        if (c.startsWith('zd-skin-')) el.classList.remove(c);
+      });
+      const skin = ZD_SKINS[skinId];
+      if (skin && skin.cssClass) el.classList.add(skin.cssClass);
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  v3.0.0: ZERO-DAY 코드/프로토콜 4종
+    // ══════════════════════════════════════════════════════
+    const ZD_PROTOCOLS = {
+      protocol_phantom: {
+        id:'protocol_phantom',
+        ko:'PHANTOM', en:'PHANTOM',
+        descKo:'INJECT 시 TRACE 증가량 -25% (저위험 운영 특화)',
+        descEn:'TRACE gain per inject -25% (stealth specialist)',
+        condition:{ type:'pveRuns', target:30 },
+        cost:{ currency:'oneDay', amount:300 },
+        effect:{ reconDetectionMult:0.75 }   // reconDetectionMult < 1.0 → TRACE gain multiplier
+      },
+      protocol_breaker: {
+        id:'protocol_breaker',
+        ko:'BREAKER', en:'BREAKER',
+        descKo:'DATA INJECT 1탭당 주입량 +15%',
+        descEn:'DATA INJECT amount per tap +15%',
+        condition:{ type:'pvpWins', target:5 },
+        cost:{ currency:'oneDay', amount:500 },
+        effect:{ infiltrateSuccessBonus:0.15 } // infiltrateSuccessBonus → inject amount multiplier
+      },
+      protocol_shroud: {
+        id:'protocol_shroud',
+        ko:'SHROUD', en:'SHROUD',
+        descKo:'추출 시 탐지율 -30% (1회 추가 보호막)',
+        descEn:'-30% detection on extraction (1 extra shield)',
+        condition:{ type:'lowDetectExtracts', target:10 },
+        cost:{ currency:'oneDay', amount:800 },
+        effect:{ extractionShield:1, extractionDetectionReduction:0.30 }
+      },
+      protocol_overlord: {
+        id:'protocol_overlord',
+        ko:'OVERLORD', en:'OVERLORD',
+        descKo:'모든 ZD 명령 효과 +10%, 탈출 시 OneDay +20%',
+        descEn:'All ZD command effects +10%, exit grants +20% OneDay',
+        condition:{ type:'passTier', target:25 },
+        cost:{ currency:'oneDay', amount:1500 },
+        effect:{ allCommandBonus:0.10, exitOneDayBonus:0.20 }
+      }
+    };
+
+    function getZdProtocolProgress(protocolId) {
+      const def = ZD_PROTOCOLS[protocolId];
+      if (!def) return { ok:false, current:0, target:0 };
+      const cond = def.condition;
+      let current = 0;
+      switch (cond.type) {
+        case 'pveRuns':
+          current = state.stats.zeroDayPveClearCount || 0; break;
+        case 'pvpWins':
+          current = state.stats.zeroDayPvpAttackWinCount || 0; break;
+        case 'lowDetectExtracts':
+          current = state.stats.zeroDayLowDetectionExtracts || 0; break;
+        case 'passTier':
+          current = (state.season && state.season.passTier) || 0; break;
+      }
+      return {
+        ok: current >= cond.target,
+        current,
+        target: cond.target
+      };
+    }
+
+    function isZdProtocolUnlocked(protocolId) {
+      return !!(state.zeroDay.unlocks && state.zeroDay.unlocks[protocolId]);
+    }
+
+    function tryUnlockZdProtocol(protocolId) {
+      const def = ZD_PROTOCOLS[protocolId];
+      if (!def) return { ok:false, reason:'unknown' };
+      if (isZdProtocolUnlocked(protocolId)) return { ok:false, reason:'already' };
+      const prog = getZdProtocolProgress(protocolId);
+      if (!prog.ok) return { ok:false, reason:'condition' };
+      const need = def.cost.amount;
+      const balance = (state.items[def.cost.currency] || 0);
+      if (balance < need) return { ok:false, reason:'currency' };
+      state.items[def.cost.currency] = balance - need;
+      if (def.cost.currency === 'oneDay') {
+        state.stats.zeroDayOneDaySpentTotal = (state.stats.zeroDayOneDaySpentTotal || 0) + need;
+      }
+      state.zeroDay.unlocks = state.zeroDay.unlocks || {};
+      state.zeroDay.unlocks[protocolId] = Date.now();
+      const name = getLang()==='en' ? def.en : def.ko;
+      showToast((getLang()==='en'?'Protocol unlocked: ':'프로토콜 해금: ') + name, 'achievement');
+      log(`[ZERO-DAY] ${getLang()==='en'?'Protocol unlocked':'프로토콜 해금'}: ${name}`, 'system');
+      return { ok:true };
+    }
+
+    function getZdProtocolEffectSum() {
+      const sum = {
+        reconDetectionMult: 1.0,
+        infiltrateSuccessBonus: 0,
+        extractionShield: 0,
+        extractionDetectionReduction: 0,
+        allCommandBonus: 0,
+        exitOneDayBonus: 0
+      };
+      Object.keys(ZD_PROTOCOLS).forEach(pid => {
+        if (!isZdProtocolUnlocked(pid)) return;
+        const eff = ZD_PROTOCOLS[pid].effect || {};
+        Object.keys(eff).forEach(k => {
+          if (k === 'reconDetectionMult') sum[k] *= eff[k];
+          else sum[k] = (sum[k] || 0) + eff[k];
+        });
+      });
+      return sum;
+    }
+
+    // ── ZERO-DAY DISCOVERY v3.0.0: 코어 런 함수 ────────────────────────────
+
+    function canStartZdDisc() {
+      const diff = (state.zeroDay.pve && state.zeroDay.pve.difficulty) || 'easy';
+      const def  = ZD_DISC_DIFFICULTIES[diff] || ZD_DISC_DIFFICULTIES.easy;
+      if (def.free) {
+        const todayKey = getDayKey();
+        if ((state.zeroDay.pve.introDailyKey || '') === todayKey) {
+          return { ok: false, reason: getLang()==='en' ? 'Intro free run used today. Come back tomorrow.' : '오늘 입문 무료 런을 이미 사용했습니다. 내일 다시 시도하세요.' };
+        }
+        return { ok: true };
+      }
+      if (getZdVulnCount() < 1) {
+        return { ok: false, reason: getLang()==='en' ? 'Need 1 Vulnerability to start.' : '취약점 1개가 필요합니다.' };
+      }
+      return { ok: true };
+    }
+
+    function startZdDiscRun() {
       ensureZeroDayDefaults();
-      const activeRun = run || state.zeroDay.active || { mode: state.zeroDay.mode, depth: 0, detection: 0, signal: 0, turns: 0 };
-      const modeInfo = getZeroDayModeInfo(activeRun.mode);
-      const activeCode = code || getActiveCodeInstance();
-      const syncLevel = activeCode ? Number(activeCode.syncLevel || 0) : 0;
-      const depth = Math.max(0, Number(activeRun.depth || 0));
-      const detection = clampNumber(activeRun.detection || 0, 0, 100);
-      const power = activeCode ? Number(activeCode.power || 0) * (1 + 0.055 * Math.max(0, state.cpuTier - 1)) : 0;
-      const security = 42 + depth * 9 + (modeInfo.id === 'compete' ? 10 : 0);
-      let breachChance = activeCode ? power / (power + security) : 0;
-      breachChance += getSyncSuccessBonus(syncLevel);
-      breachChance += Math.min(0.09, Math.max(0, state.cpuTier - 1) * 0.006);
-      breachChance -= detection * 0.0014;
-      breachChance = clampNumber(breachChance, 0.12, 0.92);
-      const gpuSignal = 1 + Math.max(0, Number(state.gpuTier || 1) - 1) * 0.075;
-      const signalGain = Math.max(6, Math.round((12 + depth * 4) * gpuSignal * modeInfo.signalMult));
-      const collectGain = Math.max(8, Math.round((18 + depth * 3) * gpuSignal * modeInfo.signalMult));
-      const successDetection = Math.max(5, Math.round((modeInfo.detectionBase + 6 + depth * 1.1 - state.cpuTier * 0.45) * modeInfo.detectionMult));
-      const failDetection = Math.max(16, Math.round((modeInfo.detectionBase + 18 + depth * 1.9 - state.cpuTier * 0.55) * modeInfo.detectionMult));
-      const collectDetection = Math.max(8, Math.round((modeInfo.detectionBase + 9 + depth * 1.2) * modeInfo.detectionMult));
-      const cloakPower = Math.max(10, Math.round(12 + state.cpuTier * 2.1 + syncLevel * 2));
-      const score = getZeroDayScore(activeRun);
-      return { modeInfo, activeCode, power, security, breachChance, signalGain, collectGain, successDetection, failDetection, collectDetection, cloakPower, score };
-    }
+      if (!state.zeroDay.onboardingCompleted) {
+        showToast(getLang()==='en' ? 'Complete onboarding first.' : '먼저 온보딩을 완료하세요.', 'warn');
+        renderZeroDayPanel();
+        return;
+      }
+      if (state.zeroDay.pve.active) {
+        showToast(getLang()==='en' ? 'Run already in progress.' : '이미 런이 진행 중입니다.', 'warn');
+        return;
+      }
+      const check = canStartZdDisc();
+      if (!check.ok) { showToast(check.reason, 'warn'); return; }
+      const diff = (state.zeroDay.pve && state.zeroDay.pve.difficulty) || 'easy';
+      const def  = ZD_DISC_DIFFICULTIES[diff] || ZD_DISC_DIFFICULTIES.easy;
 
-    function getZeroDayScore(run) {
-      if (!run) return 0;
-      const modeInfo = getZeroDayModeInfo(run.mode);
-      const depth = Number(run.depth || 0);
-      const signal = Number(run.signal || 0);
-      const detection = Number(run.detection || 0);
-      const turns = Number(run.turns || 0);
-      return Math.max(0, Math.round((depth * 230 + signal * 5 - detection * 3 - turns * 12) * modeInfo.scoreMult));
-    }
-
-    function startZeroDay(mode) {
-      ensureZeroDayDefaults();
-      if (state.zeroDay.active) {
-        showToast(zeroCopy('진행 중인 ZERO-DAY 런이 있습니다.', 'A ZERO-DAY run is already active.'), 'warn');
-        return;
-      }
-      const code = getActiveCodeInstance();
-      if (!code) {
-        showToast(t('noOwnedCodes'), 'warn');
-        return;
-      }
-      const modeInfo = getZeroDayModeInfo(mode);
-      if (!consumeEnergy(modeInfo.startEnergy)) {
-        showToast(zeroCopy(`에너지 ${modeInfo.startEnergy} 필요`, `Need ${modeInfo.startEnergy} energy`), 'warn');
-        return;
-      }
-      state.zeroDay.mode = modeInfo.id;
-      state.zeroDay.runs += 1;
-      state.stats.zeroDayRunCount = (state.stats.zeroDayRunCount || 0) + 1;
-      state.zeroDay.active = {
-        id: `zd_${Date.now()}`,
-        mode: modeInfo.id,
-        depth: 0,
-        detection: modeInfo.detectionBase,
-        signal: 0,
-        turns: 0,
+      const runActive = {
+        diff,
+        injected:  0,
+        trace:     0,
+        score:     0,
         startedAt: Date.now(),
-        codeId: code.id,
-        log: [zeroCopy(`${modeInfo.label} 침투 시작: ${code.name}`, `${modeInfo.label} breach started: ${code.name}`)]
+        log:       []
       };
-      playSfx('mode');
-      log(zeroCopy(`[ZERO-DAY] ${modeInfo.label} 침투 시작`, `[ZERO-DAY] ${modeInfo.label} run started`), 'hack');
-      renderZeroDayPanel();
-      saveGame(true);
-    }
 
-    function finishZeroDayRun(status, reason = '') {
-      ensureZeroDayDefaults();
-      const run = state.zeroDay.active;
-      if (!run) return;
-      const score = getZeroDayScore(run);
-      const extracted = status === 'extract';
-      let rewardCredits = 0;
-      let rewardExp = 0;
-      if (extracted) {
-        rewardCredits = Math.max(8, Math.round(run.signal * 3.2 + run.depth * 36));
-        rewardExp = Math.max(1, Math.round(run.depth * 1.6 + run.signal / 28));
-        state.credits += rewardCredits;
-        state.stats.creditsEarnedTotal += rewardCredits;
-        addExp(rewardExp);
-        state.zeroDay.extracts += 1;
-        state.stats.zeroDayExtractCount = (state.stats.zeroDayExtractCount || 0) + 1;
-        playSfx('success');
+      if (def.free) {
+        const todayKey = getDayKey();
+        state.zeroDay.pve.introDailyKey = todayKey;
       } else {
-        state.zeroDay.traces += 1;
-        state.stats.zeroDayTraceCount = (state.stats.zeroDayTraceCount || 0) + 1;
-        playSfx('fail');
+        if (!consumeZdVuln(1)) {
+          showToast(getLang()==='en' ? 'Vulnerability sync error. Try again.' : '취약점 수가 일치하지 않습니다. 다시 시도하세요.', 'warn');
+          renderZeroDayPanel();
+          return;
+        }
       }
-      state.zeroDay.bestDepth = Math.max(state.zeroDay.bestDepth || 0, run.depth || 0);
-      state.zeroDay.bestSignal = Math.max(state.zeroDay.bestSignal || 0, run.signal || 0);
-      state.zeroDay.bestScore = Math.max(state.zeroDay.bestScore || 0, score);
-      state.zeroDay.totalSignal += Math.max(0, run.signal || 0);
-      state.stats.zeroDayBestDepth = Math.max(state.stats.zeroDayBestDepth || 0, state.zeroDay.bestDepth || 0);
-      state.stats.zeroDayBestScore = Math.max(state.stats.zeroDayBestScore || 0, state.zeroDay.bestScore || 0);
-      state.stats.zeroDaySignalTotal = (state.stats.zeroDaySignalTotal || 0) + Math.max(0, run.signal || 0);
-      state.zeroDay.lastResult = {
-        status,
-        mode: run.mode,
-        depth: run.depth,
-        signal: run.signal,
-        detection: run.detection,
-        turns: run.turns,
-        score,
-        credits: rewardCredits,
-        exp: rewardExp,
-        reason,
-        endedAt: Date.now()
-      };
-      state.zeroDay.active = null;
-      const msg = extracted
-        ? zeroCopy(`[ZERO-DAY] 탈출 성공: 깊이 ${run.depth}, 신호 ${run.signal}, 점수 ${score}, 크레딧 +${rewardCredits}, EXP +${rewardExp}`, `[ZERO-DAY] Extracted: depth ${run.depth}, signal ${run.signal}, score ${score}, credits +${rewardCredits}, EXP +${rewardExp}`)
-        : zeroCopy(`[ZERO-DAY] 추적됨: 깊이 ${run.depth}, 신호 ${run.signal}, 점수 ${score}`, `[ZERO-DAY] Traced: depth ${run.depth}, signal ${run.signal}, score ${score}`);
-      log(msg, extracted ? 'system' : 'hack');
-      showToast(extracted ? zeroCopy('ZERO-DAY 탈출 성공', 'ZERO-DAY extracted') : zeroCopy('ZERO-DAY 추적됨', 'ZERO-DAY traced'), extracted ? 'achievement' : 'warn');
+
+      state.zeroDay.pve.active = runActive;
+      state.zeroDay.pve.runs   = (state.zeroDay.pve.runs || 0) + 1;
+      state.stats.zeroDayRunCount = (state.stats.zeroDayRunCount || 0) + 1;
+      state.missionProgress = state.missionProgress || { weekly: {}, month: {} };
+      state.missionProgress.weekly.zeroDayRuns = (state.missionProgress.weekly.zeroDayRuns || 0) + 1;
+      state.missionProgress.month.zeroDayRuns  = (state.missionProgress.month.zeroDayRuns  || 0) + 1;
+      checkMissions('weekly');
+      checkMissions('month');
+      playSfx('hack');
+      startZdDiscTimer();
       renderZeroDayPanel();
       saveGame(true);
     }
 
-    function runZeroDayAction(action) {
+    // INJECT 탭/홀드: 데이터 주입 → TRACE 증가 (PHANTOM 프로토콜로 완화)
+    function doZdInject() {
       ensureZeroDayDefaults();
-      const run = state.zeroDay.active;
-      if (!run) {
-        showToast(zeroCopy('먼저 ZERO-DAY 런을 시작하세요.', 'Start a ZERO-DAY run first.'), 'warn');
+      const run = state.zeroDay.pve.active;
+      if (!run) return;
+      const def   = ZD_DISC_DIFFICULTIES[run.diff] || ZD_DISC_DIFFICULTIES.easy;
+      const patch = getZdPatch(run, def);
+
+      if (run.injected >= def.maxInject) {
+        showToast(getLang()==='en' ? 'MAX INJECT reached' : '최대 주입량 도달', 'warn');
         return;
       }
-      const code = getActiveCodeInstance();
-      if (!code) {
-        finishZeroDayRun('trace', zeroCopy('활성 코드 없음', 'No active code'));
+
+      const protoEff = getZdProtocolEffectSum();
+      // BREAKER: infiltrateSuccessBonus → inject amount multiplier (+15% per tap)
+      const breakerMult  = 1 + (protoEff.infiltrateSuccessBonus || 0);
+      const injectAmount = Math.round(def.injectPerTap * breakerMult);
+      const actualInject = Math.min(injectAmount, def.maxInject - run.injected);
+
+      // TRACE gain: base + exponential spike above 90% patch
+      // PHANTOM: reconDetectionMult → trace gain multiplier (0.75 = -25% TRACE)
+      const phantomMult = protoEff.reconDetectionMult || 1.0;
+      const highRisk    = Math.max(0, (patch - 0.9) / 0.1);
+      const traceGain   = (def.traceBase + def.traceHighAdd * highRisk * highRisk) * phantomMult;
+
+      run.injected = Math.min(def.maxInject, (run.injected || 0) + actualInject);
+      run.trace    = Math.min(1.0, (run.trace || 0) + traceGain);
+      run.score    = (run.score || 0) + Math.round(actualInject * 2);
+
+      const patchPct = Math.round(patch * 100);
+      const tracePct = Math.round(run.trace * 100);
+      run.log = run.log || [];
+      run.log.push(`INJ +${actualInject} [${run.injected}/${def.maxInject}] · TRACE ${tracePct}% · PATCH ${patchPct}%`);
+      if (run.log.length > 12) run.log.shift();
+
+      // TRACED: TRACE가 100%에 도달하면 즉시 종료
+      if (run.trace >= 1.0) {
+        stopZdDiscTimer();
+        stopZdHold();
+        finishZdDiscRun('traced', run, def);
         return;
       }
-      const metrics = getZeroDayMetrics(run, code);
-      if (action === 'extract') {
-        if (run.depth <= 0 && run.signal <= 0) {
-          showToast(zeroCopy('회수할 신호가 없습니다.', 'No signal to extract.'), 'warn');
-          return;
-        }
-        finishZeroDayRun('extract');
-        return;
+
+      updateZdDiscLive();
+    }
+
+    // RECOVER: 데이터 회수 (런 종료) — 패치 완료 전이면 CLEAR, 이후면 CUT
+    function doZdRecover() {
+      ensureZeroDayDefaults();
+      const run = state.zeroDay.pve.active;
+      if (!run) return;
+      const def   = ZD_DISC_DIFFICULTIES[run.diff] || ZD_DISC_DIFFICULTIES.easy;
+      const patch = getZdPatch(run, def);
+      stopZdDiscTimer();
+      stopZdHold();
+      // patch >= 1.0: 타이머가 아직 CUT을 못 쐈을 때의 레이스 컨디션 처리
+      finishZdDiscRun(patch >= 1.0 ? 'cut' : 'clear', run, def);
+    }
+
+    // ABORT: 런 중단 (보상 없음, 확인 다이얼로그)
+    function doZdAbort() {
+      ensureZeroDayDefaults();
+      const run = state.zeroDay.pve.active;
+      if (!run) return;
+      const def = ZD_DISC_DIFFICULTIES[run.diff] || ZD_DISC_DIFFICULTIES.easy;
+      if (!window.confirm(getLang()==='en'
+        ? 'Abort the run? No rewards will be given.'
+        : '런을 중단하시겠습니까? 보상이 지급되지 않습니다.')) return;
+      stopZdDiscTimer();
+      stopZdHold();
+      finishZdDiscRun('abort', run, def);
+    }
+
+    // endState: 'clear' | 'cut' | 'traced' | 'abort'
+    function finishZdDiscRun(endState, run, def) {
+      stopZdDiscTimer();
+      stopZdHold();
+      const injected = run.injected || 0;
+      const score    = run.score    || 0;
+      const trace    = run.trace    || 0;
+
+      // CLEAR 인정: endState==='clear' + 최소 주입량(clearMin) 달성
+      const isClear = endState === 'clear' && injected >= def.clearMin;
+      // 실제 결과 라벨 (RECOVER를 눌렀지만 clearMin 미달이면 CUT으로 처리)
+      const actualState = isClear
+        ? 'clear'
+        : (endState === 'clear' && injected < def.clearMin) ? 'cut'
+        : endState;
+
+      // 보상 배율: CLEAR 100% / CUT 20% / TRACED·ABORT 0%
+      const rewardMult = actualState === 'clear' ? 1.0 : actualState === 'cut' ? 0.2 : 0.0;
+
+      const protoEff = getZdProtocolEffectSum();
+      let rewardOneDay = Math.round((def.baseScore + score * 0.1) * rewardMult);
+      // OVERLORD: CLEAR 시 OneDay +20%
+      if (actualState === 'clear' && protoEff.exitOneDayBonus > 0) {
+        rewardOneDay = Math.round(rewardOneDay * (1 + protoEff.exitOneDayBonus));
       }
-      if (action === 'abort') {
-        finishZeroDayRun('trace', zeroCopy('작전 포기', 'Run aborted'));
-        return;
+      const rewardCredits = Math.round((def.baseScore * 0.5 + score * 0.2) * rewardMult);
+
+      // 런 초기화
+      state.zeroDay.pve.active = null;
+
+      // 통계 업데이트
+      if (actualState === 'clear') {
+        state.zeroDay.pve.extracts        = (state.zeroDay.pve.extracts || 0) + 1;
+        state.zeroDay.pve.bestScore       = Math.max(state.zeroDay.pve.bestScore || 0, score);
+        state.stats.zeroDayPveClearCount  = (state.stats.zeroDayPveClearCount  || 0) + 1;
+        state.stats.zeroDayPveEscapeCount = (state.stats.zeroDayPveEscapeCount || 0) + 1;
+        const diffOrder = ['intro','easy','normal','hard','danger'];
+        const diffIdx     = diffOrder.indexOf(run.diff);
+        const bestDiffIdx = diffOrder.indexOf(state.stats.zeroDayBestExtractDiff || 'intro');
+        if (diffIdx > bestDiffIdx) state.stats.zeroDayBestExtractDiff = run.diff;
+        // TRACE < 50% → PHANTOM 프로토콜 해금 조건(저탐지 클리어) 카운트
+        if (trace < 0.5) state.stats.zeroDayLowDetectionExtracts = (state.stats.zeroDayLowDetectionExtracts || 0) + 1;
+      } else if (actualState === 'cut') {
+        state.stats.zeroDayPveEscapeCount = (state.stats.zeroDayPveEscapeCount || 0) + 1;
       }
-      if (action === 'cloak') {
-        if (!consumeEnergy(1)) {
-          showToast(zeroCopy('은폐에는 에너지 1이 필요합니다.', 'Cloak needs 1 energy.'), 'warn');
-          return;
-        }
-        run.turns += 1;
-        const before = run.detection;
-        run.detection = clampNumber(run.detection - metrics.cloakPower, 0, 100);
-        appendZeroDayLog(run, zeroCopy(`은폐 성공: 탐지 ${before}% → ${run.detection}%`, `Cloak: detection ${before}% -> ${run.detection}%`));
-        playSfx('mode');
+
+      // 보상 지급
+      if (rewardCredits > 0) { state.credits += rewardCredits; state.stats.creditsEarnedTotal += rewardCredits; }
+      if (rewardOneDay  > 0) {
+        state.items.oneDay = (state.items.oneDay || 0) + rewardOneDay;
+        state.stats.zeroDayOneDayEarnedTotal = (state.stats.zeroDayOneDayEarnedTotal || 0) + rewardOneDay;
       }
-      if (action === 'collect') {
-        run.turns += 1;
-        run.signal += metrics.collectGain;
-        run.detection = clampNumber(run.detection + metrics.collectDetection, 0, 100);
-        appendZeroDayLog(run, zeroCopy(`신호 수집 +${metrics.collectGain}, 탐지 +${metrics.collectDetection}%`, `Signal +${metrics.collectGain}, detection +${metrics.collectDetection}%`));
-        playSfx('scanComplete');
+
+      // 패스 포인트
+      addPassPoints(actualState === 'clear' ? 60 : actualState === 'cut' ? 20 : 5);
+
+      // 로그
+      const diffLabel = def.label || run.diff.toUpperCase();
+      log(`[ZERO-DAY] ${actualState.toUpperCase()} · ${diffLabel} · injected ${injected}/${def.maxInject} · trace ${Math.round(trace*100)}% · OneDay +${rewardOneDay} · credits +${rewardCredits}`, 'hack');
+
+      // 토스트
+      let toastMsg, toastType;
+      if (actualState === 'clear') {
+        toastMsg  = getLang()==='en' ? `ZERO-DAY CLEAR!  OneDay +${rewardOneDay}` : `ZERO-DAY 클리어! OneDay +${rewardOneDay}`;
+        toastType = 'achievement';
+      } else if (actualState === 'cut') {
+        toastMsg  = getLang()==='en' ? `ZERO-DAY CUT — patch closed. OneDay +${rewardOneDay}` : `ZERO-DAY CUT — 패치 완료. OneDay +${rewardOneDay}`;
+        toastType = 'system';
+      } else if (actualState === 'traced') {
+        toastMsg  = getLang()==='en' ? 'ZERO-DAY TRACED — no reward' : 'ZERO-DAY: 추적됨 — 보상 없음';
+        toastType = 'warn';
+      } else {
+        toastMsg  = getLang()==='en' ? 'ZERO-DAY: Aborted' : 'ZERO-DAY: 중단됨';
+        toastType = 'warn';
       }
-      if (action === 'breach') {
-        if (run.depth >= ZERO_DAY_MAX_DEPTH) {
-          showToast(zeroCopy('코어 깊이에 도달했습니다. 탈출하세요.', 'Core depth reached. Extract now.'), 'warn');
-          return;
-        }
-        run.turns += 1;
-        const success = Math.random() < metrics.breachChance;
-        if (success) {
-          run.depth += 1;
-          run.signal += metrics.signalGain;
-          run.detection = clampNumber(run.detection + metrics.successDetection, 0, 100);
-          code.usage = (code.usage || 0) + 1;
-          appendZeroDayLog(run, zeroCopy(`노드 ${run.depth} 돌파: 신호 +${metrics.signalGain}, 탐지 +${metrics.successDetection}%`, `Node ${run.depth} breached: signal +${metrics.signalGain}, detection +${metrics.successDetection}%`));
-          playSfx('success');
-        } else {
-          run.detection = clampNumber(run.detection + metrics.failDetection, 0, 100);
-          appendZeroDayLog(run, zeroCopy(`돌파 실패: 탐지 +${metrics.failDetection}%`, `Breach failed: detection +${metrics.failDetection}%`));
-          playSfx('fail');
-        }
-      }
-      if (run.detection >= 100) {
-        finishZeroDayRun('trace', zeroCopy('탐지율 100%', 'Detection reached 100%'));
-        return;
-      }
-      if (run.depth >= ZERO_DAY_MAX_DEPTH) {
-        appendZeroDayLog(run, zeroCopy('코어 깊이에 도달했습니다. 탈출을 권장합니다.', 'Core depth reached. Extraction recommended.'));
-      }
+      showToast(toastMsg, toastType);
+      checkAchievements('zeroDayPve');
+      updateStatsUI();
       renderZeroDayPanel();
       saveGame(true);
     }
 
+    function completeZdOnboarding() {
+      ensureZeroDayDefaults();
+      if (state.zeroDay.onboardingCompleted) return;
+      state.zeroDay.onboardingCompleted = true;
+      state.items.zeroDayVulnerability = (state.items.zeroDayVulnerability || 0) + 1;
+      log(getLang()==='en' ? '[ZERO-DAY] Onboarding complete. Vulnerability x1 granted. PVE & PVP unlocked.' : '[ZERO-DAY] 온보딩 완료. 취약점 1개 지급. PVE & PVP 해금.', 'system');
+      showToast(getLang()==='en' ? 'Onboarding done! +1 Vulnerability' : '온보딩 완료! 취약점 +1', 'achievement');
+      updateStatsUI();
+      renderZeroDayPanel();
+      saveGame(true);
+    }
+
+    // ── ZERO-DAY DISCOVERY v3.0.0: in-place 바/로그 업데이트 (홀드 중 버튼 보존) ──
+    function updateZdDiscLive() {
+      const run = state.zeroDay && state.zeroDay.pve && state.zeroDay.pve.active;
+      if (!run) { renderZeroDayPanel(); return; }
+      const def      = ZD_DISC_DIFFICULTIES[run.diff] || ZD_DISC_DIFFICULTIES.easy;
+      const patch    = getZdPatch(run, def);
+      const patchPct = Math.min(100, Math.round(patch * 100));
+      const tracePct = Math.min(100, Math.round((run.trace || 0) * 100));
+      const patchFill  = document.getElementById('zdPatchFill');
+      const traceFill  = document.getElementById('zdTraceFill');
+      const patchPctEl = document.getElementById('zdPatchPct');
+      const tracePctEl = document.getElementById('zdTracePct');
+      const logEl      = document.getElementById('zdDiscLog');
+      const injectEl   = document.getElementById('zdDiscInjectCount');
+      // 엘리먼트가 없으면 런 UI가 아직 렌더되지 않은 것 → 풀 렌더
+      if (!patchFill || !traceFill) { renderZeroDayPanel(); return; }
+
+      patchFill.style.width = patchPct + '%';
+      traceFill.style.width = tracePct + '%';
+      patchFill.classList.toggle('zd-patch-danger', patchPct >= 90);
+      traceFill.classList.toggle('zd-trace-danger', tracePct >= 70);
+      // 라벨 색상 토글
+      const patchLabelEl = patchPctEl && patchPctEl.closest('.zd-disc-bar-label');
+      if (patchLabelEl) patchLabelEl.classList.toggle('zd-bar-danger', patchPct >= 90);
+      const traceLabelEl = tracePctEl && tracePctEl.closest('.zd-disc-bar-label');
+      if (traceLabelEl) traceLabelEl.classList.toggle('zd-bar-danger', tracePct >= 70);
+      if (patchPctEl) patchPctEl.textContent = patchPct + '%';
+      if (tracePctEl) tracePctEl.textContent = tracePct + '%';
+      if (injectEl)   injectEl.textContent = `${run.injected || 0} / ${def.maxInject}`;
+      if (logEl && run.log && run.log.length) {
+        logEl.innerHTML = run.log.slice(-8).map(l => `<div class="zd-disc-log-line">${escapeHtml(l)}</div>`).join('');
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
+
+    // ── ZERO-DAY DISCOVERY v3.0.0: 패널 렌더 ────────────────────────────────
     function renderZeroDayPanel() {
       ensureZeroDayDefaults();
-      const summaryEl = document.getElementById('zeroDaySummary');
-      const runEl = document.getElementById('zeroDayRunPanel');
-      const modeCards = document.querySelectorAll('[data-zero-day-mode-card]');
-      const startButtons = document.querySelectorAll('[data-zero-day-start]');
-      if (!summaryEl || !runEl) return;
-      const zd = state.zeroDay;
-      summaryEl.innerHTML = `
-        <div><span>BEST DEPTH</span><strong>${zd.bestDepth || 0} / ${ZERO_DAY_MAX_DEPTH}</strong></div>
-        <div><span>BEST SCORE</span><strong>${zd.bestScore || 0}</strong></div>
-        <div><span>RUNS</span><strong>${zd.runs || 0}</strong></div>
-        <div><span>SIGNAL</span><strong>${zd.totalSignal || 0}</strong></div>
-      `;
-      const active = zd.active;
-      modeCards.forEach(card => {
-        const mode = card.dataset.zeroDayModeCard || 'single';
-        card.classList.toggle('active', (active ? active.mode : zd.mode) === mode);
-        card.classList.toggle('is-locked', !!active);
-      });
-      startButtons.forEach(btn => {
-        const mode = btn.dataset.zeroDayStart || 'single';
-        const info = getZeroDayModeInfo(mode);
-        btn.disabled = !!active;
-        btn.textContent = active
-          ? zeroCopy('침투 진행 중', 'Run active')
-          : (mode === 'compete' ? zeroCopy(`경쟁 침투 시작 · 에너지 ${info.startEnergy}`, `Start compete · ${info.startEnergy} energy`) : zeroCopy(`싱글 침투 시작 · 에너지 ${info.startEnergy}`, `Start single · ${info.startEnergy} energy`));
-      });
-      if (!active) {
-        const result = zd.lastResult;
-        const resultHtml = result ? `
-          <div class="zero-day-result ${result.status === 'extract' ? 'is-success' : 'is-trace'}">
-            <span>${result.status === 'extract' ? zeroCopy('최근 탈출', 'Last extract') : zeroCopy('최근 추적', 'Last trace')}</span>
-            <strong>${zeroCopy('깊이', 'Depth')} ${result.depth || 0} · ${zeroCopy('신호', 'Signal')} ${result.signal || 0} · SCORE ${result.score || 0}</strong>
-          </div>
-        ` : '';
-        runEl.innerHTML = `
-          <div class="zero-day-idle">
-            <span class="badge">READY</span>
-            <h4>${zeroCopy('침투 대기', 'Ready to breach')}</h4>
-            <p>${zeroCopy('활성 코드를 선택한 뒤 싱글모드 또는 경쟁모드로 ZERO-DAY 런을 시작하세요.', 'Select an active code, then start a ZERO-DAY run in Single or Compete mode.')}</p>
-            ${resultHtml}
-          </div>
-        `;
+      const el = document.getElementById('zeroDayPanel');
+      if (!el) return;
+      const zd     = state.zeroDay;
+      const vuln   = getZdVulnCount();
+      const shards = state.items.zeroDayVulnerabilityShard || 0;
+      const oneDay = state.items.oneDay || 0;
+
+      // ── 온보딩 미완료 ──────────────────────────────────────────────────────
+      if (!zd.onboardingCompleted) {
+        el.innerHTML = `
+          <div class="zd-disc-panel">
+            <div class="zd-disc-header">
+              <div class="zd-disc-title">ZERO-DAY<span class="zd-disc-badge">DISCOVERY</span></div>
+              <div class="zd-disc-tagline">${getLang()==='en' ? 'Inject before the patch closes.' : '패치되기 전에 주입하라.'}</div>
+            </div>
+            <div class="zd-onboard-box">
+              <div class="zd-disc-log-line">$ ${getLang()==='en' ? 'ZERO-DAY system initializing...' : 'ZERO-DAY 시스템 초기화 중...'}</div>
+              <div class="zd-disc-log-line">${getLang()==='en' ? 'Onboarding mode active. Complete to unlock DISCOVERY.' : '온보딩 모드 활성화. 완료하면 DISCOVERY 해금.'}</div>
+              <div class="zd-disc-log-line">${getLang()==='en' ? 'Reward: 1 Vulnerability (entry ticket).' : '보상: 취약점 1개 (첫 입장권).'}</div>
+              <button type="button" id="btnZdOnboarding" class="zd-disc-start-btn">${getLang()==='en' ? '▶ Start Onboarding' : '▶ 온보딩 시작'}</button>
+            </div>
+          </div>`;
+        const btn = el.querySelector('#btnZdOnboarding');
+        if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); completeZdOnboarding(); });
         return;
       }
-      const metrics = getZeroDayMetrics(active);
-      const chancePct = Math.round(metrics.breachChance * 100);
-      const score = getZeroDayScore(active);
-      const modeLabel = metrics.modeInfo.label;
-      const codeName = metrics.activeCode ? metrics.activeCode.name : '-';
-      const logLines = (active.log || []).slice(0, 4).map(item => `<li>${item}</li>`).join('');
-      runEl.innerHTML = `
-        <div class="zero-day-run-head">
-          <div>
-            <span class="badge">${metrics.modeInfo.id === 'compete' ? 'COMPETE' : 'SINGLE'}</span>
-            <h4>${zeroCopy('침투 진행 중', 'Breach in progress')}</h4>
-            <p>${modeLabel} · ${codeName}</p>
+
+      const activeRun = zd.pve.active;
+      const diff      = zd.pve.difficulty || 'easy';
+      const diffDef   = ZD_DISC_DIFFICULTIES[diff] || ZD_DISC_DIFFICULTIES.easy;
+
+      // ── 런 진행 중 UI ──────────────────────────────────────────────────────
+      if (activeRun) {
+        const def      = ZD_DISC_DIFFICULTIES[activeRun.diff] || ZD_DISC_DIFFICULTIES.easy;
+        const patch    = getZdPatch(activeRun, def);
+        const patchPct = Math.min(100, Math.round(patch * 100));
+        const tracePct = Math.min(100, Math.round((activeRun.trace || 0) * 100));
+        const isPatchDanger = patchPct >= 90;
+        const isTraceDanger = tracePct >= 70;
+        const logLines = (activeRun.log || []).slice(-8)
+          .map(l => `<div class="zd-disc-log-line">${escapeHtml(l)}</div>`).join('');
+
+        el.innerHTML = `
+          <div class="zd-disc-panel">
+            <div class="zd-disc-header">
+              <div class="zd-disc-title">ZERO-DAY <span class="zd-disc-badge">${def.label}</span></div>
+              <div class="zd-disc-tagline">${getLang()==='en' ? 'Inject before the patch closes.' : '패치되기 전에 주입하라.'}</div>
+            </div>
+
+            <div class="zd-disc-bars">
+              <div class="zd-disc-bar-section">
+                <div class="zd-disc-bar-label ${isPatchDanger ? 'zd-bar-danger' : ''}">
+                  <span>${getLang()==='en' ? 'PATCH PROGRESS' : '패치 진행도'}</span>
+                  <span id="zdPatchPct">${patchPct}%</span>
+                </div>
+                <div class="zd-disc-bar-track">
+                  <div class="zd-disc-bar-fill zd-patch-fill ${isPatchDanger ? 'zd-patch-danger' : ''}"
+                       id="zdPatchFill" style="width:${patchPct}%"></div>
+                </div>
+              </div>
+              <div class="zd-disc-bar-section">
+                <div class="zd-disc-bar-label ${isTraceDanger ? 'zd-bar-danger' : ''}">
+                  <span>${getLang()==='en' ? 'TRACE RISK' : '추적 위험도'}</span>
+                  <span id="zdTracePct">${tracePct}%</span>
+                </div>
+                <div class="zd-disc-bar-track">
+                  <div class="zd-disc-bar-fill zd-trace-fill ${isTraceDanger ? 'zd-trace-danger' : ''}"
+                       id="zdTraceFill" style="width:${tracePct}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="zd-disc-inject-display">
+              <span>${getLang()==='en' ? 'INJECTED' : '주입량'}</span>
+              <strong id="zdDiscInjectCount">${activeRun.injected || 0} / ${def.maxInject}</strong>
+              <span>SCORE ${activeRun.score || 0}</span>
+            </div>
+
+            <button type="button" id="zdInjectBtn" class="zd-disc-inject-btn">
+              <span class="zd-disc-inject-icon">⬇</span>
+              <span class="zd-disc-inject-label">DATA INJECT</span>
+              <span class="zd-disc-inject-sub">${getLang()==='en' ? 'Tap or Hold' : '탭 또는 홀드'}</span>
+            </button>
+
+            <div class="zd-disc-action-row">
+              <button type="button" id="zdRecoverBtn" class="zd-disc-recover-btn">
+                ${getLang()==='en' ? '▶ RECOVER' : '▶ 회수'}
+              </button>
+              <button type="button" id="zdAbortBtn" class="zd-disc-abort-btn">
+                ${getLang()==='en' ? '✕ ABORT' : '✕ 중단'}
+              </button>
+            </div>
+
+            <div class="zd-disc-log" id="zdDiscLog">${logLines}</div>
+          </div>`;
+
+        applyActiveZdSkin();
+
+        // INJECT 버튼 — 탭/홀드 (mousedown+touchstart 기반)
+        const injectBtn = el.querySelector('#zdInjectBtn');
+        if (injectBtn) {
+          const startHold = (e) => {
+            e.preventDefault();
+            doZdInject();
+            stopZdHold();
+            _zdHoldTimer = setInterval(doZdInject, 250);
+          };
+          const endHold = () => stopZdHold();
+          injectBtn.addEventListener('mousedown',   startHold);
+          injectBtn.addEventListener('mouseup',     endHold);
+          injectBtn.addEventListener('mouseleave',  endHold);
+          injectBtn.addEventListener('touchstart',  startHold, { passive: false });
+          injectBtn.addEventListener('touchend',    endHold,   { passive: true  });
+          injectBtn.addEventListener('touchcancel', endHold,   { passive: true  });
+        }
+        el.querySelector('#zdRecoverBtn')?.addEventListener('click', doZdRecover);
+        el.querySelector('#zdAbortBtn')  ?.addEventListener('click', doZdAbort);
+        return;
+      }
+
+      // ── 로비 (대기) UI ────────────────────────────────────────────────────
+      const check = canStartZdDisc();
+
+      const diffBtns = Object.entries(ZD_DISC_DIFFICULTIES).map(([id, d]) => {
+        const costTx = d.free
+          ? (getLang()==='en' ? 'Free (1/day)' : '무료 1일1회')
+          : (getLang()==='en' ? '1 Vuln'       : '취약점 1개');
+        return `<button type="button" class="zd-disc-diff-btn ${id===diff?'active':''}" data-zd-diff="${id}">
+          <strong>${d.label}</strong><span>${d.ko}</span><span class="zd-diff-cost">${costTx}</span>
+        </button>`;
+      }).join('');
+
+      // 프로토콜 섹션
+      const protosHtml = Object.values(ZD_PROTOCOLS).map(p => {
+        const unlocked = isZdProtocolUnlocked(p.id);
+        const prog     = getZdProtocolProgress(p.id);
+        const condText = (() => {
+          switch (p.condition.type) {
+            case 'pveRuns':           return getLang()==='en' ? `Clears ${prog.current}/${prog.target}`         : `클리어 ${prog.current}/${prog.target}`;
+            case 'pvpWins':           return getLang()==='en' ? `PVP wins ${prog.current}/${prog.target}`       : `PVP 승리 ${prog.current}/${prog.target}`;
+            case 'lowDetectExtracts': return getLang()==='en' ? `Low-trace clears ${prog.current}/${prog.target}` : `저추적 클리어 ${prog.current}/${prog.target}`;
+            case 'passTier':          return getLang()==='en' ? `PASS tier ${prog.current}/${prog.target}`      : `PASS 티어 ${prog.current}/${prog.target}`;
+            default: return '';
+          }
+        })();
+        const canUnlock = !unlocked && prog.ok && (state.items[p.cost.currency] || 0) >= p.cost.amount;
+        return `<div class="zd-disc-protocol ${unlocked ? 'unlocked' : ''}" data-zd-protocol="${p.id}">
+          <div class="zd-disc-proto-head">
+            <strong>${getLang()==='en' ? p.en : p.ko}</strong>
+            ${unlocked ? '<span class="zd-proto-badge">ON</span>' : ''}
           </div>
-          <div class="zero-day-score"><span>SCORE</span><strong>${score}</strong></div>
-        </div>
-        <div class="zero-day-live-grid">
-          <div><span>${zeroCopy('깊이', 'Depth')}</span><strong>${active.depth} / ${ZERO_DAY_MAX_DEPTH}</strong></div>
-          <div><span>${zeroCopy('탐지', 'Detection')}</span><strong>${active.detection}%</strong></div>
-          <div><span>${zeroCopy('신호', 'Signal')}</span><strong>${active.signal}</strong></div>
-          <div><span>${zeroCopy('돌파율', 'Breach')}</span><strong>${chancePct}%</strong></div>
-          <div><span>${zeroCopy('다음 신호', 'Next Signal')}</span><strong>+${metrics.signalGain}</strong></div>
-          <div><span>${zeroCopy('은폐력', 'Cloak')}</span><strong>-${metrics.cloakPower}%</strong></div>
-        </div>
-        <div class="zero-day-meter" aria-label="Zero-day detection gauge">
-          <span style="width:${active.detection}%"></span>
-        </div>
-        <div class="zero-day-actions">
-          <button type="button" data-zero-day-action="breach" ${active.depth >= ZERO_DAY_MAX_DEPTH ? 'disabled' : ''}>${zeroCopy('노드 돌파', 'Breach Node')}</button>
-          <button type="button" data-zero-day-action="collect">${zeroCopy('신호 수집', 'Collect Signal')}</button>
-          <button type="button" data-zero-day-action="cloak">${zeroCopy('은폐', 'Cloak')}</button>
-          <button type="button" data-zero-day-action="extract" ${active.depth <= 0 && active.signal <= 0 ? 'disabled' : ''}>${zeroCopy('탈출', 'Extract')}</button>
-          <button type="button" data-zero-day-action="abort">${zeroCopy('포기', 'Abort')}</button>
-        </div>
-        <ul class="zero-day-log">${logLines || `<li>${zeroCopy('작전 로그 대기 중', 'Waiting for operation log')}</li>`}</ul>
-      `;
+          <div class="small">${getLang()==='en' ? p.descEn : p.descKo}</div>
+          <div class="zd-proto-meta small"><span>${condText}</span><span>${p.cost.amount} ${p.cost.currency.toUpperCase()}</span></div>
+          ${!unlocked ? `<button type="button" class="zd-disc-proto-unlock" data-zd-protocol-unlock="${p.id}" ${canUnlock ? '' : 'disabled'}>${getLang()==='en' ? 'Unlock' : '해금'}</button>` : ''}
+        </div>`;
+      }).join('');
+
+      // PVP 준비도
+      const cond1    = ['normal','hard','danger'].includes(state.stats.zeroDayBestExtractDiff || '');
+      const cond2    = (state.stats.zeroDayPveEscapeCount || 0) >= 1;
+      const cond3    = (state.stats.zeroDayLowDetectionExtracts || 0) >= 1;
+      const condsMet = [cond1, cond2, cond3].filter(Boolean).length;
+      const pvpReady = condsMet >= 2;
+
+      // 방어 카드 슬롯
+      zd.defense   = zd.defense   || { slots:3, cards:[], usesThisMatch:0 };
+      zd.skins     = zd.skins     || [];
+      zd.unlocks   = zd.unlocks   || {};
+      const slotCards = zd.defense.cards || [];
+      const slotCount = zd.defense.slots || 3;
+
+      const slotsHtml = Array.from({length:5}).map((_,i) => {
+        const idx    = i + 1;
+        const enabled= idx <= slotCount;
+        const cardId = slotCards[i] || null;
+        const card   = cardId ? ZD_DEFENSE_CARDS[cardId] : null;
+        return `<div class="zd-defense-slot ${enabled?'enabled':'locked'}">
+          <div class="zd-slot-num">SLOT ${idx}</div>
+          ${enabled
+            ? (card
+                ? `<strong>${getLang()==='en'?card.en:card.ko}</strong><span class="small">${getLang()==='en'?card.descEn:card.desc}</span>`
+                : `<span class="small zd-slot-empty">${getLang()==='en'?'(empty)':'(비어있음)'}</span>`)
+            : `<span class="zd-slot-lock">🔒 ${ZD_SLOT_EXPAND_COST[idx]||'?'} OneDay</span>`}
+          ${enabled
+            ? `<button type="button" data-zd-slot-edit="${idx}">${card?(getLang()==='en'?'Change':'변경'):(getLang()==='en'?'Equip':'장착')}</button>`
+            : `<button type="button" data-zd-slot-expand="${idx}">${getLang()==='en'?'Expand':'확장'}</button>`}
+        </div>`;
+      }).join('');
+
+      const skinsHtml = Object.values(ZD_SKINS).map(skin => {
+        const owned  = isZdSkinUnlocked(skin.id);
+        const active = zd.activeSkin === skin.id;
+        return `<div class="zd-skin-card ${active?'active':''} ${owned?'owned':'locked'}" data-zd-skin="${skin.id}">
+          <strong>${getLang()==='en'?skin.en:skin.ko}</strong>
+          <span class="small">${getLang()==='en'?skin.descEn:skin.desc}</span>
+          ${active ? `<span class="zd-skin-badge">${getLang()==='en'?'ACTIVE':'사용 중'}</span>`
+            : owned ? `<button type="button" data-zd-skin-equip="${skin.id}">${getLang()==='en'?'Equip':'장착'}</button>`
+            : `<span class="zd-skin-badge locked">${getLang()==='en'?'LOCKED':'미해금'}</span>`}
+        </div>`;
+      }).join('');
+
+      el.innerHTML = `
+        <div class="zd-disc-panel">
+          <div class="zd-disc-header">
+            <div class="zd-disc-title">ZERO-DAY <span class="zd-disc-badge">DISCOVERY</span></div>
+            <div class="zd-disc-tagline">${getLang()==='en' ? 'Season 1 · Inject before the patch closes.' : 'Season 1 · 패치되기 전에 주입하라.'}</div>
+          </div>
+
+          <div class="zd-disc-resource-row">
+            <span>${getLang()==='en'?'VULN':'취약점'}: <strong>${vuln}</strong></span>
+            <span>${getLang()==='en'?'SHARDS':'조각'}: <strong>${shards}</strong>/50</span>
+            <span>OneDay: <strong>${oneDay}</strong></span>
+            ${shards >= 50 ? `<button type="button" id="btnCraftVuln" class="zd-disc-craft-btn">${getLang()==='en'?'Craft Vuln':'취약점 제작'}</button>` : ''}
+          </div>
+
+          <div class="zd-disc-section-label">${getLang()==='en'?'DIFFICULTY':'난이도'}</div>
+          <div class="zd-disc-diff-row">${diffBtns}</div>
+
+          <div class="zd-disc-start-row">
+            <button type="button" id="btnStartZdDisc" class="zd-disc-start-btn" ${check.ok ? '' : 'disabled'}>
+              ${getLang()==='en' ? '▶ EXPLOIT START' : '▶ 익스플로잇 시작'}
+            </button>
+            <span class="small zd-start-hint">${check.ok
+              ? (getLang()==='en' ? `Cost: ${diffDef.free?'Free (1/day)':'1 Vulnerability'}` : `비용: ${diffDef.free?'무료 (1일 1회)':'취약점 1개'}`)
+              : `⚠ ${check.reason}`
+            }</span>
+          </div>
+
+          <div class="zd-disc-stats-row">
+            <div><span>${getLang()==='en'?'RUNS':'런'}</span><strong>${zd.pve.runs||0}</strong></div>
+            <div><span>${getLang()==='en'?'CLEARS':'클리어'}</span><strong>${zd.pve.extracts||0}</strong></div>
+            <div><span>${getLang()==='en'?'BEST SCORE':'최고 점수'}</span><strong>${zd.pve.bestScore||0}</strong></div>
+            <div><span>PVP</span><strong>R${zd.pvp.rating||1000}</strong></div>
+          </div>
+
+          <div class="zd-disc-section-label">${getLang()==='en'?'PROTOCOLS':'프로토콜'}</div>
+          <div class="zd-disc-protocols">${protosHtml}</div>
+
+          <div class="zd-disc-section-label">${getLang()==='en'?'PVP (ASYNC)':'PVP (비동기)'}</div>
+          <div class="zd-disc-pvp-row">
+            <p class="small">${getLang()==='en'
+              ? `Readiness ${condsMet}/3 — need 2 of 3 conditions to enable. Each match costs 1 Vulnerability.`
+              : `준비도 ${condsMet}/3 — 3개 중 2개 충족 시 활성화. 매치당 취약점 1개 소모.`}</p>
+            <div class="zd-disc-pvp-stats small">
+              W ${zd.pvp.seasonWins||0} &nbsp; L ${zd.pvp.seasonLosses||0} &nbsp; R${zd.pvp.rating||1000}
+            </div>
+            <button type="button" id="btnZdPvpMatch" class="zd-disc-pvp-btn"
+              ${pvpReady && vuln >= 1 ? '' : 'disabled'}>
+              ${getLang()==='en'?'Match PVP (1 Vuln)':'PVP 매칭 (취약점 1)'}
+            </button>
+            ${!pvpReady ? `<span class="small zd-pvp-block-hint">⚠ ${getLang()==='en'?'Need 2 readiness conditions':'준비도 조건 2개 이상 필요'}</span>` : ''}
+            ${pvpReady && vuln < 1 ? `<span class="small zd-pvp-block-hint">⚠ ${getLang()==='en'?'Need 1 Vulnerability':'취약점 1개 필요'}</span>` : ''}
+          </div>
+
+          <div class="zd-disc-section-label">${getLang()==='en'?'DEFENSE CARDS':'방어 카드'} (${slotCount}/5)</div>
+          <div class="zd-defense-slots">${slotsHtml}</div>
+
+          <div class="zd-disc-section-label">${getLang()==='en'?'TERMINAL SKIN':'터미널 스킨'}</div>
+          <div class="zd-skin-grid">${skinsHtml}</div>
+        </div>`;
+
+      applyActiveZdSkin();
+
+      // 로비 이벤트 바인딩
+      el.querySelector('#btnStartZdDisc')?.addEventListener('click', startZdDiscRun);
+      el.querySelector('#btnCraftVuln')?.addEventListener('click', () => {
+        if ((state.items.zeroDayVulnerabilityShard||0) >= 50) {
+          state.items.zeroDayVulnerabilityShard -= 50;
+          setZdVulnCount(getZdVulnCount() + 1);
+          showToast(getLang()==='en'?'Vulnerability crafted! +1':'취약점 제작 완료! +1', 'achievement');
+          updateStatsUI(); renderZeroDayPanel(); saveGame(true);
+        }
+      });
+      el.querySelectorAll('[data-zd-diff]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          zd.pve.difficulty = btn.dataset.zdDiff;
+          renderZeroDayPanel(); saveGame(true);
+        });
+      });
+      el.querySelectorAll('[data-zd-protocol-unlock]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pid    = btn.dataset.zdProtocolUnlock;
+          const result = tryUnlockZdProtocol(pid);
+          if (!result.ok) {
+            const msg = result.reason === 'currency'  ? (getLang()==='en'?'Not enough OneDay':'OneDay 부족')
+                      : result.reason === 'condition' ? (getLang()==='en'?'Condition not met':'조건 미충족')
+                      : (getLang()==='en'?'Cannot unlock':'해금 불가');
+            showToast(msg, 'warn');
+            return;
+          }
+          updateStatsUI(); renderZeroDayPanel(); saveGame(true);
+        });
+      });
+      el.querySelector('#btnZdPvpMatch')?.addEventListener('click', startZdPvpMatch);
+      el.querySelectorAll('[data-zd-slot-expand]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const slot = Number(btn.dataset.zdSlotExpand);
+          const cost = ZD_SLOT_EXPAND_COST[slot];
+          if (!cost) return;
+          if ((state.items.oneDay||0) < cost) {
+            showToast(getLang()==='en'?`Need ${cost} OneDay`:`OneDay ${cost} 필요`, 'warn'); return;
+          }
+          state.items.oneDay -= cost;
+          state.stats.oneDaySpentTotal        = (state.stats.oneDaySpentTotal        || 0) + cost;
+          state.stats.zeroDayOneDaySpentTotal = (state.stats.zeroDayOneDaySpentTotal || 0) + cost;
+          state.zeroDay.defense.slots = slot;
+          showToast(getLang()==='en'?`Slot ${slot} unlocked!`:`슬롯 ${slot} 해금!`, 'achievement');
+          renderZeroDayPanel(); saveGame(true);
+        });
+      });
+      el.querySelectorAll('[data-zd-slot-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const slot    = Number(btn.dataset.zdSlotEdit);
+          const idx     = slot - 1;
+          state.zeroDay.defense.cards = state.zeroDay.defense.cards || [];
+          const cardIds = Object.keys(ZD_DEFENSE_CARDS);
+          const current = state.zeroDay.defense.cards[idx];
+          const used    = new Set(state.zeroDay.defense.cards.filter((c,i) => i !== idx && c));
+          let nextIdx   = current ? (cardIds.indexOf(current) + 1) % (cardIds.length + 1) : 0;
+          let attempt   = 0, next = null;
+          while (attempt < cardIds.length + 1) {
+            if (nextIdx >= cardIds.length) { next = null; break; }
+            const cand = cardIds[nextIdx];
+            if (!used.has(cand)) { next = cand; break; }
+            nextIdx = (nextIdx + 1) % (cardIds.length + 1);
+            attempt++;
+          }
+          state.zeroDay.defense.cards[idx] = next;
+          renderZeroDayPanel(); saveGame(true);
+        });
+      });
+      el.querySelectorAll('[data-zd-skin-equip]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const skinId = btn.dataset.zdSkinEquip;
+          if (!isZdSkinUnlocked(skinId)) return;
+          state.zeroDay.activeSkin = skinId;
+          renderZeroDayPanel(); saveGame(true);
+        });
+      });
+    }
+
+    // v3.0.0: ZERO-DAY PVP 봇 매치 (스냅샷 기반 시뮬레이션)
+    function getPvpSnapshot() {
+      const code = getActiveCodeInstance();
+      const codePower = code ? (code.power || code.basePower || 18) : 18;
+      const cpuTier = state.cpuTier || 1;
+      const gpuTier = state.gpuTier || 1;
+      const protocols = Object.keys(ZD_PROTOCOLS).filter(p => isZdProtocolUnlocked(p));
+      const defenseCards = (state.zeroDay.defense && state.zeroDay.defense.cards || []).filter(Boolean);
+      const rating = (state.zeroDay.pvp && state.zeroDay.pvp.rating) || 1000;
+      // v3.0.0: 프로토콜 효과 적용
+      const protoEff = getZdProtocolEffectSum();
+      // BREAKER: 침투 +15% (공격에 적용)
+      // OVERLORD: 모든 효과 +10% (전체 적용)
+      const attackBonusMult = (1 + (protoEff.infiltrateSuccessBonus || 0)) * (1 + (protoEff.allCommandBonus || 0));
+      // SHROUD: extractionShield 1 (방어에 +실드)
+      // PHANTOM: 정찰 -25% 탐지 (방어 보너스로 변환)
+      const defenseBonusMult = (1 + (protoEff.allCommandBonus || 0));
+      const shieldBonus = (protoEff.extractionShield || 0) * 8;
+      // 공격력: 코드파워 + cpu/gpu 티어 + 프로토콜 보너스 + 약간의 랜덤
+      const attackPower = (codePower * 1.2 + cpuTier * 5 + gpuTier * 4 + protocols.length * 8) * attackBonusMult;
+      // 방어력: 슬롯 수 × 12 + 장착 카드 수 × 8 + 프로토콜 보너스 + 실드
+      const defensePower = ((state.zeroDay.defense.slots || 3) * 12 + defenseCards.length * 8 + protocols.length * 6 + shieldBonus) * defenseBonusMult;
+      return { rating, attackPower, defensePower, protocols, defenseCards };
+    }
+
+    function generateBotSnapshot(playerRating) {
+      const variance = 200;
+      const botRating = Math.max(800, Math.min(1800, playerRating + (Math.random() * variance * 2 - variance)));
+      const tierFactor = botRating / 1000;
+      return {
+        rating: Math.round(botRating),
+        attackPower: 30 + tierFactor * 25 + Math.random() * 10,
+        defensePower: 30 + tierFactor * 22 + Math.random() * 10,
+        protocols: tierFactor > 1.2 ? ['protocol_phantom'] : [],
+        defenseCards: ['mask','delay'].slice(0, Math.floor(tierFactor * 2))
+      };
+    }
+
+    function simulatePvpDuel(player, bot) {
+      // 매치당 3턴 — 양쪽 모두 카드 사용 가능 (3회/매치, 중복 불가)
+      let pScore = 0, bScore = 0;
+      const playerUsed = new Set();
+      const botUsed = new Set();
+      for (let turn = 1; turn <= 3; turn++) {
+        // 플레이어 공격: 봇 방어와 비교
+        const pAtk = player.attackPower * (0.85 + Math.random() * 0.3);
+        const bDef = bot.defensePower * (0.9 + Math.random() * 0.2);
+        // 봇이 사용 가능한 방어 카드가 있으면 1개 사용 (랜덤)
+        let bCardBonus = 0;
+        const bAvail = bot.defenseCards.filter(c => !botUsed.has(c));
+        if (bAvail.length && Math.random() < 0.6) {
+          const useCard = bAvail[Math.floor(Math.random() * bAvail.length)];
+          botUsed.add(useCard);
+          bCardBonus = 12;
+        }
+        if (pAtk > bDef + bCardBonus) pScore++;
+        // 봇 공격
+        const botAtk = bot.attackPower * (0.85 + Math.random() * 0.3);
+        const pDef = player.defensePower * (0.9 + Math.random() * 0.2);
+        let pCardBonus = 0;
+        const pAvail = player.defenseCards.filter(c => !playerUsed.has(c));
+        if (pAvail.length && Math.random() < 0.7) {
+          const useCard = pAvail[Math.floor(Math.random() * pAvail.length)];
+          playerUsed.add(useCard);
+          pCardBonus = 14;
+        }
+        if (botAtk < pDef + pCardBonus) pScore++; // 방어 성공도 1점
+        else bScore++;
+      }
+      return { pScore, bScore, win: pScore > bScore };
+    }
+
+    function startZdPvpMatch() {
+      ensureZeroDayDefaults();
+      // v3.0.0 fix: 단일 게터로 일관성 보장
+      if (getZdVulnCount() < 1) {
+        showToast(getLang()==='en'?'Need 1 Vulnerability':'취약점 1개 필요', 'warn');
+        return;
+      }
+      // 비용 차감 (실패 시 차감 안 됨)
+      if (!consumeZdVuln(1)) {
+        showToast(getLang()==='en'?'Vulnerability count out of sync.':'취약점 수가 일치하지 않습니다.', 'warn');
+        renderZeroDayPanel();
+        return;
+      }
+      state.zeroDay.pvp.attacksTotal = (state.zeroDay.pvp.attacksTotal || 0) + 1;
+
+      const player = getPvpSnapshot();
+      const bot = generateBotSnapshot(player.rating);
+      const result = simulatePvpDuel(player, bot);
+
+      // ELO-like rating change
+      const expected = 1 / (1 + Math.pow(10, (bot.rating - player.rating) / 400));
+      const actual = result.win ? 1 : 0;
+      const ratingDelta = Math.round(32 * (actual - expected));
+      state.zeroDay.pvp.rating = Math.max(800, (state.zeroDay.pvp.rating || 1000) + ratingDelta);
+
+      if (result.win) {
+        state.zeroDay.pvp.seasonWins = (state.zeroDay.pvp.seasonWins || 0) + 1;
+        state.stats.zeroDayPvpAttackWinCount = (state.stats.zeroDayPvpAttackWinCount || 0) + 1;
+        // 보상 — OneDay
+        const oneDayReward = 60 + Math.round(Math.random() * 40);
+        state.items.oneDay = (state.items.oneDay || 0) + oneDayReward;
+        state.stats.zeroDayOneDayEarnedTotal = (state.stats.zeroDayOneDayEarnedTotal || 0) + oneDayReward;
+        showToast(`${getLang()==='en'?'PVP WIN':'PVP 승리'} (${result.pScore}-${result.bScore}) · OneDay +${oneDayReward} · ${ratingDelta>=0?'+':''}${ratingDelta} rating`, 'achievement');
+        log(`[ZD PVP] WIN ${result.pScore}-${result.bScore} vs bot R${bot.rating}, +${oneDayReward} OneDay, ${ratingDelta>=0?'+':''}${ratingDelta} rating → ${state.zeroDay.pvp.rating}`, 'system');
+      } else {
+        state.zeroDay.pvp.seasonLosses = (state.zeroDay.pvp.seasonLosses || 0) + 1;
+        showToast(`${getLang()==='en'?'PVP LOSS':'PVP 패배'} (${result.pScore}-${result.bScore}) · ${ratingDelta>=0?'+':''}${ratingDelta} rating`, 'shop');
+        log(`[ZD PVP] LOSS ${result.pScore}-${result.bScore} vs bot R${bot.rating}, ${ratingDelta>=0?'+':''}${ratingDelta} rating → ${state.zeroDay.pvp.rating}`, 'system');
+      }
+
+      updateStatsUI();
+      renderZeroDayPanel();
+      saveGame(true);
     }
 
     const stageChapters = [
@@ -4048,15 +7407,15 @@ function applyLanguageToUI(){
           security,
           recommendedLevel: Math.max(1, Math.ceil(number / 4)),
           recommendedPower: Math.max(18, Math.round(security * 0.78)),
-          energyCost: boss ? 3 : 2,
+          energyCost: 1,
           firstReward: {
             credits: firstCredits,
             exp: firstExp,
             energyPack: boss ? 1 : 0
           },
           repeatReward: {
-            credits: Math.max(12, Math.round(firstCredits * 0.38)),
-            exp: Math.max(2, Math.round(firstExp * 0.5)),
+            credits: Math.max(3, Math.round(firstCredits * 0.20)),
+            exp: Math.max(1, Math.round(firstExp * 0.20)),
             energyPack: 0
           }
         };
@@ -4189,11 +7548,34 @@ function applyLanguageToUI(){
       const filter = state.stage.chapterFilter || 'all';
       const completedCount = Object.keys(state.stage.cleared || {}).length;
 
+      // 현재 챕터 = 미클리어 스테이지가 있는 가장 낮은 챕터
+      const currentProgressChapter = (() => {
+        for (const ch of stageChapters) {
+          const stages = stageDefs.filter(s => s.chapter.index === ch.index);
+          if (stages.some(s => !getStageClearInfo(s))) return String(ch.index);
+        }
+        return String(stageChapters[stageChapters.length - 1]?.index || '1');
+      })();
+
       summaryEl.innerHTML = `
         <div><span>HIGHEST</span><strong>${state.stage.highestCleared || 0} / 100</strong></div>
         <div><span>CLEARED</span><strong>${completedCount} / 100</strong></div>
         <div><span>ATTEMPTS</span><strong>${state.stats.stageAttemptCount || 0}</strong></div>
+        <button type="button" id="btnGoCurrentChapter" class="btn-go-chapter small">
+          ${stageCopy(`▶ CH.${currentProgressChapter} 이동`, `▶ Go to CH.${currentProgressChapter}`)}
+        </button>
       `;
+      document.getElementById('btnGoCurrentChapter')?.addEventListener('click', () => {
+        state.stage.chapterFilter = currentProgressChapter;
+        const stages = stageDefs.filter(s => String(s.chapter.index) === currentProgressChapter);
+        const firstReady = stages.find(s => !getStageClearInfo(s)) || stages[0];
+        if (firstReady) state.stage.selectedId = firstReady.id;
+        renderStagePanel();
+        scheduleSilentSave();
+        // 챕터 목록 스크롤
+        const chEl = chapterListEl.querySelector(`[data-stage-chapter="${currentProgressChapter}"]`);
+        if (chEl) chEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
 
       const clearInfo = getStageClearInfo(selectedStage);
       const activeCode = getActiveCodeInstance();
@@ -4215,42 +7597,83 @@ function applyLanguageToUI(){
         ? t('noOwnedCodes')
         : (!enoughEnergy ? stageCopy(`에너지 ${selectedStage.energyCost} 필요`, `Need ${selectedStage.energyCost} energy`) : stageCopy('도전 준비 완료', 'Ready to attempt'));
 
-      detailEl.innerHTML = `
-        <div class="stage-detail-head">
-          <div>
-            <span class="badge">${selectedStage.boss ? 'BOSS' : 'DATA TOWER'}</span>
-            <h4>${selectedStage.name}</h4>
-            <p>${getLang() === 'en' ? selectedStage.chapter.titleEn : selectedStage.chapter.title} · ${selectedStage.chapter.from}-${selectedStage.chapter.to}</p>
+      // ── ACTIVE BATTLE UI ──
+      const battle = state.stage.activeBattle;
+      if (battle && !battle.over) {
+        const bStage = getStageById(battle.stageId);
+        const pPct = Math.round((battle.playerHp / battle.playerMaxHp) * 100);
+        const ePct = Math.round((battle.enemyHp  / battle.enemyMaxHp)  * 100);
+        const bStats = getStageBattleStats(bStage, ownedCodes.find(c=>c.id===battle.codeId)||activeCode);
+        detailEl.innerHTML = `
+          <div class="battle-header">
+            <span class="badge">${bStage.boss ? 'BOSS' : 'DATA TOWER'}</span>
+            <strong>${bStage.name}</strong>
+            <em>${stageCopy('턴','Turn')} ${battle.turn}</em>
           </div>
-          <div class="stage-status-pill">${statusText}</div>
-        </div>
-        <div class="stage-meta-grid">
-          <div><span>${stageCopy('추천 레벨', 'Recommended Level')}</span><strong>Lv.${selectedStage.recommendedLevel}</strong></div>
-          <div><span>${stageCopy('추천 파워', 'Recommended Power')}</span><strong>${selectedStage.recommendedPower}</strong></div>
-          <div><span>${stageCopy('보안값', 'Security')}</span><strong>${successInfo.security}</strong></div>
-          <div><span>${stageCopy('에너지', 'Energy')}</span><strong>${selectedStage.energyCost}</strong></div>
-          <div><span>${stageCopy('추천 코드', 'Suggested Code')}</span><strong>${selectedStage.chapter.hint}</strong></div>
-          <div><span>${stageCopy('예상 성공률', 'Estimated Chance')}</span><strong>${activeCode ? `${chancePct}%` : '-'}</strong></div>
-        </div>
-        <div class="stage-reward-grid">
-          <div>
-            <span>${stageCopy('첫 클리어 보상', 'First Clear Reward')}</span>
-            <strong>${getStageRewardText(selectedStage.firstReward)}</strong>
+          <div class="battle-bars">
+            <div class="battle-bar-row">
+              <span>${stageCopy('무결성','Integrity')}</span>
+              <div class="battle-bar"><div class="battle-bar-fill player" style="width:${pPct}%"></div></div>
+              <strong>${battle.playerHp} / ${battle.playerMaxHp}</strong>
+            </div>
+            <div class="battle-bar-row">
+              <span>${stageCopy('적 방어','Enemy')}</span>
+              <div class="battle-bar"><div class="battle-bar-fill enemy" style="width:${ePct}%"></div></div>
+              <strong>${battle.enemyHp} / ${battle.enemyMaxHp}</strong>
+            </div>
           </div>
-          <div>
-            <span>${stageCopy('반복 보상', 'Repeat Reward')}</span>
-            <strong>${getStageRewardText(repeatPreview)}</strong>
+          <div class="battle-status-flags">
+            ${battle.focusActive  ? `<span class="battle-flag focus">${stageCopy('FOCUS 충전','FOCUS charged')}</span>` : ''}
+            ${battle.shieldActive ? `<span class="battle-flag shield">${stageCopy('SHIELD 대기','SHIELD ready')}</span>` : ''}
           </div>
-        </div>
-        <div class="stage-action-row">
-          <button type="button" id="btnAttemptStage" ${canAttempt ? '' : 'disabled'}>${buttonText}</button>
-          <span class="small">${disabledHint}${activeCode ? ` · ${activeCode.name} PWR ${Math.round(successInfo.effectivePower)}` : ''}</span>
-        </div>
-        <p class="stage-note">${clearInfo ? stageCopy('반복 보상에는 GPU 보너스가 적용됩니다. 첫 클리어와 챕터 보상은 고정 보상입니다.', 'GPU bonuses apply to repeat rewards. First-clear and chapter rewards are fixed.') : stageCopy('첫 클리어 보상은 고정 보상입니다. 같은 데이터 타워를 반복 클리어하면 GPU 보너스가 적용됩니다.', 'First-clear rewards are fixed. Repeat Data Tower clears apply GPU bonuses.')}</p>
-      `;
-
-      const btnAttemptStage = document.getElementById('btnAttemptStage');
-      bind(btnAttemptStage, 'click', attemptStage);
+          <div class="battle-log">${(battle.log.slice(-4)).map(l=>`<div class="battle-log-line">${l}</div>`).join('')}</div>
+          <div class="battle-actions">
+            <button type="button" data-battle-action="breach">BREACH</button>
+            <button type="button" data-battle-action="shield">SHIELD</button>
+            <button type="button" data-battle-action="focus">FOCUS</button>
+            <button type="button" data-battle-action="exit" class="btn-danger">EXIT</button>
+          </div>
+          <p class="stage-note">${stageCopy('BREACH: 공격 | SHIELD: 방어(피해 55% 감쇄) | FOCUS: 다음 BREACH ×1.75 | EXIT: 포기','BREACH: Attack | SHIELD: Defend (55% dmg reduction) | FOCUS: next BREACH ×1.75 | EXIT: Quit')}</p>
+        `;
+        detailEl.querySelectorAll('[data-battle-action]').forEach(btn => {
+          btn.addEventListener('click', () => doStageTurnAction(btn.dataset.battleAction));
+        });
+      } else {
+        detailEl.innerHTML = `
+          <div class="stage-detail-head">
+            <div>
+              <span class="badge">${selectedStage.boss ? 'BOSS' : 'DATA TOWER'}</span>
+              <h4>${selectedStage.name}</h4>
+              <p>${getLang() === 'en' ? selectedStage.chapter.titleEn : selectedStage.chapter.title} · ${selectedStage.chapter.from}-${selectedStage.chapter.to}</p>
+            </div>
+            <div class="stage-status-pill">${statusText}</div>
+          </div>
+          <div class="stage-meta-grid">
+            <div><span>${stageCopy('추천 레벨', 'Recommended Level')}</span><strong>Lv.${selectedStage.recommendedLevel}</strong></div>
+            <div><span>${stageCopy('추천 파워', 'Recommended Power')}</span><strong>${selectedStage.recommendedPower}</strong></div>
+            <div><span>${stageCopy('보안값', 'Security')}</span><strong>${successInfo.security}</strong></div>
+            <div><span>${stageCopy('에너지', 'Energy')}</span><strong>${selectedStage.energyCost}</strong></div>
+            <div><span>${stageCopy('추천 코드', 'Suggested Code')}</span><strong>${selectedStage.chapter.hint}</strong></div>
+          </div>
+          <div class="stage-reward-grid">
+            <div>
+              <span>${stageCopy('첫 클리어 보상', 'First Clear Reward')}</span>
+              <strong>${getStageRewardText(selectedStage.firstReward)}</strong>
+            </div>
+            <div>
+              <span>${stageCopy('반복 보상', 'Repeat Reward')}</span>
+              <strong>${getStageRewardText(repeatPreview)}</strong>
+            </div>
+          </div>
+          <div class="stage-action-row">
+            <button type="button" id="btnAttemptStage" ${canAttempt ? '' : 'disabled'}>${buttonText}</button>
+            <span class="small">${disabledHint}${activeCode ? ` · ${activeCode.name} PWR ${Math.round(successInfo.effectivePower)}` : ''}</span>
+          </div>
+          <p class="stage-note">${stageCopy('에너지 1 소모 → BREACH/SHIELD/FOCUS/EXIT 턴제 전투.', '1 energy → turn-based combat: BREACH/SHIELD/FOCUS/EXIT.')}</p>
+        `;
+        const btnAttemptStage = document.getElementById('btnAttemptStage');
+        bind(btnAttemptStage, 'click', startStageBattle);
+      }
 
       chapterListEl.innerHTML = stageChapters.map(chapter => {
         const open = String(chapter.index) === String(filter);
@@ -4305,16 +7728,75 @@ function applyLanguageToUI(){
       });
     }
 
-    function attemptStage() {
+    // ── DATA TOWER TURN-BASED COMBAT ─────────────────────────────────────────
+    function getStageBattleStats(stage, code) {
+      const cpuT = Math.max(1, state.cpuTier || 1);
+      const pw   = code ? Math.max(1, code.power || code.basePower || 18) : 18;
+      const playerMax = 90 + pw * 2 + cpuT * 10;
+      const enemyMax  = 70 + stage.number * 10;
+      const enemyDmg  = 8 + (stage.chapter.index - 1) * 3;
+      return { playerMax, enemyMax, enemyDmg };
+    }
+
+    function startStageBattle() {
+      // v3.0.0 fix: 조건 검사 → activeBattle 생성 → 에너지 차감 → state 적용 → UI 갱신 → 저장
+      // run 생성 실패 시 에너지 차감 금지 (에너지 보호)
       ensureStageDefaults();
       const stage = getStageById(state.stage.selectedId);
-      const code = getActiveCodeInstance();
+      const code  = getActiveCodeInstance();
+
+      // v3.0.0+ fix: 잠긴 battle이 있어도 자동 클리어 후 새로 시작 (이전 가드는 stale battle 복구 시 새 도전을 막아버림)
+      if (state.stage.activeBattle && !state.stage.activeBattle.over) {
+        console.warn('[StageBattle] Stale battle cleared on new attempt');
+        state.stage.activeBattle = null;
+      }
+
+      // 1. 조건 검사 (에너지 차감 전)
       if (!code) {
-        log(t('noOwnedCodes'), 'hack');
         showToast(t('noOwnedCodes'), 'warn');
         renderStagePanel();
         return;
       }
+      if (!stage) {
+        const msg = stageCopy('스테이지 정보를 찾을 수 없습니다.', 'Stage data not found.');
+        showToast(msg, 'warn');
+        return;
+      }
+      if (state.energy < stage.energyCost) {
+        const msg = stageCopy('에너지가 부족해 데이터 타워를 시작할 수 없습니다.', 'Not enough energy to start Data Tower.');
+        log(msg, 'hack');
+        showToast(msg, 'warn');
+        renderStagePanel();
+        return;
+      }
+
+      // 2. activeBattle 객체 미리 빌드 (에너지 차감 전 — 실패 시 에너지 보존)
+      let activeBattle;
+      try {
+        const stats = getStageBattleStats(stage, code);
+        if (!stats || !stats.playerMax || !stats.enemyMax) throw new Error('invalid stats');
+        activeBattle = {
+          stageId: stage.id,
+          codeId: code.id,
+          playerHp: stats.playerMax,
+          playerMaxHp: stats.playerMax,
+          enemyHp: stats.enemyMax,
+          enemyMaxHp: stats.enemyMax,
+          turn: 1,
+          focusActive: false,
+          shieldActive: false,
+          log: [],
+          over: false,
+          win: false
+        };
+      } catch (err) {
+        console.error('[StageBattle] Failed to build activeBattle:', err);
+        const msg = stageCopy('데이터 타워 시작 실패 — 다시 시도하세요.', 'Failed to start Data Tower. Try again.');
+        showToast(msg, 'warn');
+        return; // ← 에너지 차감 안 함
+      }
+
+      // 3. 에너지 차감 (run이 정상 빌드된 경우에만)
       if (!consumeEnergy(stage.energyCost)) {
         const msg = stageCopy('에너지가 부족해 데이터 타워를 시작할 수 없습니다.', 'Not enough energy to start Data Tower.');
         log(msg, 'hack');
@@ -4323,11 +7805,91 @@ function applyLanguageToUI(){
         return;
       }
 
+      // 4. state 적용
+      state.stage.activeBattle = activeBattle;
       state.stats.stageAttemptCount = (state.stats.stageAttemptCount || 0) + 1;
-      const successInfo = getStageSuccessInfo(stage, code);
-      const success = Math.random() < successInfo.chance;
       code.usage = (code.usage || 0) + 1;
 
+      // 5. UI 갱신 + 저장
+      renderStagePanel();
+      saveGame(true);
+    }
+
+    function doStageTurnAction(action) {
+      const battle = state.stage.activeBattle;
+      if (!battle || battle.over) return;
+      const stage = getStageById(battle.stageId);
+      const code  = ownedCodes.find(c => c.id === battle.codeId) || getActiveCodeInstance();
+      const stats = getStageBattleStats(stage, code);
+      const atkBase = Math.max(5, Math.round(stats.playerMax * 0.18));
+      let playerDmg = 0, enemyDmg = stats.enemyDmg, logLine = '';
+
+      if (action === 'breach') {
+        playerDmg = battle.focusActive ? Math.round(atkBase * 1.75) : atkBase;
+        battle.focusActive = false;
+        battle.enemyHp -= playerDmg;
+        // enemy counter
+        const actualEnemyDmg = battle.shieldActive ? Math.max(1, Math.round(enemyDmg * 0.45)) : enemyDmg;
+        battle.shieldActive = false;
+        battle.playerHp -= actualEnemyDmg;
+        logLine = stageCopy(
+          `BREACH -${playerDmg} / 적 반격 -${actualEnemyDmg}`,
+          `BREACH -${playerDmg} / enemy counter -${actualEnemyDmg}`
+        );
+      } else if (action === 'shield') {
+        battle.shieldActive = true;
+        const actualEnemyDmg = Math.max(1, Math.round(enemyDmg * 0.45));
+        battle.playerHp -= actualEnemyDmg;
+        logLine = stageCopy(
+          `SHIELD 발동 — 적 공격 -${actualEnemyDmg} (방어 감쇄)`,
+          `SHIELD active — enemy -${actualEnemyDmg} (reduced)`
+        );
+      } else if (action === 'focus') {
+        battle.focusActive = true;
+        const actualEnemyDmg = battle.shieldActive ? Math.max(1, Math.round(enemyDmg * 0.45)) : enemyDmg;
+        battle.shieldActive = false;
+        battle.playerHp -= actualEnemyDmg;
+        logLine = stageCopy(
+          `FOCUS 집중 — 다음 BREACH 데미지 ×1.75, 적 공격 -${actualEnemyDmg}`,
+          `FOCUS charged — next BREACH ×1.75, enemy -${actualEnemyDmg}`
+        );
+      } else if (action === 'exit') {
+        battle.over = true;
+        battle.win  = false;
+        state.stage.activeBattle = null;
+        const msg = stageCopy('[데이터 타워] 전투 이탈. 에너지 소모됨.', '[Data Tower] Exited battle. Energy spent.');
+        log(msg, 'hack');
+        showToast(stageCopy('전투 이탈', 'Battle exited'), 'warn');
+        renderStagePanel();
+        saveGame(true);
+        return;
+      }
+
+      battle.turn++;
+      battle.playerHp = Math.max(0, battle.playerHp);
+      battle.enemyHp  = Math.max(0, battle.enemyHp);
+      battle.log.push(logLine);
+      if (battle.log.length > 8) battle.log.shift();
+
+      if (battle.enemyHp <= 0) {
+        battle.over = true;
+        battle.win  = true;
+        finishStageBattle(stage, code, true);
+        return;
+      }
+      if (battle.playerHp <= 0) {
+        battle.over = true;
+        battle.win  = false;
+        finishStageBattle(stage, code, false);
+        return;
+      }
+
+      renderStagePanel();
+      saveGame(true);
+    }
+
+    function finishStageBattle(stage, code, success) {
+      state.stage.activeBattle = null;
       if (success) {
         const previous = getStageClearInfo(stage);
         const firstClear = !previous;
@@ -4342,39 +7904,32 @@ function applyLanguageToUI(){
         state.credits += reward.credits;
         state.stats.creditsEarnedTotal += reward.credits;
         if (reward.energyPack) {
-          state.items = state.items || { energyPack: 0 };
           state.items.energyPack = (state.items.energyPack || 0) + reward.energyPack;
         }
         addExp(reward.exp);
-
         state.stage.cleared[stage.id] = {
           firstAt: previous && previous.firstAt ? previous.firstAt : now,
           lastAt: now,
           clears: (previous && previous.clears ? previous.clears : 0) + 1,
-          bestChance: Math.max(previous && previous.bestChance ? previous.bestChance : 0, successInfo.chance),
           bestCodeId: code.id
         };
         state.stage.highestCleared = Math.max(state.stage.highestCleared || 0, stage.number);
         state.stats.stageClearCount = (state.stats.stageClearCount || 0) + 1;
+        state.stats.stageTurnWinCount = (state.stats.stageTurnWinCount || 0) + 1;
         applyStageChapterReward(stage.chapter);
-	        emitActivity('stage_clear', {
-	          stageId: stage.id,
-	          refId: stage.id,
-	          value: stage.number,
-	          codeId: code.id
-	        });
-	        trackWeeklyChallenge('stage_clear', {
-	          stageId: stage.id,
-	          chapter: stage.chapter.index,
-	          firstClear,
-	          codeId: code.id
-	        });
-
-	        const rewardText = getStageRewardText(reward);
+        // auto-select next uncleard stage
+        const nextUncleard = stageDefs.find(s => s.number > stage.number && !state.stage.cleared[s.id]);
+        if (nextUncleard) {
+          state.stage.selectedId = nextUncleard.id;
+          state.stage.chapterFilter = String(nextUncleard.chapter.index);
+        }
+        emitActivity('stage_clear', { stageId: stage.id, refId: stage.id, value: stage.number, codeId: code.id });
+        trackWeeklyChallenge('stage_clear', { stageId: stage.id, chapter: stage.chapter.index, firstClear, codeId: code.id });
+        const rewardText = getStageRewardText(reward);
         playSfx('stage');
         const msg = stageCopy(
-          `${stage.name} 클리어! 성공률 ${Math.round(successInfo.chance * 100)}%. ${rewardText}`,
-          `${stage.name} cleared! Chance ${Math.round(successInfo.chance * 100)}%. ${rewardText}`
+          `${stage.name} 클리어! ${rewardText}`,
+          `${stage.name} cleared! ${rewardText}`
         );
         log(msg, 'hack');
         showToast(firstClear ? stageCopy(`${stage.name} 첫 클리어`, `${stage.name} first clear`) : stageCopy(`${stage.name} 반복 클리어`, `${stage.name} repeat clear`), 'achievement');
@@ -4382,23 +7937,23 @@ function applyLanguageToUI(){
         checkAchievements('stage');
       } else {
         playSfx('fail');
-        const msg = stageCopy(
-          `${stage.name} 실패. 예상 성공률 ${Math.round(successInfo.chance * 100)}%였습니다.`,
-          `${stage.name} failed. Estimated chance was ${Math.round(successInfo.chance * 100)}%.`
-        );
+        const msg = stageCopy(`${stage.name} 전투 실패. 인테그리티 0 도달.`, `${stage.name} battle failed. Integrity reached 0.`);
         log(msg, 'hack');
         showToast(stageCopy('데이터 타워 실패', 'Data Tower failed'), 'warn');
       }
-
       updateStatsUI();
       renderStagePanel();
       saveGame(true);
     }
 
+    // Kept as alias for legacy call sites inside renderStagePanel
+    function attemptStage() { startStageBattle(); }
+
     function syncSelectedCode() {
       const code = getActiveCodeInstance();
       if (!code) {
         log(t('noCodeSync'), 'system');
+        showToast(t('noCodeSync'), 'warn');
         return;
       }
 
@@ -4408,6 +7963,7 @@ function applyLanguageToUI(){
       const shardCost = getSyncShardCost(code.syncLevel);
       if (code.shards < shardCost) {
         log(t('syncFailShards', { need: shardCost, have: code.shards }), 'system');
+        showToast(t('syncFailShards', { need: shardCost, have: code.shards }), 'warn');
         return;
       }
 
@@ -4420,22 +7976,27 @@ function applyLanguageToUI(){
 
       playSfx('upgrade');
       log(t('syncDone', { name: code.name, lv: code.syncLevel, pwr: powerBonus, rate: Math.round(getSyncSuccessBonus(code.syncLevel) * 100) }), 'system');
-      showToast(t('syncToast', { name: code.name, lv: code.syncLevel }), 'system');
+      // v3.0.0+: 동기화 결과 피드 (의미 있는 정보 포함)
+      const rateBonus = Math.round(getSyncSuccessBonus(code.syncLevel) * 100);
+      showToast(`${getLang()==='en'?'⟳ Sync':'⟳ 동기화'}: ${code.name} Lv.${code.syncLevel} (+${powerBonus} PWR / +${rateBonus}% rate)`, 'achievement');
       updateStatsUI();
       renderCodeList();
       renderCodeDetail();
       renderStagePanel();
+      scheduleSilentSave();
     }
 
     function upgradeSelectedCode() {
       const code = getActiveCodeInstance();
       if (!code) {
         log(t('noCodeUpgrade'), 'system');
+        showToast(t('noCodeUpgrade'), 'warn');
         return;
       }
       const cost = 100 * code.level;
       if (state.credits < cost) {
         log(t('upgradeFailCredits', { cost }), 'system');
+        showToast(t('upgradeFailCredits', { cost }), 'warn');
         return;
       }
       state.credits -= cost;
@@ -4445,30 +8006,37 @@ function applyLanguageToUI(){
 	      trackWeeklyChallenge('code_upgrade', { codeId: code.id });
       playSfx('upgrade');
       log(t('upgradeDone', { name: code.name, lv: code.level, pwr: code.power, cost }), 'system');
+      // v3.0.0+: 강화 결과 피드 (토스트)
+      showToast(`${getLang()==='en'?'⬆ Upgrade':'⬆ 강화'}: ${code.name} Lv.${code.level} (+5 PWR → ${code.power})`, 'achievement');
       updateStatsUI();
       renderCodeList();
       renderCodeDetail();
       renderStagePanel();
       checkMissions('general');
+      scheduleSilentSave();
     }
 
     function evolveSelectedCode() {
       const code = getActiveCodeInstance();
       if (!code) {
         log(t('noCodeEvolve'), 'system');
+        showToast(t('noCodeEvolve'), 'warn');
         return;
       }
       if (code.rarity === 'LEGENDARY') {
         log(t('maxRarity'), 'system');
+        showToast(t('maxRarity'), 'warn');
         return;
       }
       if (code.level < 5) {
         log(t('evolveNeedLv'), 'system');
+        showToast(t('evolveNeedLv'), 'warn');
         return;
       }
       const idx = rarityOrder.indexOf(code.rarity);
       if (idx === -1 || idx === rarityOrder.length - 1) {
         log(t('evolveCannot'), 'system');
+        showToast(t('evolveCannot'), 'warn');
         return;
       }
       const nextRarity = rarityOrder[idx + 1];
@@ -4478,6 +8046,8 @@ function applyLanguageToUI(){
 	      trackWeeklyChallenge('code_evolve', { codeId: code.id, rarity: nextRarity });
       playSfx('upgrade');
       log(t('evolveDone', { name: code.name, rarity: nextRarity, pwr: code.power }), 'system');
+      // v3.0.0+: 진화 결과 피드 (희귀도 변동은 강조)
+      showToast(`${getLang()==='en'?'★ Evolution':'★ 진화'}: ${code.name} → ${localizeRarityLabel(nextRarity)} (+10 PWR → ${code.power})`, 'achievement');
 
       if (nextRarity === 'EPIC' || nextRarity === 'LEGENDARY') {
         unlockAchievement('get_epic_code');
@@ -4487,6 +8057,7 @@ function applyLanguageToUI(){
       renderCodeDetail();
       renderStagePanel();
       checkMissions('general');
+      scheduleSilentSave();
     }
 
     function shardEnhanceSelectedCode() {
@@ -4507,7 +8078,8 @@ function applyLanguageToUI(){
       state.stats.codeShardsSpentTotal = (state.stats.codeShardsSpentTotal || 0) + cost;
       playSfx('upgrade');
       log(t('shardEnhanceDone', { name: code.name, pwr: code.power, cost }), 'system');
-      showToast(t('shardEnhanceDone', { name: code.name, pwr: code.power, cost }), 'system');
+      // v3.0.0+: 조각 강화 결과 피드 (조각 잔량 포함)
+      showToast(`${getLang()==='en'?'◇ Shard':'◇ 조각'}: ${code.name} +2 PWR → ${code.power} (-${cost}, ${code.shards}${getLang()==='en'?' left':' 남음'})`, 'achievement');
       renderCodeList();
       renderCodeDetail();
       updateStatsUI();
@@ -4521,9 +8093,21 @@ function applyLanguageToUI(){
       servers.forEach(s => {
         const option = document.createElement('option');
         option.value = s.id;
-        option.textContent = t('serverOption', { name: localizeServerName(s), sec: s.security, lv: s.minLevel });
+        const serverName = localizeServerName(s);
+        const serverSec = Number(s.security || s.sec || 0);
+        const serverLv = Number(s.minLevel || s.lv || 1);
+        option.textContent = getLang() === 'en'
+          ? `${serverName} (Security ${serverSec}, Lv${serverLv}+)`
+          : getLang() === 'ja'
+            ? `${serverName} (セキュリティ ${serverSec}, Lv${serverLv}+)`
+            : `${serverName} (보안 ${serverSec}, Lv${serverLv}+)`;
         serverSelect.appendChild(option);
       });
+      // 저장된 서버 선택 복원
+      const savedId = state.targeting && state.targeting.serverId;
+      if (savedId && servers.find(s => s.id === savedId)) {
+        serverSelect.value = savedId;
+      }
     }
 
     
@@ -4645,6 +8229,15 @@ function applyLanguageToUI(){
     // Reset daily limits automatically at server reset time (fixed 05:00 KST)
     setInterval(() => { try { ensureDailyShopReset(); } catch(e){} }, 60 * 1000);
 
+    // AUTO-RUN 타이머 표시 갱신 (1초마다, 활성 중일 때만 렌더)
+    setInterval(() => {
+      try {
+        if (state.autoRun && state.autoRun.type) {
+          renderItemsPanel();
+        }
+      } catch(e) {}
+    }, 1000);
+
 
     function renderShop() {
       if (!shopList) return;
@@ -4665,8 +8258,24 @@ function applyLanguageToUI(){
         LEGENDARY: 5
       };
 
+      // SHOP TYPE 선택 (credits/coin/oneday)
+      state.ui = state.ui || {};
+      const shopType = state.ui.shopType || 'credits';
+      let currentShopItems = shopItems;
+      let currencySymbol = '💰';
+      let currencyName = 'Credits';
+      if (shopType === 'coin') {
+        currentShopItems = coinShopItems;
+        currencySymbol = '🪙';
+        currencyName = 'COIN';
+      } else if (shopType === 'oneday') {
+        currentShopItems = oneDayShopItems;
+        currencySymbol = '⏰';
+        currencyName = 'OneDay';
+      }
+
       const baseOrder = new Map();
-      shopItems.forEach((it, idx) => baseOrder.set(it.id, idx));
+      currentShopItems.forEach((it, idx) => baseOrder.set(it.id, idx));
 
       const mode = (state.ui && state.ui.shopSortMode) ? state.ui.shopSortMode : 'update';
       const categoryMode = (state.ui && state.ui.shopCategory) ? state.ui.shopCategory : 'all';
@@ -4682,10 +8291,17 @@ function applyLanguageToUI(){
         }
       }
 
+      // SHOP TYPE 탭 업데이트
+      const shopTypeTabButtons = document.querySelectorAll('.shop-type-tab');
+      if (shopTypeTabButtons && shopTypeTabButtons.length) {
+        shopTypeTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.shopType === shopType));
+      }
+
+      // 카테고리 탭 업데이트
       if (shopCategoryTabButtons && shopCategoryTabButtons.length) {
         shopCategoryTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.category === categoryMode));
       }
-      const items = shopItems.filter(item => categoryMode === 'all' ? true : item.category === categoryMode);
+      const items = currentShopItems.filter(item => categoryMode === 'all' ? true : item.category === categoryMode);
 
       if (mode === 'rarity') {
         items.sort((a, b) => {
@@ -4744,13 +8360,14 @@ function applyLanguageToUI(){
 
         const costSpan = document.createElement('span');
         costSpan.className = 'shop-cost';
-        costSpan.textContent = `💰 ${item.cost}`;
+        costSpan.textContent = `${currencySymbol} ${item.cost}`;
         // limit badge (daily/once)
         const lim = getShopRemaining(item.id);
         if (lim) {
           const badge = document.createElement('span');
           badge.className = 'shop-limit-badge';
-          badge.textContent = `${lim.used}/${lim.limit} (${localizeShopLimitLabel(lim)})`; 
+          // v3.0.0: 한 줄 축약 — "0/3 · 05:00 리셋" 또는 "0/1 · 1회"
+          badge.textContent = `${lim.used}/${lim.limit} · ${localizeShopLimitLabel(lim)}`;
           badge.style.marginLeft = '8px';
           badge.style.opacity = '0.85';
           costSpan.appendChild(badge);
@@ -4774,6 +8391,13 @@ function applyLanguageToUI(){
           btn.disabled = true;
           btn.textContent = t('buyUnavailable');
           btn.title = lim2.type === 'daily' ? t('buyDailyLimit') : t('buyOnceLimit');
+        } else if (typeof item.canBuy === 'function') {
+          const preCheck = item.canBuy();
+          if (!preCheck.ok) {
+            btn.disabled = true;
+            btn.textContent = t('buyUnavailable');
+            btn.title = preCheck.reason;
+          }
         }
         btn.addEventListener('click', () => {
           // purchase cap check (daily/once)
@@ -4784,18 +8408,63 @@ function applyLanguageToUI(){
             return;
           }
 
-          if (state.credits < item.cost) {
-            log(t('shopLog', { msg: `${t('notEnoughCredits')} (${getLang()==='en' ? 'Need' : '필요'}: ${item.cost})` }), 'shop');
-            showToast(t('notEnoughCredits'), 'shop');
-            return;
+          // 아이템 자체 구매 가능 여부 검사 (e.g. 에너지 풀)
+          if (typeof item.canBuy === 'function') {
+            const itemCheck = item.canBuy();
+            if (!itemCheck.ok) {
+              log(t('shopLog', { msg: itemCheck.reason }), 'shop');
+              showToast(itemCheck.reason, 'shop');
+              return;
+            }
           }
+
+          // 통화별 확인
+          let hasEnoughCurrency = false;
+          if (shopType === 'credits') {
+            hasEnoughCurrency = state.credits >= item.cost;
+            if (!hasEnoughCurrency) {
+              log(t('shopLog', { msg: `${t('notEnoughCredits')} (${getLang()==='en' ? 'Need' : '필요'}: ${item.cost})` }), 'shop');
+              showToast(t('notEnoughCredits'), 'shop');
+              return;
+            }
+          } else if (shopType === 'coin') {
+            const coinBalance = state.items.coin || 0;
+            hasEnoughCurrency = coinBalance >= item.cost;
+            if (!hasEnoughCurrency) {
+              const notEnoughMsg = getLang() === 'en' ? `Not enough COIN (Need: ${item.cost})` : `COIN이 부족합니다 (필요: ${item.cost})`;
+              log(t('shopLog', { msg: notEnoughMsg }), 'shop');
+              showToast(notEnoughMsg, 'shop');
+              return;
+            }
+          } else if (shopType === 'oneday') {
+            const oneDayBalance = state.items.oneDay || 0;
+            hasEnoughCurrency = oneDayBalance >= item.cost;
+            if (!hasEnoughCurrency) {
+              const notEnoughMsg = getLang() === 'en' ? `Not enough OneDay (Need: ${item.cost})` : `OneDay가 부족합니다 (필요: ${item.cost})`;
+              log(t('shopLog', { msg: notEnoughMsg }), 'shop');
+              showToast(notEnoughMsg, 'shop');
+              return;
+            }
+          }
+
           // 고가/고희귀 구매 확인
           const rr = rarityRank[item.rarity] || 0;
           if (rr >= 4) {
-            const ok = window.confirm(`${itemName} (${item.rarity})\n💰 ${item.cost}`);
+            const ok = window.confirm(`${itemName} (${item.rarity})\n${currencySymbol} ${item.cost}`);
             if (!ok) return;
           }
-          state.credits -= item.cost;
+
+          // 통화 차감
+          if (shopType === 'credits') {
+            state.credits -= item.cost;
+          } else if (shopType === 'coin') {
+            state.items.coin = (state.items.coin || 0) - item.cost;
+            state.stats.coinSpentTotal = (state.stats.coinSpentTotal || 0) + item.cost;
+          } else if (shopType === 'oneday') {
+            state.items.oneDay = (state.items.oneDay || 0) - item.cost;
+            state.stats.oneDaySpentTotal = (state.stats.oneDaySpentTotal || 0) + item.cost;
+          }
+
           item.buy?.();
           ensureModifierDefaults();
           // mark cap usage
@@ -4831,6 +8500,54 @@ function applyLanguageToUI(){
 
         shopList.appendChild(wrapper);
       });
+
+      // ── SUPPORT DESK 섹션 (항상 하단에 표시) ─────────────────────────────
+      const lang = getLang();
+      const supportSection = document.createElement('div');
+      supportSection.className = 'shop-support-section';
+      supportSection.innerHTML = `
+        <div class="shop-support-header">
+          <span class="shop-support-badge">SUPPORT DESK</span>
+          <span class="shop-support-subtitle">${lang === 'en' ? 'Support HCSiG development · Manual payment' : 'HCSiG 개발 후원 · 수동 결제'}</span>
+        </div>
+        <div class="shop-support-cards">
+          ${SUPPORT_PRODUCTS.map(p => `
+            <div class="shop-support-card">
+              <div class="shop-support-card-name">${p.name}</div>
+              <div class="shop-support-card-price">${p.price}</div>
+              <div class="shop-support-card-reward">${lang === 'en' ? p.rewardLabelEn : p.rewardLabel}</div>
+              <div class="shop-support-card-desc small">${lang === 'en' ? p.descEn : p.desc}</div>
+              <button class="shop-support-apply-btn" data-support-apply="${p.id}">${lang === 'en' ? 'Apply' : '신청하기'}</button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="shop-support-note small">${lang === 'en'
+          ? '💡 Go to MORE → SUPPORT to submit, check status, and redeem codes.'
+          : '💡 더보기 → SUPPORT에서 신청·내역 확인·코드 입력이 가능합니다.'}</div>
+      `;
+      // 신청하기 버튼 → MORE > SUPPORT > 신청하기 탭으로 이동
+      supportSection.querySelectorAll('[data-support-apply]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pid = btn.dataset.supportApply;
+          // MORE 모달 열기 → SUPPORT 탭 열기 → 신청하기 sub-tab
+          const moreModal = document.getElementById('moreModal');
+          if (moreModal) moreModal.classList.remove('hidden');
+          if (typeof setActiveMoreTab === 'function') setActiveMoreTab('support');
+          // 신청하기 sub-tab 선택 및 상품 pre-select
+          setTimeout(() => {
+            const applyTab = document.getElementById('btnSupportSubApply');
+            if (applyTab) applyTab.click();
+            // 해당 상품 카드 선택 상태로 설정
+            const allCards = document.querySelectorAll('#sdProductCards .sd-product-card[data-pid]');
+            allCards.forEach(c => {
+              const isTarget = c.dataset.pid === pid;
+              c.classList.toggle('sd-product-selected', isTarget);
+              c.setAttribute('aria-checked', isTarget ? 'true' : 'false');
+            });
+          }, 80);
+        });
+      });
+      shopList.appendChild(supportSection);
     }
     function rollRarity(effect = {}) {
       const rareBoost = Math.max(0, Number(effect.scanRareBoost || 0));
@@ -4881,6 +8598,10 @@ function applyLanguageToUI(){
 
     function runScanAnimation(totalDuration, onDone) {
       if (scanRunning) return;
+      if (!scanOverlay || !scanProgressInner || !scanText) {
+        onDone && onDone();
+        return;
+      }
       scanRunning = true;
       scanOverlay.classList.add('active');
       scanText.textContent = '';
@@ -5013,7 +8734,49 @@ function applyLanguageToUI(){
         setNodeDisabled(btnHack, false);
         setNodeDisabled(btnUpgradeCpu, false);
         setNodeDisabled(btnUpgradeGpu, false);
-        renderStagePanel();
+
+        // Vulnerability drops from scan
+        {
+          const scanRoll = Math.random();
+          // Pity counter: increments every scan, resets when vuln granted
+          state._vulnScanCount = (state._vulnScanCount || 0) + 1;
+          const pitied = state._vulnScanCount >= 100;
+
+          if ((state._opsForcedOpScan || scanRoll < 0.001) && ownedCodes.length > 0) {
+            // 0.1% chance OPERATION code from scan (or forced by OPS shop item)
+            if (state._opsForcedOpScan) delete state._opsForcedOpScan;
+            state._vulnScanCount = 0; // operation scan resets pity
+            const opCodes = ['operation_meridian', 'operation_blackout'];
+            const opId = opCodes[Math.floor(Math.random() * opCodes.length)];
+            const opDef = codeDefs[opId];
+            if (opDef && !ownedCodes.find(c => c.id === opId)) {
+              const newCode = { id: opDef.id, name: opDef.name, rarity: opDef.rarity, basePower: opDef.basePower, power: opDef.basePower, level: 1, usage: 0, shards: 0, syncLevel: 0 };
+              ownedCodes.push(newCode);
+              if (!state.activeCodeId) state.activeCodeId = opDef.id;
+              log(getLang()==='en' ? `[OPERATION] ${opDef.name} acquired via scan!` : `[OPERATION] ${opDef.name} 스캔 획득!`, 'hack');
+              showToast(`OPERATION: ${opDef.name}`, 'achievement');
+            }
+          } else if (scanRoll < 0.011 || pitied) {
+            // 1% chance OR pity guarantee at 100 scans: completed vulnerability
+            state._vulnScanCount = 0;
+            state.items.zeroDayVulnerability = (state.items.zeroDayVulnerability || 0) + 1;
+            if (pitied && scanRoll >= 0.011) {
+              log(getLang()==='en' ? '[ZERO-DAY] Vulnerability acquired (pity guarantee, 100 scans).' : '[ZERO-DAY] 취약점 획득 (100회 보장).', 'scan');
+              showToast(getLang()==='en' ? 'Vulnerability +1 (Pity)' : '취약점 +1 (100회 보장)', 'achievement');
+            } else {
+              log(getLang()==='en' ? '[ZERO-DAY] Vulnerability acquired from scan.' : '[ZERO-DAY] 스캔에서 취약점 획득.', 'scan');
+              showToast(getLang()==='en' ? 'Vulnerability +1' : '취약점 +1', 'achievement');
+            }
+          } else if (scanRoll < 0.211) {
+            // 20% chance: vulnerability shard
+            state.items.zeroDayVulnerabilityShard = (state.items.zeroDayVulnerabilityShard || 0) + 1;
+            if (state.items.zeroDayVulnerabilityShard % 10 === 0) {
+              showToast(getLang()==='en' ? `Vuln. Shards: ${state.items.zeroDayVulnerabilityShard}/50` : `취약점 조각: ${state.items.zeroDayVulnerabilityShard}/50`, 'system');
+            }
+          }
+        }
+
+        refreshProgressUiAndSave();
       });
     }
 
@@ -5238,6 +9001,7 @@ function applyLanguageToUI(){
 
       checkAchievements('hack');
       checkMissions('general');
+      refreshProgressUiAndSave();
     }
 
     function upgradeCpu() {
@@ -5299,7 +9063,11 @@ function applyLanguageToUI(){
         state.missionProgress.daily.extremeHackSuccess = 0;
         state.missionProgress.daily.shopPurchases = 0;
         state.missionProgress.daily.energySpent = 0;
+        state.missionProgress.daily.energy0Reached = false;
         state.missionProgress.daily.completed = {};
+      }
+      if (state.missionProgress.daily.energy0Reached === undefined) {
+        state.missionProgress.daily.energy0Reached = false;
       }
 
       if (state.missionProgress.weekly.lastResetWeek !== weekKey) {
@@ -5311,8 +9079,13 @@ function applyLanguageToUI(){
         state.missionProgress.weekly.extremeHackSuccess = 0;
         state.missionProgress.weekly.shopPurchases = 0;
         state.missionProgress.weekly.energySpent = 0;
+        state.missionProgress.weekly.energy0Reached = false;
         state.missionProgress.weekly.levelReached = state.level;
         state.missionProgress.weekly.completed = {};
+      }
+      // 기존 세이브에 energy0Reached 누락 시 기본값 보장
+      if (state.missionProgress.weekly.energy0Reached === undefined) {
+        state.missionProgress.weekly.energy0Reached = false;
       }
 
       if (state.missionProgress.month.lastResetMonth !== monthKey) {
@@ -5324,8 +9097,12 @@ function applyLanguageToUI(){
         state.missionProgress.month.extremeHackSuccess = 0;
         state.missionProgress.month.shopPurchases = 0;
         state.missionProgress.month.energySpent = 0;
+        state.missionProgress.month.energy0Reached = false;
         state.missionProgress.month.levelReached = state.level;
         state.missionProgress.month.completed = {};
+      }
+      if (state.missionProgress.month.energy0Reached === undefined) {
+        state.missionProgress.month.energy0Reached = false;
       }
 
       if (!state.missionProgress.general) {
@@ -5335,6 +9112,8 @@ function applyLanguageToUI(){
         state.missionProgress.general.completed = {};
       }
       ensureWeeklyChallengeDefaults();
+      // AUTO-RUN 일일 사용 횟수 리셋
+      resetAutoRunDaily();
     }
 
     function getMissionProgressValue(scope, type) {
@@ -5350,6 +9129,8 @@ function applyLanguageToUI(){
         if (type === 'extremeHackSuccess') return prog.extremeHackSuccess || 0;
         if (type === 'shopPurchases') return prog.shopPurchases || 0;
         if (type === 'creditsEarnedTotal') return state.stats.creditsEarnedTotal || 0;
+        if (type === 'energy0Flag') return prog.energy0Reached ? 1 : 0;
+        if (type === 'zeroDayRunCount') return prog.zeroDayRuns || 0;
         return 0;
       }
 
@@ -5382,28 +9163,17 @@ function applyLanguageToUI(){
       const prog = state.missionProgress[scope];
       if (!prog.completed) prog.completed = {};
 
+      let anyCompleted = false;
+
       defs.forEach(def => {
         if (prog.completed[def.id]) return;
 
-        if (scope === 'month' && def.type === 'energy0Flag') {
-          if (state.energy === 0) {
-            prog.completed[def.id] = true;
-            state.credits += def.rewardCredits;
-            state.stats.creditsEarnedTotal += def.rewardCredits;
-            state.stats.missionsCompletedTotal++;
-            log(
-              `[미션 완료] MONTH - ${def.name} (보상: 크레딧 +${def.rewardCredits})`,
-              'system'
-            );
-          
-            showToast(t('missionDoneToast', { name: localizeMissionName(def), reward: t('missionDoneCredits', { v: def.rewardCredits }) }), 'mission');
-}
-          return;
-        }
+        // energy0Flag는 getMissionProgressValue에서 통합 처리 (prog.energy0Reached 플래그 사용)
 
         const value = getMissionProgressValue(scope, def.type);
         if (value >= def.target) {
           prog.completed[def.id] = true;
+          anyCompleted = true;
 
           const rewardCredits = def.rewardCredits || 0;
           if (rewardCredits > 0) {
@@ -5417,11 +9187,18 @@ function applyLanguageToUI(){
             state.items.energyPack = (state.items.energyPack || 0) + def.rewardEnergyPack;
           }
 
+          // 보조 보상: COIN
+          if (def.rewardCoin) {
+            state.items.coin = (state.items.coin || 0) + def.rewardCoin;
+            state.stats.coinEarnedTotal = (state.stats.coinEarnedTotal || 0) + def.rewardCoin;
+          }
+
           state.stats.missionsCompletedTotal++;
 
           const rewardTextParts = [];
           if (rewardCredits > 0) rewardTextParts.push(`크레딧 +${rewardCredits}`);
           if (def.rewardEnergyPack) rewardTextParts.push(`에너지 팩 +${def.rewardEnergyPack}`);
+          if (def.rewardCoin) rewardTextParts.push(`COIN +${def.rewardCoin}`);
           const rewardText = rewardTextParts.length ? rewardTextParts.join(', ') : '보상 없음';
 
           log(
@@ -5446,6 +9223,8 @@ function applyLanguageToUI(){
       }
 
       checkAchievements('missions');
+      // v3.0.1: 미션 완료 시 즉시 로컬 저장 → 새로고침 후 상태 유실 방지
+      if (anyCompleted) saveGame(true);
     }
 
     function renderMissions() {
@@ -5481,7 +9260,7 @@ function applyLanguageToUI(){
         main.innerHTML = `
           <div>${localizeMissionName(def)}</div>
           <div class="mission-progress">${localizeMissionDesc(def)} (${progVal} / ${def.target})</div>
-          <div class="mission-reward">${t('reward')}: ${def.rewardCredits ? (t('credits') + ' +' + def.rewardCredits) : ''}${def.rewardEnergyPack ? ((def.rewardCredits ? ' / ' : '') + (t('energyPack') + ' +' + def.rewardEnergyPack)) : ''}${(!def.rewardCredits && !def.rewardEnergyPack) ? t('none') : ''}</div>
+          <div class="mission-reward">${t('reward')}: ${def.rewardCredits ? (t('credits') + ' +' + def.rewardCredits) : ''}${def.rewardEnergyPack ? ((def.rewardCredits ? ' / ' : '') + (t('energyPack') + ' +' + def.rewardEnergyPack)) : ''}${def.rewardCoin ? (((def.rewardCredits || def.rewardEnergyPack) ? ' / ' : '') + 'COIN +' + def.rewardCoin) : ''}${(!def.rewardCredits && !def.rewardEnergyPack && !def.rewardCoin) ? t('none') : ''}</div>
         `;
 
         const tag = document.createElement('span');
@@ -5701,10 +9480,14 @@ function applyLanguageToUI(){
       if (!achievementListEl) return;
       achievementListEl.innerHTML = '';
 
+      // v3.0.0: 6단계 난이도 (입문 / 일반 / 보통 / 어려움 / 혼돈 / 불가능)
       const diffLabel = {
-        easy: t('difficultyEasy'),
-        normal: t('difficultyNormal'),
-        hard: t('difficultyHard')
+        intro:      t('difficultyIntro'),       // 입문
+        easy:       t('difficultyEasy'),         // 일반
+        normal:     t('difficultyNormal'),       // 보통
+        hard:       t('achievementDifficultyHard'), // 업적 난이도: 어려움
+        chaos:      t('difficultyChaos'),        // 혼돈
+        impossible: t('difficultyImpossible')    // 불가능
       };
 
       const filter = (state.ui && state.ui.achievementFilter) || 'incomplete';
@@ -5850,20 +9633,39 @@ function applyLanguageToUI(){
     }
 
     function setActiveMoreTab(tabName) {
+      const tabSupport = document.getElementById('tabSupport');
       const panelMap = {
         codex: tabCodex,
         live: tabLiveNet,
         rank: tabRank,
         settings: tabSettings,
-        save: tabSave
+        save: tabSave,
+        credits: tabCredits,
+        manual: tabManual,
+        support: tabSupport
       };
+      if (tabName === 'support') {
+        _supportPanelLoginState = undefined; // 탭 진입 시 항상 새로 렌더
+        renderSupportPanel();
+      }
       const activeTab = panelMap[tabName] ? tabName : 'codex';
+
+      // v3.0.0 hotfix3: class-only switching could leave CODEX rendered
+      // behind LIVE/RANK/SETTINGS/SAVE/CREDITS/MANUAL after modal scroll fixes.
+      // Apply explicit display + hidden state so exactly one panel is visible.
       Object.keys(panelMap).forEach(name => {
-        if (!panelMap[name]) return;
-        panelMap[name].classList.toggle('active', name === activeTab);
+        const panel = panelMap[name];
+        if (!panel) return;
+        const isActive = name === activeTab;
+        panel.classList.toggle('active', isActive);
+        panel.hidden = !isActive;
+        panel.style.display = isActive ? 'flex' : 'none';
+        panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
       });
       moreTabButtons.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === activeTab);
+        const isActive = btn.dataset.tab === activeTab;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
       try {
         document.dispatchEvent(new CustomEvent('hcsig:more-tab', {
@@ -5928,6 +9730,7 @@ function applyLanguageToUI(){
     function openEventModal() {
       try {
         renderWeeklyPanel();
+        try { renderPassPanel(); } catch(e){}
         if (!eventModalBackdrop) return;
         eventModalBackdrop.classList.add('active');
         try { document.dispatchEvent(new CustomEvent('hcsig:event-open', { detail: { open: true } })); } catch(e) {}
@@ -6079,8 +9882,20 @@ function applyLanguageToUI(){
 
 
     function refreshUiAfterStateRestore() {
+      // v3.0.0: 세이브 로드 시 고아 타이머 정리 (서버 탭 전환 등 방지)
+      try { stopZdDiscTimer(); stopZdHold(); } catch(_) {}
       ensureStageDefaults();
       ensureZeroDayDefaults();
+      // v3.0.0 migration: 구 run 객체(depth/detection 필드) → 초기화
+      if (state.zeroDay && state.zeroDay.pve && state.zeroDay.pve.active) {
+        const r = state.zeroDay.pve.active;
+        if (typeof r.depth !== 'undefined' || typeof r.detection !== 'undefined') {
+          console.warn('[ZD] v3.0.0 migration: old run format detected — clearing active run');
+          state.zeroDay.pve.active = null;
+        }
+      }
+      ensureSupportDefaults();
+      initAutoRunOnLoad();
       applySettings();
       syncSettingsUI();
       applyLanguageToUI();
@@ -6141,7 +9956,7 @@ function applyLanguageToUI(){
     }
 
     let scheduledSilentSaveTimer = null;
-    function scheduleSilentSave(delay = 180) {
+    function scheduleSilentSave(delay = 5000) {
       clearTimeout(scheduledSilentSaveTimer);
       scheduledSilentSaveTimer = setTimeout(() => {
         scheduledSilentSaveTimer = null;
@@ -6150,20 +9965,57 @@ function applyLanguageToUI(){
     }
 
     function loadGame(rawOverride = null) {
-      let raw = typeof rawOverride === 'string' ? rawOverride : localStorage.getItem(SAVE_KEY);
-      // v1.5.x 저장 데이터 자동 마이그레이션
-      if (!raw) {
-        raw = localStorage.getItem(OLD_SAVE_KEY);
-        if (raw) {
-          localStorage.setItem(SAVE_KEY, raw);
+      let raw = null;
+      let source = 'main';
+      if (typeof rawOverride === 'string') {
+        raw = rawOverride;
+        source = 'override';
+      } else {
+        // v3.0.0 PC stability hotfix: choose the highest-progress save candidate.
+        // This prevents a freshly-created low-progress v17 save from hiding a richer v16/backup save.
+        const candidates = [
+          { key: SAVE_KEY, source: 'main', raw: localStorage.getItem(SAVE_KEY) },
+          { key: OLD_SAVE_KEY, source: 'old-key', raw: localStorage.getItem(OLD_SAVE_KEY) },
+          { key: SAVE_BACKUP_KEY, source: 'backup', raw: getSaveBackup() },
+          { key: SAVE_BACKUP_PREV_KEY, source: 'backup-prev', raw: getSaveBackupPrev() }
+        ].filter(c => !!c.raw).map(c => {
+          const migrated = migrateSave(c.raw);
+          let parsed = migrated;
+          if (!parsed) {
+            try { parsed = JSON.parse(c.raw); } catch (e) { parsed = null; }
+          }
+          return Object.assign(c, { parsed, score: parsed ? getSaveScore(parsed) : -1 });
+        }).filter(c => c.parsed);
+
+        if (candidates.length) {
+          candidates.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return Number((b.parsed && b.parsed.savedAt) || 0) - Number((a.parsed && a.parsed.savedAt) || 0);
+          });
+          const best = candidates[0];
+          raw = best.raw;
+          source = best.source;
+          if (best.key !== SAVE_KEY) {
+            pushSaveBackup(raw);
+            localStorage.setItem(SAVE_KEY, raw);
+            console.warn(`[LoadGame] selected ${best.source} save by progress score (${best.score})`);
+          }
         }
       }
+      // v3.0.0+: no save candidates -> do not write default state automatically.
       if (!raw) {
+        // v3.0.0+: default state 로 자동 저장하지 않음 (사용자 행동 후에만 save)
         log(t('noSavedData'), 'system');
         return;
       }
       try {
-        const data = JSON.parse(raw);
+        // v3.0.0+: 마이그레이션 적용 — 기존 raw도 백업 유지
+        const data = migrateSave(raw) || JSON.parse(raw);
+        const rawHasClaimFlags = !!(data.state && data.state.claimFlags);
+        if (source !== 'backup') {
+          // 정상 로드 — 마지막으로 성공한 raw를 백업
+          try { pushSaveBackup(raw); } catch(e) { console.warn('[SaveBackup] pre-load backup failed:', e); }
+        }
         if (data.savedAt) state.lastSavedAt = data.savedAt;
         if (data.state) {
           Object.assign(state, state, data.state);
@@ -6237,10 +10089,9 @@ function applyLanguageToUI(){
         state.ui.toastDurationMs = state.ui.toastDurationMs || 3000;
         state.ui.uiZoom = state.ui.uiZoom || 1;
         state.ui.fontScale = state.ui.fontScale || 100;
-        state.ui.snowEnabled = (typeof state.ui.snowEnabled === 'boolean') ? state.ui.snowEnabled : null;
         state.ui.anim = (typeof state.ui.anim === 'boolean') ? state.ui.anim : true;
         state.ui.sfxEnabled = (typeof state.ui.sfxEnabled === 'boolean') ? state.ui.sfxEnabled : true;
-        state.ui.sfxVolume = Number.isFinite(Number(state.ui.sfxVolume)) ? Math.max(0, Math.min(100, Number(state.ui.sfxVolume))) : 35;
+        state.ui.sfxVolume = Number.isFinite(Number(state.ui.sfxVolume)) ? Math.max(0, Math.min(100, Number(state.ui.sfxVolume))) : 100;
         state.ui.autoSaveToast = !!state.ui.autoSaveToast;
         state.ui.logSearch = state.ui.logSearch || '';
         state.ui.achievementFilter = ['all', 'incomplete', 'complete'].includes(state.ui.achievementFilter) ? state.ui.achievementFilter : 'incomplete';
@@ -6263,6 +10114,108 @@ function applyLanguageToUI(){
           state.loadouts[slot] = loadout;
         });
 
+        // v3.0.0 field migrations
+        state.targeting = state.targeting || { serverId: 'school_lab', route: 'internal' };
+        state.targeting.serverId = state.targeting.serverId || 'school_lab';
+        state.targeting.route = ['external','internal','core'].includes(state.targeting.route) ? state.targeting.route : 'internal';
+
+        state.items = state.items || {};
+        state.items.coin = state.items.coin || 0;
+        state.items.zeroDayVulnerability = state.items.zeroDayVulnerability || 0;
+        state.items.zeroDayVulnerabilityShard = state.items.zeroDayVulnerabilityShard || 0;
+        state.items.oneDay = state.items.oneDay || 0;
+        state.items.dailyBonusBox = state.items.dailyBonusBox || 0;
+        state.items.rom = state.items.rom || 0;
+        state.items.codeProtection = state.items.codeProtection || 0;
+        state.items.pickResidualData = state.items.pickResidualData || 0;
+        state.claimFlags = (state.claimFlags && typeof state.claimFlags === 'object') ? state.claimFlags : {};
+
+        state.season = state.season || {};
+        state.season.currentKey = state.season.currentKey || 'preseason';
+        state.season.currentNumber = state.season.currentNumber || 0;
+        state.season.passPoints = Math.max(0, Number(state.season.passPoints || 0));
+        state.season.passTier = Math.max(0, Math.min(30, Number(state.season.passTier || 0)));
+        state.season.passClaimed = state.season.passClaimed || {};
+        state.season.shopPurchases = state.season.shopPurchases || {};
+        state.season.pvpSeasonRecord = state.season.pvpSeasonRecord || {};
+
+        state.weeklyChallenge.progressTierCurrent = state.weeklyChallenge.progressTierCurrent || 'foundation';
+        state.weeklyChallenge.shopPurchases = state.weeklyChallenge.shopPurchases || {};
+
+        state.ui.homeStatusCollapsed = !!state.ui.homeStatusCollapsed;
+        state.ui.zeroDayCommandLocale = ['auto','english','korean'].includes(state.ui.zeroDayCommandLocale) ? state.ui.zeroDayCommandLocale : 'auto';
+
+        state.missionProgress.daily.energyZeroReached = !!state.missionProgress.daily.energyZeroReached;
+        state.missionProgress.weekly.energyZeroReached = !!state.missionProgress.weekly.energyZeroReached;
+        state.missionProgress.month.energyZeroReached = !!state.missionProgress.month.energyZeroReached;
+
+        state.stats.stageTurnWinCount = state.stats.stageTurnWinCount || 0;
+        state.stats.zeroDayPveClearCount = state.stats.zeroDayPveClearCount || 0;
+        state.stats.zeroDayPveEscapeCount = state.stats.zeroDayPveEscapeCount || 0;
+        state.stats.zeroDayPvpAttackWinCount = state.stats.zeroDayPvpAttackWinCount || 0;
+        state.stats.zeroDayPvpDefenseSuccessCount = state.stats.zeroDayPvpDefenseSuccessCount || 0;
+        state.stats.zeroDayOneDayEarnedTotal = state.stats.zeroDayOneDayEarnedTotal || 0;
+        state.stats.zeroDayOneDaySpentTotal = state.stats.zeroDayOneDaySpentTotal || 0;
+        state.stats.zeroDayBestExtractDiff = state.stats.zeroDayBestExtractDiff || '';
+        state.stats.zeroDayLowDetectionExtracts = state.stats.zeroDayLowDetectionExtracts || 0;
+        state._vulnScanCount = state._vulnScanCount || 0;
+        state.stats.coinEarnedTotal = state.stats.coinEarnedTotal || 0;
+        state.stats.coinSpentTotal = state.stats.coinSpentTotal || 0;
+        state.stats.passTierReached = state.stats.passTierReached || 0;
+        state.stats.weeklyGoalClaimCount = state.stats.weeklyGoalClaimCount || 0;
+        state.stats.weeklyTokensSpentTotal = state.stats.weeklyTokensSpentTotal || 0;
+        state.stats.eventShopPurchaseCount = state.stats.eventShopPurchaseCount || 0;
+        state.stats.routeExternalHackSuccessCount = state.stats.routeExternalHackSuccessCount || 0;
+        state.stats.routeInternalHackSuccessCount = state.stats.routeInternalHackSuccessCount || 0;
+        state.stats.routeCoreHackSuccessCount = state.stats.routeCoreHackSuccessCount || 0;
+
+        // Migrate legacy zeroDay state from 2.3.0
+        if (state.zeroDay && !state.zeroDay.pve) {
+          state.zeroDay.legacyRunStats = {
+            mode: state.zeroDay.mode,
+            bestDepth: state.zeroDay.bestDepth,
+            bestScore: state.zeroDay.bestScore,
+            runs: state.zeroDay.runs,
+            extracts: state.zeroDay.extracts,
+            traces: state.zeroDay.traces,
+            totalSignal: state.zeroDay.totalSignal
+          };
+          state.zeroDay.pve = { active: null, bestDepth: 0, bestScore: 0, runs: 0, extracts: 0, difficulty: 'easy' };
+          state.zeroDay.pvp = { active: null, rating: 1000, seasonWins: 0, seasonLosses: 0, attacksTotal: 0, defensesTotal: 0 };
+          state.zeroDay.defense = { slots: 3, cards: [], usesThisMatch: 0 };
+          state.zeroDay.unlocks = {};
+          state.zeroDay.tier = 1;
+          state.zeroDay.skins = [];
+          state.zeroDay.activeSkin = 'zero_shell';
+          delete state.zeroDay.mode;
+          delete state.zeroDay.active;
+          delete state.zeroDay.bestDepth;
+          delete state.zeroDay.bestScore;
+          delete state.zeroDay.runs;
+          delete state.zeroDay.extracts;
+          delete state.zeroDay.traces;
+          delete state.zeroDay.totalSignal;
+          delete state.zeroDay.lastResult;
+          delete state.zeroDay.bestSignal;
+        }
+        state.zeroDay.onboardingCompleted = !!state.zeroDay.onboardingCompleted;
+        state.zeroDay.pve = state.zeroDay.pve || { active: null, bestDepth: 0, bestScore: 0, runs: 0, extracts: 0, difficulty: 'easy' };
+        state.zeroDay.pvp = state.zeroDay.pvp || { active: null, rating: 1000, seasonWins: 0, seasonLosses: 0, attacksTotal: 0, defensesTotal: 0 };
+        state.zeroDay.defense = state.zeroDay.defense || { slots: 3, cards: [], usesThisMatch: 0 };
+        // v3.0.0+ fix: 잠긴 진행 중 battle/run 자동 정리 — 사용자가 EXIT 안 하고 페이지 닫은 경우
+        // 다음 세션에서 새 도전을 시작할 수 있도록 stale 상태 클리어
+        state.stage = state.stage || {};
+        if (state.stage.activeBattle && !state.stage.activeBattle.over) {
+          console.warn('[Load] Clearing stale Data Tower battle (over=false)');
+          state.stage.activeBattle = null;
+        } else {
+          state.stage.activeBattle = state.stage.activeBattle || null;
+        }
+        if (state.zeroDay.pve && state.zeroDay.pve.active) {
+          console.warn('[Load] Clearing stale ZERO-DAY PVE run');
+          state.zeroDay.pve.active = null;
+        }
+
         ensureTutorialDefaults();
         ensureStageDefaults();
         ensureZeroDayDefaults();
@@ -6270,7 +10223,16 @@ function applyLanguageToUI(){
         state.energy = Math.min(state.energy, state.energyMax);
         applyOfflineEnergyRecovery();
         ensureMissionResets();
+        const releaseResult = maybeApplyReleaseBundles({
+          savedAt: data.savedAt || state.lastSavedAt || state.lastSeenAt || 0,
+          version: data.version || '',
+          source,
+          hasRawClaimFlags: rawHasClaimFlags,
+          forceDetectLegacy: !rawHasClaimFlags
+        });
+        if (releaseResult.changed) saveGame(true);
         refreshUiAfterStateRestore();
+        flushReleaseNotices(releaseResult.notices);
         log(t('saveLoaded'), 'system');
       } catch (e) {
         console.error(e);
@@ -6359,6 +10321,23 @@ function applyLanguageToUI(){
       });
     }
 
+    // SHOP TYPE TABS (CREDITS / COIN / ONEDAY)
+    const shopTypeTabButtons = document.querySelectorAll('.shop-type-tab');
+    if (shopTypeTabButtons && shopTypeTabButtons.length) {
+      shopTypeTabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const nextType = btn.dataset.shopType || 'credits';
+          state.ui = state.ui || { shopSortMode: 'update', shopCategory: 'all', shopType: 'credits' };
+          state.ui.shopType = nextType;
+          shopTypeTabButtons.forEach(tab => tab.classList.toggle('active', tab === btn));
+          renderShop();
+          scheduleSilentSave();
+          // BGM: 상점 탭 전환 알림
+          try { document.dispatchEvent(new CustomEvent('hcsig:shop-type', { detail: { shopType: nextType } })); } catch(e) {}
+        });
+      });
+    }
+
     if (shopCategoryTabButtons && shopCategoryTabButtons.length) {
       shopCategoryTabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -6371,16 +10350,6 @@ function applyLanguageToUI(){
       });
     }
 
-    // 설정 적용
-    function isChristmasSeason(d = new Date()) {
-      // 로컬 기준: 12/1 ~ 1/7 (대략적인 시즌)
-      const m = d.getMonth() + 1;
-      const day = d.getDate();
-      if (m === 12) return day >= 1;
-      if (m === 1) return day <= 7;
-      return false;
-    }
-
     function applySettings() {
       const ui = state.ui || {};
       const fontScale = Number(ui.fontScale || 100);
@@ -6389,13 +10358,6 @@ function applyLanguageToUI(){
       document.documentElement.style.setProperty('--ui-zoom', String(zoom));
       document.body.classList.toggle('no-anim', ui.anim === false);
 
-      // v1.6.6: 크리스마스 눈 이펙트 on/off (시즌 자동 + 수동 오버라이드)
-      const snowOn = (typeof ui.snowEnabled === 'boolean') ? ui.snowEnabled : isChristmasSeason();
-      const snowCanvas = document.getElementById('snow-canvas');
-      if (snowCanvas) snowCanvas.style.display = snowOn ? '' : 'none';
-      if (window.__snowFX && window.__snowFX.setEnabled) {
-        window.__snowFX.setEnabled(!!snowOn);
-      }
     }
 
     function syncSettingsUI() {
@@ -6403,12 +10365,6 @@ function applyLanguageToUI(){
       const ui = state.ui || {};
       setFontScale.value = ui.fontScale || 100;
       setNodeText(setFontScaleLabel, `${setFontScale.value}%`);
-      if (setSnow) {
-        const snowOn = (typeof ui.snowEnabled === 'boolean') ? ui.snowEnabled : isChristmasSeason();
-        setSnow.checked = !!snowOn;
-        // 자동 모드(null)일 땐 체크박스에 미세한 힌트(회색 표시)
-        setSnow.indeterminate = (typeof ui.snowEnabled !== 'boolean');
-      }
       if (setUiZoom) setUiZoom.value = String(ui.uiZoom || 1);
       if (setAnim) setAnim.checked = ui.anim !== false;
       if (setSfx) setSfx.checked = ui.sfxEnabled !== false;
@@ -6425,7 +10381,9 @@ function applyLanguageToUI(){
     
     if (setLanguage) {
       setLanguage.addEventListener('change', () => {
-        state.ui.lang = setLanguage.value || 'ko';
+        // v3.0.0: 지원 언어 화이트리스트 (ko/en/ja)
+        const next = setLanguage.value;
+        state.ui.lang = ['ko', 'en', 'ja'].includes(next) ? next : 'ko';
         refreshUiAfterStateRestore();
         scheduleSilentSave(60);
       });
@@ -6440,16 +10398,6 @@ function applyLanguageToUI(){
       });
     }
 
-    if (setSnow) {
-      setSnow.addEventListener('change', () => {
-        // 체크/해제 시 수동 모드로 고정
-        state.ui.snowEnabled = !!setSnow.checked;
-        // indeterminate(자동) 해제
-        setSnow.indeterminate = false;
-        applySettings();
-        scheduleSilentSave();
-      });
-    }
     if (setUiZoom) {
       setUiZoom.addEventListener('change', () => {
         state.ui.uiZoom = Number(setUiZoom.value);
@@ -6504,6 +10452,18 @@ function applyLanguageToUI(){
         scheduleSilentSave(80);
       });
     }
+    // BGM 토글
+    const setBgm = document.getElementById('setBgm');
+    if (setBgm) {
+      // 초기값: localStorage에서 읽어 반영
+      try {
+        const lsVal = localStorage.getItem('HCSiG_BGM_enabled');
+        setBgm.checked = lsVal === null ? true : lsVal !== 'false';
+      } catch(e) {}
+      setBgm.addEventListener('change', () => {
+        if (window.HCSIG_BGM) window.HCSIG_BGM.setEnabled(!!setBgm.checked);
+      });
+    }
     if (setLiveNicknameMode) {
       setLiveNicknameMode.addEventListener('change', () => {
         state.ui.liveNicknameMode = setLiveNicknameMode.value === 'callsign' ? 'callsign' : 'nickname';
@@ -6530,11 +10490,178 @@ function applyLanguageToUI(){
       });
     }
 
+    // ── v3.0.1 Save Foundation: 충돌 다이얼로그 ──────────────────────────────
+    // cloudSave.js가 브릿지를 통해 호출. 유저 선택을 Promise로 반환.
+    // choice: 'use-local' | 'use-cloud' | 'safe-merge' | 'export-both'
+    function showSaveConflictDialog(localSave, cloudSave) {
+      return new Promise(resolve => {
+        const bd  = document.getElementById('saveConflictBackdrop');
+        if (!bd) { resolve('safe-merge'); return; }
+
+        const localSum = getSaveSummary(localSave);
+        const cloudSum = getSaveSummary(cloudSave);
+
+        function fmt(ts) {
+          if (!ts) return '-';
+          try { return new Date(Number(ts)).toLocaleString(); } catch(e) { return '-'; }
+        }
+        function detail(sum) {
+          return `Lv.${sum.level || 0}  크레딧 ${(sum.credits||0).toLocaleString()}  코드 ${sum.codeCount || 0}개`;
+        }
+
+        const localWins = localSum.score >= cloudSum.score;
+
+        const elLocalScore  = document.getElementById('scLocalScore');
+        const elLocalTime   = document.getElementById('scLocalTime');
+        const elLocalDetail = document.getElementById('scLocalDetail');
+        const elCloudScore  = document.getElementById('scCloudScore');
+        const elCloudTime   = document.getElementById('scCloudTime');
+        const elCloudDetail = document.getElementById('scCloudDetail');
+        const localSide  = document.getElementById('scLocalSide');
+        const cloudSide  = document.getElementById('scCloudSide');
+
+        if (elLocalScore)  elLocalScore.textContent  = `점수: ${localSum.score}`;
+        if (elLocalTime)   elLocalTime.textContent   = `저장: ${fmt(localSave && localSave.savedAt)}`;
+        if (elLocalDetail) elLocalDetail.textContent = detail(localSum);
+        if (elCloudScore)  elCloudScore.textContent  = `점수: ${cloudSum.score}`;
+        if (elCloudTime)   elCloudTime.textContent   = `저장: ${fmt(cloudSave && cloudSave.savedAt)}`;
+        if (elCloudDetail) elCloudDetail.textContent = detail(cloudSum);
+
+        if (localSide)  localSide.classList.toggle('sc-winner', localWins);
+        if (cloudSide)  cloudSide.classList.toggle('sc-winner', !localWins);
+
+        bd.classList.add('active');
+
+        function finish(choice) {
+          bd.classList.remove('active');
+          ['scUseLocal','scUseCloud','scSafeMerge','scExportBoth'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.onclick = null;
+          });
+          resolve(choice);
+        }
+
+        const btnLocal  = document.getElementById('scUseLocal');
+        const btnCloud  = document.getElementById('scUseCloud');
+        const btnSafe   = document.getElementById('scSafeMerge');
+        const btnExport = document.getElementById('scExportBoth');
+        if (btnLocal)  btnLocal.onclick  = () => finish('use-local');
+        if (btnCloud)  btnCloud.onclick  = () => finish('use-cloud');
+        if (btnSafe)   btnSafe.onclick   = () => finish('safe-merge');
+        if (btnExport) btnExport.onclick = () => finish('export-both');
+      });
+    }
+
+    // ── v3.0.1 Save Foundation: 두 세이브 동시 내보내기 ─────────────────────
+    function exportSaveFileWithData(saveObj, tag) {
+      try {
+        if (!saveObj) return;
+        const sum  = getSaveSummary(saveObj);
+        const data = JSON.stringify(Object.assign({}, saveObj, {
+          exportMeta: { summary: sum, exportedAt: new Date().toISOString(), tag }
+        }), null, 2);
+        const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const d = new Date();
+        a.download = `HCSiG_save_${tag}_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_s${sum.score}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+      } catch(e) { console.error('[ExportWithData]', e); }
+    }
+
+    // ── v3.0.1 Save Foundation: 백업 복구 패널 ──────────────────────────────
+    function showBackupRestorePanel() {
+      const bd = document.getElementById('backupRestoreBackdrop');
+      const list = document.getElementById('brBackupList');
+      if (!bd || !list) return;
+
+      function fmt(ts) {
+        if (!ts) return '-';
+        try { return new Date(Number(ts)).toLocaleString(); } catch(e) { return '-'; }
+      }
+
+      const backupSlots = [
+        { label: '최신 백업 (BACKUP)', raw: getSaveBackup(),     key: 'recent' },
+        { label: '이전 백업 (BACKUP_PREV)', raw: getSaveBackupPrev(), key: 'prev' }
+      ];
+
+      let html = '';
+      let anySlot = false;
+      backupSlots.forEach(slot => {
+        if (!slot.raw) return;
+        let parsed = null;
+        try { parsed = JSON.parse(slot.raw); } catch(e) {}
+        if (!parsed) return;
+        anySlot = true;
+        const sum = getSaveSummary(parsed);
+        html += `
+          <div class="br-slot">
+            <div class="br-slot-info">
+              <div class="br-slot-label">${slot.label}</div>
+              <div class="br-slot-score">점수: ${sum.score}</div>
+              <div class="br-slot-time">저장: ${fmt(parsed.savedAt)}</div>
+              <div class="br-slot-detail">Lv.${sum.level||0} · 코드 ${sum.codeCount||0}개 · 크레딧 ${(sum.credits||0).toLocaleString()}</div>
+            </div>
+            <button class="br-restore-btn" data-br-key="${slot.key}">복구</button>
+          </div>`;
+      });
+      if (!anySlot) {
+        html = '<div class="br-empty">저장된 자동 백업이 없습니다.</div>';
+      }
+      list.innerHTML = html;
+
+      // 복구 버튼 이벤트
+      list.querySelectorAll('.br-restore-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.brKey;
+          const slot = backupSlots.find(s => s.key === key);
+          if (!slot || !slot.raw) return;
+          const isEn = getLang() === 'en';
+          const msg = isEn
+            ? 'Restore this backup? Current progress will be backed up first.'
+            : '이 백업으로 복구할까요? 현재 진행 데이터는 먼저 백업됩니다.';
+          if (!window.confirm(msg)) return;
+          // 현재 세이브 먼저 백업
+          const currentRaw = localStorage.getItem(SAVE_KEY);
+          if (currentRaw) pushSaveBackup(currentRaw);
+          // 복구
+          localStorage.setItem(SAVE_KEY, slot.raw);
+          loadGame(slot.raw);
+          refreshUiAfterStateRestore();
+          bd.style.display = 'none';
+          showToast(isEn ? 'Backup restored.' : '백업 복구 완료.', 'save');
+        });
+      });
+
+      // 닫기
+      const closeBtn = document.getElementById('btnBrClose');
+      if (closeBtn) closeBtn.onclick = () => { bd.style.display = 'none'; };
+
+      bd.style.display = 'flex';
+    }
+
     // 내보내기 / 불러오기
     function exportSaveFile() {
       try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        const data = raw ? raw : JSON.stringify({ version: CURRENT_VERSION, state, ownedCodes, modifiers });
+        // v3.0.0+: 현재 state 우선, 없으면 SAVE_KEY raw
+        const live = {
+          version: CURRENT_VERSION,
+          saveVersion: CURRENT_VERSION,
+          savedAt: state.lastSavedAt || Date.now(),
+          state: JSON.parse(JSON.stringify(state)),
+          ownedCodes: JSON.parse(JSON.stringify(ownedCodes)),
+          modifiers: JSON.parse(JSON.stringify(modifiers))
+        };
+        // 요약 메타 포함 (사람이 읽기 위함)
+        live.exportMeta = {
+          summary: getSaveSummary(live),
+          exportedAt: new Date().toISOString(),
+          exportedFrom: navigator.userAgent.slice(0, 80)
+        };
+        const data = JSON.stringify(live, null, 2);
         const blob = new Blob([data], { type: 'application/json;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -6542,12 +10669,13 @@ function applyLanguageToUI(){
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth()+1).padStart(2,'0');
         const dd = String(d.getDate()).padStart(2,'0');
-        a.download = `HCSiG_save_${yyyy}${mm}${dd}_${CURRENT_VERSION}.json`;
+        const score = live.exportMeta.summary.score;
+        a.download = `HCSiG_save_${yyyy}${mm}${dd}_v${CURRENT_VERSION}_s${score}.json`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(a.href);
-        showToast(t('exportDone'), 'save');
+        showToast(t('exportDone') + ' · score ' + score, 'save');
       } catch (e) {
         console.error(e);
         showToast(t('exportFail'), 'warn');
@@ -6557,9 +10685,33 @@ function applyLanguageToUI(){
     function importSaveFromText(text) {
       try {
         const obj = JSON.parse(text);
+        // v3.0.0+: 점수 비교 후 import — 현재보다 낮으면 경고
+        const localSummary = getSaveSummary({
+          version: CURRENT_VERSION,
+          state: state,
+          ownedCodes: ownedCodes,
+          modifiers: modifiers
+        });
+        const importSummary = getSaveSummary(obj);
+        const localScore = localSummary.score;
+        const importScore = importSummary.score;
+        if (localScore > importScore + 10) {
+          const isEn = getLang() === 'en';
+          const msg = isEn
+            ? `Warning: Imported save has lower score (${importScore}) than current (${localScore}).\nImporting will OVERWRITE current progress.\n\nProceed?`
+            : `경고: 불러올 데이터 진행도가 현재보다 낮습니다 (불러오기 ${importScore} < 현재 ${localScore}).\n현재 진행도가 덮어써집니다.\n\n그래도 진행할까요?`;
+          if (!window.confirm(msg)) {
+            showToast(isEn ? 'Import cancelled.' : '불러오기 취소됨.', 'system');
+            return;
+          }
+        }
+        // 백업 후 적용
+        const currentRaw = localStorage.getItem(SAVE_KEY);
+        if (currentRaw) pushSaveBackup(currentRaw);
         localStorage.setItem(SAVE_KEY, JSON.stringify(obj));
         loadGame();
-        showToast(t('importDone'), 'save');
+        refreshUiAfterStateRestore();
+        showToast(t('importDone') + ' · score ' + importScore, 'save');
       } catch (e) {
         console.error(e);
         showToast(t('importFail'), 'warn');
@@ -6567,6 +10719,9 @@ function applyLanguageToUI(){
     }
 
     bind(btnExportSave, 'click', exportSaveFile);
+
+    const btnBackupRestore = document.getElementById('btnBackupRestore');
+    bind(btnBackupRestore, 'click', showBackupRestorePanel);
 
     if (btnImportSaveFile && fileImportSave) {
       bind(btnImportSaveFile, 'click', () => fileImportSave.click());
@@ -6612,6 +10767,11 @@ function applyLanguageToUI(){
       renderWeeklyPanel();
       renderZeroDayPanel();
     });
+    // v3.0.1: ITEMS 탭 클릭 시 ITEMS 패널 렌더
+    bind(document, 'hcsig:render-items', () => { renderItemsPanel(); });
+    bind(document, 'hcsig:zd-tab-open', () => {
+      renderZeroDayPanel();
+    });
     bind(window, 'hcsig:language-applied', () => {
       renderStagePanel();
       renderWeeklyPanel();
@@ -6625,16 +10785,7 @@ function applyLanguageToUI(){
       renderWeeklyPanel();
       scheduleSilentSave();
     });
-    bind(document, 'click', (event) => {
-      const startBtn = event.target.closest && event.target.closest('[data-zero-day-start]');
-      if (startBtn) {
-        startZeroDay(startBtn.dataset.zeroDayStart || 'single');
-        return;
-      }
-      const actionBtn = event.target.closest && event.target.closest('[data-zero-day-action]');
-      if (!actionBtn) return;
-      runZeroDayAction(actionBtn.dataset.zeroDayAction || '');
-    });
+    // v3.0.0 hotfix: removed legacy [data-zero-day-*] handler that called undefined startZeroDay/runZeroDayAction.
     setInterval(() => {
       if (document.body.classList.contains('app-view-lab') || (eventModalBackdrop && eventModalBackdrop.classList.contains('active'))) renderWeeklyPanel();
     }, 30000);
@@ -6675,25 +10826,161 @@ function applyLanguageToUI(){
     bind(btnSaveLoadout, 'click', saveCurrentLoadout);
     bind(btnLoadLoadout, 'click', loadLoadout);
 
+    // === v3.0.0 new UI wiring ===
+
+    // 서버 선택 변경 → state.targeting.serverId 저장
+    if (serverSelect) {
+      serverSelect.addEventListener('change', () => {
+        state.targeting = state.targeting || {};
+        state.targeting.serverId = serverSelect.value || 'school_lab';
+        scheduleSilentSave();
+      });
+    }
+
+    // Route select (HOME ACTIONS)
+    const routeSelectEl = document.getElementById('routeSelect');
+    if (routeSelectEl) {
+      routeSelectEl.addEventListener('change', () => {
+        state.targeting = state.targeting || {};
+        state.targeting.route = routeSelectEl.value || 'external';
+        scheduleSilentSave();
+      });
+    }
+
+    // Upgrade target select + single upgrade button (CPU / GPU)
+    const upgradeTargetSelectEl = document.getElementById('upgradeTargetSelect');
+    const btnUpgradeEl = document.getElementById('btnUpgrade');
+    if (btnUpgradeEl) {
+      bind(btnUpgradeEl, 'click', () => {
+        const target = (upgradeTargetSelectEl && upgradeTargetSelectEl.value) || 'cpu';
+        if (target === 'gpu') upgradeGpu();
+        else upgradeCpu();
+      });
+    }
+
+    // Collapsible system status → persist open/close to state
+    const systemStatusDetailsEl = document.getElementById('systemStatusDetails');
+    if (systemStatusDetailsEl) {
+      systemStatusDetailsEl.addEventListener('toggle', () => {
+        state.ui = state.ui || {};
+        state.ui.homeStatusCollapsed = !systemStatusDetailsEl.open;
+        scheduleSilentSave();
+      });
+    }
+
+    // ZERO-DAY command locale select
+    const zdCmdLocaleEl = document.getElementById('setZdCmdLocale');
+    if (zdCmdLocaleEl) {
+      zdCmdLocaleEl.addEventListener('change', () => {
+        state.ui = state.ui || {};
+        state.ui.zeroDayCommandLocale = zdCmdLocaleEl.value || 'auto';
+        renderZeroDayPanel();
+        scheduleSilentSave();
+      });
+    }
+
+    // PROGRESS 난이도 선택 버튼 위임
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-progress-tier]');
+      if (!btn) return;
+      setProgressTier(btn.dataset.progressTier);
+    });
+
+    // 계정 서브탭 전환 (계정 및 클라우드 상태 / 계정 커스텀)
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-account-tab]');
+      if (!btn) return;
+      const tabId = btn.dataset.accountTab;
+      document.querySelectorAll('.account-subtab-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.accountTab === tabId));
+      document.querySelectorAll('.account-subpanel').forEach(p =>
+        p.classList.toggle('active', p.id === 'accountPanel' + tabId.charAt(0).toUpperCase() + tabId.slice(1)));
+    });
+
+    // EVENT modal tab switching (WEEKLY / PASS)
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-event-tab]');
+      if (!btn) return;
+      const tabId = btn.dataset.eventTab;
+      document.querySelectorAll('.event-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.eventTab === tabId));
+      document.querySelectorAll('.event-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'eventTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1)));
+      if (tabId === 'pass') try { renderPassPanel(); } catch(ex) {}
+    });
+
+    // DATA TOWER turn-battle action delegation
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-battle-action]');
+      if (!btn) return;
+      try { doStageTurnAction(btn.dataset.battleAction); } catch(ex) { console.warn('[Battle]', ex); }
+    });
+
+    // PASS claim tier button delegation
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-claim-pass-tier]');
+      if (!btn) return;
+      const tier = parseInt(btn.dataset.claimPassTier, 10);
+      try { claimPassTierReward(tier); } catch(ex) { console.warn('[Pass]', ex); }
+    });
+
+    // v3.0.0: Season shop buy delegation 제거됨 (시즌 상점 → COIN 상점으로 통합)
+
+    // OPS shop buy delegation
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-ops-buy]');
+      if (!btn) return;
+      try { buyOpsShopItem(btn.dataset.opsBuy); } catch(ex) { console.warn('[OpsShop]', ex); }
+    });
+
+    // ZERO-DAY DISCOVERY v3.0.0: 구 data-zd-start 폴백 (레거시 HTML 호환)
+    bind(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('[data-zd-start]');
+      if (!btn) return;
+      try { startZdDiscRun(); } catch(ex) { console.warn('[ZD DISC]', ex); }
+    });
+
+    // mouseup 전역 핸들러: 홀드 인젝션 해제 (버튼 바깥 릴리스 대응)
+    bind(document, 'mouseup', () => { try { stopZdHold(); } catch(_) {} });
+
+    // Restore UI state: route, systemStatus open/close, zdCmdLocale
+    window.addEventListener('hcsig:ready', () => {
+      if (routeSelectEl && state.targeting && state.targeting.route) {
+        routeSelectEl.value = state.targeting.route;
+      }
+      if (upgradeTargetSelectEl && state.targeting && state.targeting.upgradeTarget) {
+        upgradeTargetSelectEl.value = state.targeting.upgradeTarget;
+      }
+      if (systemStatusDetailsEl) {
+        systemStatusDetailsEl.open = !(state.ui && state.ui.homeStatusCollapsed);
+      }
+      if (zdCmdLocaleEl && state.ui && state.ui.zeroDayCommandLocale) {
+        zdCmdLocaleEl.value = state.ui.zeroDayCommandLocale;
+      }
+    });
+
+    // 인증 상태 추적 (계정 삭제 방지용)
+    let authInitialized = false;
+    let authUser = null;
+    window.addEventListener('hcsig:auth-changed', (event) => {
+      authInitialized = true;
+      authUser = event.detail && event.detail.user ? event.detail.user : null;
+    });
+
     function init() {
       addCodeInstanceFromTemplate('basic');
       state.requiredExp = requiredExp(state.level);
       ensureStageDefaults();
       ensureMissionResets();
+      try { ensureSeasonState(); } catch(e) { console.warn('[Season] init error:', e); }
 
-      if (localStorage.getItem(SAVE_KEY)) {
-        loadGame();
-      } else {
-        state.lastSeenAt = Date.now();
-        refreshUiAfterStateRestore();
-      }
-
-      log(t('initLog'), 'system');
-      maybeShowUpdateOnStart();
-      setTimeout(() => {
-        maybeStartTutorial();
-      }, 180);
-
+      // ① HCSIG_BRIDGE를 먼저 설정 (cloudSave.js가 대기 중)
+      // v3.0.0+ 저장 안정성: score 함수 글로벌 노출 (cloudSave.js에서 점수 비교 사용)
+      try {
+        window.HCSIG_GET_SAVE_SCORE = getSaveScore;
+        window.HCSIG_GET_SAVE_SUMMARY = getSaveSummary;
+        window.HCSIG_MIGRATE_SAVE = migrateSave;
+        window.HCSIG_GET_BACKUP = getSaveBackup;
+        window.HCSIG_GET_BACKUP_PREV = getSaveBackupPrev;
+      } catch(e) { console.warn('[HCSIG] Global bridge setup failed:', e); }
       try {
         window.HCSIG_BRIDGE = {
           version: CURRENT_VERSION,
@@ -6712,8 +10999,12 @@ function applyLanguageToUI(){
             if (!obj) return;
             localStorage.setItem(SAVE_KEY, JSON.stringify(obj));
             loadGame(JSON.stringify(obj));
+            refreshUiAfterStateRestore();
           },
           getLanguage: () => getLang(),
+          // v3.0.1 Save Foundation
+          showConflictDialog: (localSave, cloudSave) => showSaveConflictDialog(localSave, cloudSave),
+          exportSaveWithData: (saveObj, tag) => exportSaveFileWithData(saveObj, tag),
           getStateSummary: () => ({
             level: state.level,
             credits: state.credits,
@@ -6726,15 +11017,66 @@ function applyLanguageToUI(){
             refreshUiAfterStateRestore();
           }
         };
+      } catch (bridgeErr) {
+        console.warn('[CloudBridge] bridge setup failed:', bridgeErr);
+      }
+
+      // ② hcsig:ready 이벤트 발생 (cloudSave.js가 초기 동기화 시작)
+      try {
         window.dispatchEvent(new CustomEvent('hcsig:ready', {
           detail: {
             version: CURRENT_VERSION,
             hasLocalSave: !!localStorage.getItem(SAVE_KEY)
           }
         }));
-      } catch (bridgeErr) {
-        console.warn('[CloudBridge] ready event dispatch failed:', bridgeErr);
+      } catch (readyErr) {
+        console.warn('[CloudBridge] ready event dispatch failed:', readyErr);
       }
+
+      // ③ 인증 초기화 대기 (최대 3초)
+      const authWaitStart = Date.now();
+      const authCheckInterval = setInterval(() => {
+        if (authInitialized || Date.now() - authWaitStart > 3000) {
+          clearInterval(authCheckInterval);
+
+          // v3.0.0+: 백업 우선 점검 — main save가 비어있는데 backup이 있으면 자동 복구 안 하고 사용자에게 보여줌
+          const mainRaw = localStorage.getItem(SAVE_KEY);
+          const oldRaw  = localStorage.getItem(OLD_SAVE_KEY);
+          const backupRaw = getSaveBackup();
+
+          // ④ 로컬 또는 백업 세이브 로드 — default state 자동 저장 절대 금지
+          let releaseResult = { changed: false, notices: [] };
+          if (mainRaw || oldRaw) {
+            loadGame();
+          } else if (backupRaw) {
+            // main이 없는데 backup이 있는 비상 상황 → 자동 복구
+            console.warn('[Init] main save missing, backup found — auto-restoring');
+            loadGame(); // loadGame 내부에서 backup 처리
+          } else {
+            state.lastSeenAt = Date.now();
+            // v3.0.0+: 기본 상태는 유지하되 자동 저장 안 함
+            // (사용자가 행동/저장할 때까지 localStorage 건드리지 않음)
+            releaseResult = maybeApplyReleaseBundles({
+              savedAt: Date.now(),
+              version: CURRENT_VERSION,
+              source: 'fresh',
+              hasRawClaimFlags: false,
+              forceDetectLegacy: true
+            });
+            if (releaseResult.changed) saveGame(true);
+          }
+
+          // ⑤ UI 렌더
+          refreshUiAfterStateRestore();
+          flushReleaseNotices(releaseResult.notices);
+
+          log(t('initLog'), 'system');
+          maybeShowUpdateOnStart();
+          setTimeout(() => {
+            maybeStartTutorial();
+          }, 180);
+        }
+      }, 50);
     }
 
     init();

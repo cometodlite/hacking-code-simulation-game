@@ -1,623 +1,858 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport"/>
 <title>HCSiG - Hacking Code Simulator Game</title>
-
-
-
-<!-- cache-busting: bump ?v=... on release updates; localStorage saves remain intact -->
-<link href="style.css?v=2.3.0" rel="stylesheet"/>
+<!-- cache-busting: bump ?v=... on release updates -->
+<link href="style.css?v=3.0.2c" rel="stylesheet"/>
 </head>
 <body>
-<canvas id="snow-canvas"></canvas>
 <header>
 <div class="header-left">
 <h1>HCSiG</h1>
-<span class="header-version">2.3.0 (Web)</span>
+<span class="header-version">3.0.2 (Web)</span>
 </div>
 <div class="header-right">
 <span class="subtitle" id="subtitleText">Hacking Code Simulator Game</span>
 <button id="btnList" title="미션과 업적 리스트">LIST</button>
-<button id="btnEvent" title="주간 이벤트와 기간 한정 작전">EVENT</button>
+<button id="btnEvent" title="PASS와 주간 도전">EVENT</button>
 <button id="btnMore" title="코드 도감, LIVE NET, RANK, 설정, 클라우드 계정">더보기 ▾</button>
 </div>
 </header>
+
 <div id="main">
 <!-- 왼쪽: 상태 / 상점 -->
 <div class="panel" id="leftPanel">
+
+<!-- STATUS: 기본 표시 (레벨/경험치/에너지) -->
 <div class="section-title" id="titleStatus">Status</div>
 <div class="stat-box">
-<div class="stat-row">
-<span class="label" id="labelLevel">레벨</span>
-<span class="value" id="statLevel">1</span>
+  <div class="stat-row">
+    <span class="label" id="labelLevel">레벨</span>
+    <span class="value" id="statLevel">1</span>
+  </div>
+  <div class="stat-row">
+    <span class="label" id="labelExp">경험치</span>
+    <span class="value" id="statExp">0 / 20</span>
+  </div>
+  <div class="stat-row">
+    <span class="label" id="labelEnergy">에너지</span>
+    <span class="value" id="statEnergyValue">20 / 20</span>
+  </div>
+  <div class="stat-row energy-timer-row">
+    <span class="label" id="labelEnergyTimer">다음 회복까지</span>
+    <span class="value" id="statEnergyTimer">FULL</span>
+  </div>
+  <div id="energyBarWrapper"><div id="energyBarInner"></div></div>
+  <div class="stat-row energy-pack-row" style="align-items:center;">
+    <span class="label" id="labelEnergyPack">에너지 팩</span>
+    <span class="value" style="display:flex; align-items:center; gap:6px;">
+      <span id="statEnergyPack">0</span>
+      <button id="btnUseEnergyPack" title="에너지 팩 1개를 사용해 에너지를 최대치까지 회복합니다.">사용</button>
+    </span>
+  </div>
+
+  <!-- 시스템 상태 (접힘) -->
+  <details id="systemStatusDetails">
+    <summary class="status-collapse-toggle" id="systemStatusToggle">시스템 상태 ▾</summary>
+    <div class="stat-row">
+      <span class="label" id="labelCredits">크레딧</span>
+      <span class="value" id="statCredits">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="label" id="labelCpuTier">CPU 티어</span>
+      <span class="value" id="statCpuTier">1</span>
+    </div>
+    <div class="stat-row">
+      <span class="label" id="labelGpuTier">GPU 티어</span>
+      <span class="value" id="statGpuTier">1</span>
+    </div>
+    <div class="stat-row last-save-row">
+      <span class="label" id="labelLastSave">마지막 저장</span>
+      <span class="value" id="statLastSave">-</span>
+    </div>
+  </details>
 </div>
-<div class="stat-row">
-<span class="label" id="labelExp">경험치</span>
-<span class="value" id="statExp">0 / 20</span>
-</div>
-<div class="stat-row">
-<span class="label" id="labelCredits">크레딧</span>
-<span class="value" id="statCredits">0</span>
-</div>
-<div class="stat-row">
-<span class="label" id="labelCpuTier">CPU 티어</span>
-<span class="value" id="statCpuTier">1</span>
-</div>
-<div class="stat-row">
-<span class="label" id="labelGpuTier">GPU 티어</span>
-<span class="value" id="statGpuTier">1</span>
-</div>
-<div class="stat-row">
-<span class="label" id="labelEnergy">에너지</span>
-<span class="value" id="statEnergyValue">20 / 20</span>
-</div>
-<div class="stat-row energy-timer-row">
-<span class="label" id="labelEnergyTimer">다음 회복까지</span>
-<span class="value" id="statEnergyTimer">FULL</span>
-</div>
-<div id="energyBarWrapper">
-<div id="energyBarInner"></div>
-</div>
-<div class="stat-row energy-pack-row" style="align-items:center;">
-<span class="label" id="labelEnergyPack">에너지 팩</span>
-<span class="value" style="display:flex; align-items:center; gap:6px;">
-<span id="statEnergyPack">0</span>
-<button id="btnUseEnergyPack" title="에너지 팩 1개를 사용해 에너지를 최대치까지 회복합니다.">사용</button>
-</span>
-</div>
-<div class="stat-row last-save-row">
-<span class="label" id="labelLastSave">마지막 저장</span>
-<span class="value" id="statLastSave">-</span>
-</div>
-</div>
+
+<!-- SHOP -->
 <div class="section-title" id="titleShop">Shop</div>
-<div class="shop-sort-row">
-<span class="shop-sort-label" id="shopSortLabel">정렬</span>
-<select id="shopSortSelect" title="Sort shop items">
-<option value="update">업데이트순</option>
-<option value="new">신규 우선</option>
-<option value="rarity">희귀도순</option>
-<option value="price">가격순</option>
-<option value="name">이름순</option>
-</select>
-<span class="shop-sort-label" id="shopCategoryLabel">분류</span>
-<div class="shop-category-tabs" id="shopCategoryTabs" aria-label="상점 카테고리">
-<button type="button" class="shop-category-tab active" data-category="all" id="shopCatAll">전체</button>
-<button type="button" class="shop-category-tab" data-category="ENERGY" id="shopCatEnergy">에너지</button>
-<button type="button" class="shop-category-tab" data-category="SYSTEM" id="shopCatSystem">시스템</button>
-<button type="button" class="shop-category-tab" data-category="ECONOMY" id="shopCatEconomy">경제</button>
-<button type="button" class="shop-category-tab" data-category="UTILITY" id="shopCatUtility">유틸</button>
+<div class="shop-type-tabs" id="shopTypeTabs" aria-label="상점 유형">
+  <button type="button" class="shop-type-tab active" data-shop-type="credits" id="shopTypeCredits">크레딧</button>
+  <button type="button" class="shop-type-tab" data-shop-type="coin" id="shopTypeCoin">COIN</button>
+  <button type="button" class="shop-type-tab" data-shop-type="oneday" id="shopTypeOneDay">OneDay</button>
 </div>
+<div class="shop-sort-row">
+  <span class="shop-sort-label" id="shopSortLabel">정렬</span>
+  <select id="shopSortSelect" title="Sort shop items">
+    <option value="update">업데이트순</option>
+    <option value="new">신규 우선</option>
+    <option value="rarity">희귀도순</option>
+    <option value="price">가격순</option>
+    <option value="name">이름순</option>
+  </select>
+  <span class="shop-sort-label" id="shopCategoryLabel">분류</span>
+  <div class="shop-category-tabs" id="shopCategoryTabs" aria-label="상점 카테고리">
+    <button type="button" class="shop-category-tab active" data-category="all" id="shopCatAll">전체</button>
+    <button type="button" class="shop-category-tab" data-category="ENERGY" id="shopCatEnergy">에너지</button>
+    <button type="button" class="shop-category-tab" data-category="SYSTEM" id="shopCatSystem">시스템</button>
+    <button type="button" class="shop-category-tab" data-category="ECONOMY" id="shopCatEconomy">경제</button>
+    <button type="button" class="shop-category-tab" data-category="UTILITY" id="shopCatUtility">유틸</button>
+  </div>
 </div>
 <div class="stat-box" id="shopList"></div>
-</div>
+</div><!-- /leftPanel -->
+
 <div class="resizer" id="resizerLeft"></div>
+
 <!-- 중앙: 행동 / 코드 인벤토리 / 상세 -->
 <div class="panel" id="centerPanel">
 <div class="center-inner">
+
 <!-- Actions -->
-<div class="stat-box">
-<div class="section-title" id="titleActions">Actions</div>
-<div class="button-row">
-<button id="btnScan" title="에너지 1 소모. 코드 희귀도 가챠 + 경험치 획득.">코드 스캔</button>
-<button id="btnHack" title="에너지 2 소모. 선택한 코드와 서버 정보로 해킹을 시도.">서버 해킹</button>
-<button id="btnUpgradeCpu" title="CPU 티어 업그레이드. 티어 × 500 크레딧(할인 적용) 소모, 해킹 성공률 증가.">CPU 업그레이드</button>
-<button id="btnUpgradeGpu" title="GPU 티어 업그레이드. 티어 × 650 크레딧 소모, 반복/도전 보상 증가.">GPU 업그레이드</button>
+<div class="stat-box" id="actionsBox">
+  <div class="section-title" id="titleActions">Actions</div>
+  <div class="button-row">
+    <button id="btnScan" title="에너지 1 소모. 코드 희귀도 가챠 + 경험치 획득.">코드 스캔</button>
+    <button id="btnHack" title="에너지 1 소모. 선택한 코드와 서버로 해킹.">서버 해킹</button>
+  </div>
+
+  <!-- 서버 + 루트 선택 -->
+  <div class="flex-col home-actions-controls" style="gap:4px; margin-top:6px;">
+    <div class="flex-row action-control-row" style="gap:8px; align-items:flex-end;">
+      <div class="action-control action-control-wide" style="flex:2;">
+        <span class="small" id="labelTargetServer">타겟 서버</span>
+        <select id="serverSelect"></select>
+      </div>
+      <div class="action-control" style="flex:1;">
+        <span class="small" id="labelTargetRoute">루트</span>
+        <select id="routeSelect">
+          <option value="external">외부 루트</option>
+          <option value="internal" selected>내부 루트</option>
+          <option value="core">코어 루트</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CPU/GPU 업그레이드 단일 선택 -->
+    <div class="flex-row action-control-row" style="gap:8px; align-items:flex-end; margin-top:4px;">
+      <div class="action-control action-control-wide" style="flex:2;">
+        <span class="small" id="labelUpgradeTarget">업그레이드 대상</span>
+        <select id="upgradeTargetSelect">
+          <option value="cpu">CPU</option>
+          <option value="gpu">GPU</option>
+        </select>
+      </div>
+      <div class="action-control action-control-button" style="flex:1;">
+        <span class="small" id="labelSystemUpgrade">시스템 업그레이드</span>
+        <button id="btnUpgrade" class="control-button action-upgrade-button" title="선택한 대상을 업그레이드합니다.">업그레이드</button>
+      </div>
+    </div>
+
+    <!-- Hidden legacy upgrade buttons (kept for JS compatibility) -->
+    <button id="btnUpgradeCpu" hidden></button>
+    <button id="btnUpgradeGpu" hidden></button>
+
+    <!-- 해킹 모드 -->
+    <div class="hack-mode-wrap" aria-label="해킹 모드" style="margin-top:4px;">
+      <div class="small" id="labelHackMode">해킹 모드</div>
+      <div class="hack-mode-segment" id="hackModeSegment">
+        <button class="active" data-hack-mode="normal" type="button">NORMAL</button>
+        <button data-hack-mode="risk" type="button">RISK</button>
+        <button data-hack-mode="extreme" type="button">EXTREME</button>
+      </div>
+      <div class="small" id="hackModeHint">NORMAL: 안정적인 기본 해킹 모드</div>
+    </div>
+
+    <div class="small" style="margin-top:4px;">
+      <span id="actionsDesc1">· 에너지 1칸 = 60초, 0.1초 단위로 카운트다운 표시</span><br/>
+      <span id="actionsDesc2">· 코드 스캔: 에너지 1, 스캔 EXP 소량 (희귀도별 스캔 시간 차등)</span><br/>
+      <span id="actionsDesc3">· 서버 해킹: NORMAL/RISK/EXTREME 난이도 선택 가능</span><br/>
+      <span id="actionsDesc4">· CPU는 성공률 안정, GPU는 반복/도전 보상 증폭을 담당합니다.</span>
+    </div>
+  </div>
+
+  <!-- Hidden loadout elements (kept for JS compatibility, UI removed) -->
+  <select id="loadoutSelect" hidden>
+    <option value="1">슬롯 1</option><option value="2">슬롯 2</option><option value="3">슬롯 3</option>
+  </select>
+  <button id="btnSaveLoadout" hidden></button>
+  <button id="btnLoadLoadout" hidden></button>
+  <input type="checkbox" id="chkRiskMode" hidden/>
 </div>
-<div class="flex-col">
-<div class="flex-row">
-<div style="flex:1;">
-<span class="small" id="labelTargetServer">타겟 서버</span>
-<select id="serverSelect"></select>
-</div>
-<div style="flex:1;">
-<span class="small" id="labelLoadout">로드아웃</span>
-<div class="button-row" style="margin-top:2px; gap:4px;">
-<select id="loadoutSelect" style="max-width:90px; margin-bottom:0;">
-<option value="1">슬롯 1</option>
-<option value="2">슬롯 2</option>
-<option value="3">슬롯 3</option>
-</select>
-<button id="btnSaveLoadout" title="현재 코드 / 서버 / 위험 모드를 선택한 슬롯에 저장">슬롯 저장</button>
-<button id="btnLoadLoadout" title="선택한 슬롯의 설정을 불러오기">슬롯 불러오기</button>
-</div>
-</div>
-</div>
-<div class="hack-mode-wrap" aria-label="해킹 모드">
-<div class="small" id="labelHackMode">해킹 모드</div>
-<div class="hack-mode-segment" id="hackModeSegment">
-<button class="active" data-hack-mode="normal" type="button">NORMAL</button>
-<button data-hack-mode="risk" type="button">RISK</button>
-<button data-hack-mode="extreme" type="button">EXTREME</button>
-</div>
-<div class="small" id="hackModeHint">NORMAL: 안정적인 기본 해킹 모드</div>
-</div>
-<div class="small" style="margin-top:4px;">
-              <span id="actionsDesc1">· 에너지 1칸 = 120초, 0.1초 단위로 카운트다운 표시</span><br/>
-              <span id="actionsDesc2">· 코드 스캔: 에너지 1, 스캔 EXP 소량 (희귀도별 스캔 시간 차등)</span><br/>
-              <span id="actionsDesc3">· 서버 해킹: 에너지 2, 성공 시 크레딧·EXP 획득</span><br/>
-              <span id="actionsDesc4">· 레벨업 시 크레딧 +100, CPU 업그레이드 비용 = 500 × 티어 × 할인 계수</span>
-            </div>
-</div>
-</div>
+
 <!-- Code Inventory + Detail -->
 <div class="flex-row flex-grow">
-<!-- 코드 인벤토리 -->
-<div class="stat-box" style="flex: 0 0 45%;">
-<div class="section-title-row">
-<div class="section-title" style="margin-bottom:0;" id="titleCodeInventory">코드 인벤토리</div>
-<div class="code-sort-inline">
-<span class="shop-sort-label" id="codeSortLabelRef">정렬</span>
-<select id="codeSortSelect" title="Sort code inventory">
-<option value="recent">최신</option>
-<option value="rarity">희귀도</option>
-<option value="power">파워</option>
-<option value="level">레벨</option>
-<option value="name">이름</option>
-</select>
+  <!-- 코드 인벤토리 -->
+  <div class="stat-box" style="flex: 0 0 45%;">
+    <div class="section-title-row">
+      <div class="section-title" style="margin-bottom:0;" id="titleCodeInventory">코드 인벤토리</div>
+      <div class="code-sort-inline">
+        <span class="shop-sort-label" id="codeSortLabelRef">정렬</span>
+        <select id="codeSortSelect" title="Sort code inventory">
+          <option value="recent">최신</option>
+          <option value="rarity">희귀도</option>
+          <option value="power">파워</option>
+          <option value="level">레벨</option>
+          <option value="name">이름</option>
+        </select>
+      </div>
+    </div>
+    <ul id="codeList"></ul>
+  </div>
+  <!-- 코드 상세 -->
+  <div class="stat-box resizable-box" style="flex: 1 1 auto;">
+    <div class="section-title" id="titleCodeDetail">코드 상세</div>
+    <div id="codeDetail">
+      <div class="small">보유 중인 코드를 선택하면 상세 정보가 표시됩니다.</div>
+    </div>
+    <div class="button-row code-action-row" style="margin-top:8px;">
+      <button id="btnUpgradeCode" title="선택한 코드를 강화합니다.">코드 강화</button>
+      <button id="btnSyncCode" title="중복 조각을 사용해 코드 동기화 단계를 올립니다.">코드 동기화</button>
+      <button id="btnEvolveCode" title="조건을 만족하면 선택한 코드를 상위 희귀도로 진화합니다.">코드 진화</button>
+    </div>
+    <div class="small">
+      <span id="codeDesc1">· 강화: 코드 레벨에 비례한 크레딧 소모, 파워 증가 (파괴 없음).</span><br/>
+      <span id="codeDesc2">· 동기화: 중복 조각을 모아 성공률 보정과 파워를 함께 강화합니다.</span><br/>
+      <span id="codeDesc3">· 진화: 일정 레벨 이상 시 희귀도 승급 (COMMON → UNCOMMON → … → OPERATION).</span>
+    </div>
+  </div>
 </div>
-</div>
-<ul id="codeList"></ul>
-</div>
-<!-- 코드 상세 -->
-<div class="stat-box resizable-box" style="flex: 1 1 auto;">
-<div class="section-title" id="titleCodeDetail">코드 상세</div>
-<div id="codeDetail">
-<div class="small">보유 중인 코드를 선택하면 상세 정보가 표시됩니다.</div>
-</div>
-<div class="button-row code-action-row" style="margin-top:8px;">
-<button id="btnUpgradeCode" title="선택한 코드를 강화합니다. 크레딧 소모, 파워 증가.">코드 강화</button>
-<button id="btnSyncCode" title="중복 조각을 사용해 코드 동기화 단계를 올립니다.">코드 동기화</button>
-<button id="btnEvolveCode" title="조건을 만족하면 선택한 코드를 상위 희귀도로 진화합니다.">코드 진화</button>
-</div>
-<div class="small">
-              <span id="codeDesc1">· 강화: 코드 레벨에 비례한 크레딧 소모, 파워 증가 (파괴 없음).</span><br/>
-              <span id="codeDesc2">· 동기화: 중복 조각을 모아 성공률 보정과 파워를 함께 강화합니다.</span><br/>
-              <span id="codeDesc3">· 진화: 일정 레벨 이상 시 희귀도 승급 (COMMON → UNCOMMON → … → LEGENDARY).</span>
-            </div>
-</div>
-</div>
+
 <!-- 스캔 연출 오버레이 -->
 <div id="scanOverlay">
-<div id="scanProgressWrapper">
-<div id="scanProgressInner"></div>
+  <div id="scanProgressWrapper"><div id="scanProgressInner"></div></div>
+  <div id="scanText"></div>
 </div>
-<div id="scanText"></div>
-</div>
-</div>
-</div>
-</div>
+</div><!-- /center-inner -->
+</div><!-- /centerPanel -->
+
+<div class="resizer" id="resizerRight"></div>
+
+<!-- 오른쪽 패널 (rightPanel – 로그 등, 레거시 유지) -->
+<div class="panel" id="rightPanel" style="display:none;"></div>
+</div><!-- /main -->
 
 
-<!-- 리스트 모달 -->
+<!-- ── LIST 모달 ─────────────────────────────────────── -->
 <div id="listModalBackdrop">
 <div id="listModal">
-<div id="listModalHeader">
-<h2 id="listTitle">LIST</h2>
-<button id="btnListClose">✕</button>
-</div>
-<div id="listModalBody">
-<div class="list-tabs">
-<button class="list-tab-button active" data-list-tab="mission" id="listTabBtnMission">미션</button>
-<button class="list-tab-button" data-list-tab="achievement" id="listTabBtnAchievement">업적</button>
-</div>
-<!-- 미션 탭 -->
-<div class="list-tab-panel active" id="tabMission">
-<div>
-<span class="badge">MISSION</span>
-<span id="missionTabTitle">퀘스트</span>
-</div>
-<div class="mission-scope-tabs">
-<button class="mission-scope-btn active" data-scope="daily">DAILY</button>
-<button class="mission-scope-btn" data-scope="weekly">WEEKLY</button>
-<button class="mission-scope-btn" data-scope="month">MONTH</button>
-<button class="mission-scope-btn" data-scope="general">GENERAL</button>
-</div>
-<div class="stat-box" id="missionList"></div>
-</div>
-<!-- 업적 탭 -->
-<div class="list-tab-panel" id="tabAchievement">
-<div>
-<span class="badge">ACHIEVEMENT</span>
-<span id="achievementTabTitle">업적</span>
-</div>
-<div class="achievement-toolbar" id="achievementToolbar" aria-label="업적 필터">
-<button class="active" data-achievement-filter="incomplete" type="button">미완료</button>
-<button data-achievement-filter="all" type="button">전체</button>
-<button data-achievement-filter="complete" type="button">완료</button>
-<label class="log-filter-label achievement-hidden-toggle"><input id="chkShowHiddenAchievements" type="checkbox"/> 숨김 포함</label>
-</div>
-<div class="stat-box" id="achievementList"></div>
-</div>
-</div>
-<div id="listModalFooter">
-<button id="btnListClose2">닫기</button>
-</div>
+  <div id="listModalHeader">
+    <h2 id="listTitle">LIST</h2>
+    <button id="btnListClose">✕</button>
+  </div>
+  <div id="listModalBody">
+    <div class="list-tabs">
+      <button class="list-tab-button active" data-list-tab="mission" id="listTabBtnMission">미션</button>
+      <button class="list-tab-button" data-list-tab="achievement" id="listTabBtnAchievement">업적</button>
+    </div>
+    <!-- 미션 탭 -->
+    <div class="list-tab-panel active" id="tabMission">
+      <div class="mission-scope-tabs">
+        <button class="mission-scope-btn active" data-scope="daily">DAILY</button>
+        <button class="mission-scope-btn" data-scope="weekly">WEEKLY</button>
+        <button class="mission-scope-btn" data-scope="month">MONTH</button>
+        <button class="mission-scope-btn" data-scope="general">GENERAL</button>
+      </div>
+      <div class="stat-box" id="missionList"></div>
+      <!-- v3.0.0: 중복 제목 제거 (상단 탭에 이미 미션 라벨 있음) -->
+      <span hidden id="missionTabTitle">퀘스트</span>
+    </div>
+    <!-- 업적 탭 -->
+    <div class="list-tab-panel" id="tabAchievement">
+      <div class="achievement-toolbar" id="achievementToolbar" aria-label="업적 필터">
+        <button class="active" data-achievement-filter="incomplete" type="button">미완료</button>
+        <button data-achievement-filter="all" type="button">전체</button>
+        <button data-achievement-filter="complete" type="button">완료</button>
+        <label class="log-filter-label achievement-hidden-toggle"><input id="chkShowHiddenAchievements" type="checkbox"/> 숨김 포함</label>
+      </div>
+      <div class="stat-box" id="achievementList"></div>
+      <!-- v3.0.0: 중복 제목 제거 -->
+      <span hidden id="achievementTabTitle">업적</span>
+    </div>
+  </div>
+  <div id="listModalFooter"><button id="btnListClose2">닫기</button></div>
 </div>
 </div>
 
-<!-- 이벤트 모달 -->
+
+<!-- ── EVENT 모달 (PASS + WEEKLY) ───────────────────── -->
 <div id="eventModalBackdrop">
 <div id="eventModal">
-<div id="eventModalHeader">
-<h2 id="eventTitle">EVENT</h2>
-<button id="btnEventClose">✕</button>
-</div>
-<div id="eventModalBody">
-<div class="event-intro">
-<div>
-<span class="badge">WEEKLY OPS</span>
-<h3>WEEKLY CHALLENGE</h3>
-<p>월요일 05:00 KST마다 작전 세트가 갱신됩니다.</p>
-</div>
-<span class="event-chip">EVENT BOARD</span>
-</div>
-<div class="weekly-head" id="weeklyPanel">
-<div>
-<span class="badge">CURRENT WEEK</span>
-<h3>주간 작전 현황</h3>
-<p>완료한 목표는 CLAIM으로 보상을 수령하세요.</p>
-</div>
-<div class="weekly-summary">
-<div><span>RESET</span><strong id="weeklyCountdown">--</strong></div>
-<div><span>PROGRESS</span><strong id="weeklyProgressText">0 / 5</strong></div>
-<div><span>SCORE</span><strong id="weeklyScore">0</strong></div>
-<div><span>TOKEN</span><strong id="weeklyTokenCount">0</strong></div>
-</div>
-</div>
-<div class="weekly-event-node" id="weeklyEventNode">BONUS NODE 대기 중</div>
-<div class="weekly-filter" id="weeklyFilter" aria-label="Weekly challenge filter">
-<button type="button" data-weekly-filter="incomplete" class="active">미완료</button>
-<button type="button" data-weekly-filter="all">전체</button>
-<button type="button" data-weekly-filter="complete">완료</button>
-</div>
-<div class="weekly-goal-list" id="weeklyGoalList"></div>
-<div class="weekly-bonus-card" id="weeklyBonusCard"></div>
-</div>
-<div id="eventModalFooter">
-<button id="btnEventClose2">닫기</button>
-</div>
+  <div id="eventModalHeader">
+    <h2 id="eventTitle">EVENT</h2>
+    <button id="btnEventClose">✕</button>
+  </div>
+  <div id="eventModalBody">
+    <!-- 이벤트 탭 -->
+    <div class="event-tabs">
+      <button class="event-tab-btn active" data-event-tab="weekly" id="eventTabBtnWeekly">WEEKLY</button>
+      <button class="event-tab-btn" data-event-tab="pass" id="eventTabBtnPass">PASS</button>
+    </div>
+
+    <!-- WEEKLY CHALLENGE 패널 -->
+    <div class="event-tab-panel active" id="eventTabWeekly">
+      <div class="event-intro">
+        <div>
+          <span class="badge">WEEKLY OPS</span>
+          <h3>WEEKLY CHALLENGE</h3>
+          <p>월요일 05:00 KST마다 작전 세트가 갱신됩니다.</p>
+        </div>
+        <span class="event-chip">EVENT BOARD</span>
+      </div>
+      <div class="weekly-head" id="weeklyPanel">
+        <div>
+          <span class="badge">CURRENT WEEK</span>
+          <h3>주간 작전 현황</h3>
+          <p>완료한 목표는 CLAIM으로 보상을 수령하세요.</p>
+        </div>
+        <div class="weekly-summary">
+          <div><span>RESET</span><strong id="weeklyCountdown">--</strong></div>
+          <div><span>PROGRESS</span><strong id="weeklyProgressText">0 / 5</strong></div>
+          <div><span>SCORE</span><strong id="weeklyScore">0</strong></div>
+          <div><span>TOKEN</span><strong id="weeklyTokenCount">0</strong></div>
+        </div>
+      </div>
+      <div class="weekly-event-node" id="weeklyEventNode">BONUS NODE 대기 중</div>
+      <div class="weekly-filter" id="weeklyFilter" aria-label="Weekly challenge filter">
+        <button type="button" data-weekly-filter="incomplete" class="active">미완료</button>
+        <button type="button" data-weekly-filter="all">전체</button>
+        <button type="button" data-weekly-filter="complete">완료</button>
+      </div>
+      <div id="progressTierSelector"></div>
+      <div class="weekly-goal-list" id="weeklyGoalList"></div>
+      <div class="weekly-bonus-card" id="weeklyBonusCard"></div>
+      <!-- OPS SHOP (rendered by JS) -->
+      <div id="opsShopMount"></div>
+    </div>
+
+    <!-- PASS 패널 -->
+    <div class="event-tab-panel" id="eventTabPass">
+      <div id="passPanel"></div>
+    </div>
+
+  </div>
+  <div id="eventModalFooter"><button id="btnEventClose2">닫기</button></div>
 </div>
 </div>
 
-<!-- 더보기 모달 -->
+
+<!-- ── 더보기 모달 ───────────────────────────────────── -->
 <div id="moreModalBackdrop">
 <div id="moreModal">
-<div id="moreModalHeader">
-<h2 id="moreTitle">더보기</h2>
-<button id="btnMoreClose">✕</button>
-</div>
-<div id="moreModalBody">
-<div class="more-tabs">
-<button class="more-tab-button active" data-tab="codex" id="tabBtnCodex">코드 도감</button>
-<button class="more-tab-button" data-tab="live" id="tabBtnLiveNet">LIVE NET</button>
-<button class="more-tab-button" data-tab="rank" id="tabBtnRank">RANK</button>
-<button class="more-tab-button" data-tab="settings" id="tabBtnSettings">설정</button>
-<button class="more-tab-button" data-tab="save" id="tabBtnSave">클라우드 계정</button>
-</div>
-<div class="more-quick-actions">
-<button id="btnOpenTutorial" type="button">튜토리얼 다시 보기</button>
-</div>
-<div class="more-tab-panel active" id="tabCodex">
-<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-<div><span class="badge">CODEX</span><span id="codexTabTitle">코드 도감</span></div>
-<div class="small" id="codexSummary">발견 0 / 0</div>
-</div>
-<div class="stat-box" id="codexList"></div>
-</div>
-<!-- LIVE NET 탭 -->
-<div class="more-tab-panel" id="tabLiveNet">
-<div>
-<span class="badge">LIVE NET</span>
-<span id="liveNetTabTitle">네트워크 관제</span>
-</div>
-<div id="liveNetPanelMount" class="more-live-mount"></div>
-</div>
-<!-- RANK 탭 -->
-<div class="more-tab-panel" id="tabRank">
-<div>
-<span class="badge">SOFT RANK</span>
-<span id="rankTabTitle">소프트 랭킹</span>
-</div>
-<div id="liveRankPanelMount" class="more-live-mount"></div>
-</div>
-<!-- 설정 탭 -->
-<div class="more-tab-panel" id="tabSettings">
-<div>
-<span class="badge">SETTINGS</span>
-<span id="settingsTabTitle">환경 설정</span>
-</div>
-<div class="stat-box" style="font-size:12px; margin-top:8px;">
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelLanguage">언어</span>
-<span class="value">
-<select id="setLanguage" title="Select language">
-<option value="ko">한국어</option>
-<option value="en">English</option>
-</select>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelFontScale">폰트 크기</span>
-<span class="value" style="display:flex; align-items:center; gap:10px;">
-<input id="setFontScale" max="120" min="90" step="5" style="width:180px;" type="range"/>
-<span id="setFontScaleLabel">100%</span>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelSnow">눈 이펙트</span>
-<span class="value">
-<label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
-<input id="setSnow" type="checkbox"/> 사용
-                </label>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelUiScale">UI 스케일</span>
-<span class="value">
-<select id="setUiZoom" title="Adjust UI scale">
-<option value="0.8">0.8x</option>
-<option value="1">1.0x</option>
-<option value="1.2">1.2x</option>
-</select>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelAnim">애니메이션</span>
-<span class="value">
-<label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
-<input checked="" id="setAnim" type="checkbox"/> 사용
-                </label>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelSfx">효과음</span>
-<span class="value">
-<label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
-<input checked="" id="setSfx" type="checkbox"/> 사용
-                </label>
-</span>
-</div>
-<div class="stat-row sfx-volume-row" style="align-items:center;">
-<span class="label" id="labelSfxVolume">효과음 볼륨</span>
-<span class="value" style="display:flex; align-items:center; gap:10px;">
-<input id="setSfxVolume" max="100" min="0" step="5" style="width:180px;" type="range"/>
-<span id="setSfxVolumeLabel">35%</span>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelToastMs">토스트 시간</span>
-<span class="value">
-<select id="setToastMs" title="Set toast duration">
-<option value="3000">3초</option>
-<option value="5000">5초</option>
-<option value="7000">7초</option>
-</select>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelAutoSaveToast">자동저장 알림</span>
-<span class="value">
-<label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
-<input id="setAutoSaveToast" type="checkbox"/> 표시
-                </label>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelLiveNetwork">LIVE NET</span>
-<span class="value">
-<label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
-<input checked="" id="setLiveNetwork" type="checkbox"/> 사용
-                </label>
-</span>
-</div>
-<div class="stat-row" style="align-items:center;">
-<span class="label" id="labelLiveNicknameMode">네트워크 표시명</span>
-<span class="value">
-<select id="setLiveNicknameMode" title="Live network display name">
-<option value="nickname">닉네임</option>
-<option value="callsign">Callsign</option>
-</select>
-</span>
-</div>
-<div class="small" style="margin-top:6px;" id="settingsHelp">
-              · 설정은 저장 데이터에 포함되며, 새로고침 후에도 유지됩니다.
-            </div>
-<div class="button-row code-action-row" style="margin-top:8px;">
+  <div id="moreModalHeader">
+    <h2 id="moreTitle">더보기</h2>
+    <button id="btnMoreClose">✕</button>
+  </div>
+  <div id="moreModalBody">
+    <div class="more-tabs">
+      <button class="more-tab-button active" data-tab="codex"    id="tabBtnCodex">코드 도감</button>
+      <button class="more-tab-button"        data-tab="live"     id="tabBtnLiveNet">LIVE NET</button>
+      <button class="more-tab-button"        data-tab="rank"     id="tabBtnRank">RANK</button>
+      <button class="more-tab-button"        data-tab="settings" id="tabBtnSettings">설정</button>
+      <button class="more-tab-button"        data-tab="save"     id="tabBtnSave">클라우드 계정</button>
+      <button class="more-tab-button"        data-tab="credits"  id="tabBtnCredits">CREDITS</button>
+      <button class="more-tab-button"        data-tab="manual"   id="tabBtnManual">설명서</button>
+      <button class="more-tab-button"        data-tab="support"  id="tabBtnSupport">SUPPORT</button>
+    </div>
+    <!-- v3.0.0: 튜토리얼 다시 보기는 설정 탭 안으로 이동됨. 더보기 상단의 플로팅 버튼 제거 -->
 
+    <!-- 코드 도감 탭 -->
+    <div class="more-tab-panel active" id="tabCodex">
+      <!-- v3.0.0 fix: 중복 제목 제거. 발견 카운트만 우측 정렬로 표시 -->
+      <div class="codex-summary-bar">
+        <div class="small" id="codexSummary">발견 0 / 0</div>
+      </div>
+      <!-- 호환용 hidden 노드 (i18n 로직이 참조함) -->
+      <span hidden id="codexTabTitle">코드 도감</span>
+      <div class="stat-box" id="codexList"></div>
+    </div>
+
+    <!-- LIVE NET 탭 -->
+    <div class="more-tab-panel" id="tabLiveNet">
+      <div><span class="badge">LIVE NET</span><span id="liveNetTabTitle">네트워크 관제</span></div>
+      <div id="liveNetPanelMount" class="more-live-mount"></div>
+    </div>
+
+    <!-- RANK 탭 -->
+    <div class="more-tab-panel" id="tabRank">
+      <div><span class="badge">SOFT RANK</span><span id="rankTabTitle">소프트 랭킹</span></div>
+      <div id="liveRankPanelMount" class="more-live-mount"></div>
+    </div>
+
+    <!-- 설정 탭 -->
+    <div class="more-tab-panel" id="tabSettings">
+      <div><span class="badge">SETTINGS</span><span id="settingsTabTitle">환경 설정</span></div>
+      <div class="stat-box" style="font-size:12px; margin-top:8px;">
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelLanguage">언어</span>
+          <span class="value">
+            <select id="setLanguage" title="Select language">
+              <option value="ko">한국어</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+            </select>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelFontScale">폰트 크기</span>
+          <span class="value" style="display:flex; align-items:center; gap:10px;">
+            <input id="setFontScale" max="120" min="90" step="5" style="width:180px;" type="range"/>
+            <span id="setFontScaleLabel">100%</span>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelUiScale">UI 스케일</span>
+          <span class="value">
+            <select id="setUiZoom" title="Adjust UI scale">
+              <option value="0.8">0.8x</option>
+              <option value="1">1.0x</option>
+              <option value="1.2">1.2x</option>
+            </select>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelAnim">애니메이션</span>
+          <span class="value">
+            <label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
+              <input checked="" id="setAnim" type="checkbox"/> 사용
+            </label>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelSfx">효과음</span>
+          <span class="value">
+            <label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
+              <input checked="" id="setSfx" type="checkbox"/> 사용
+            </label>
+          </span>
+        </div>
+        <div class="stat-row sfx-volume-row" style="align-items:center;">
+          <span class="label" id="labelSfxVolume">효과음 볼륨</span>
+          <span class="value" style="display:flex; align-items:center; gap:10px;">
+            <input id="setSfxVolume" max="100" min="0" step="5" style="width:180px;" type="range"/>
+            <span id="setSfxVolumeLabel">100%</span>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelBgm">BGM</span>
+          <span class="value">
+            <label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
+              <input checked="" id="setBgm" type="checkbox"/> 사용
+            </label>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelToastMs">토스트 시간</span>
+          <span class="value">
+            <select id="setToastMs" title="Set toast duration">
+              <option value="3000">3초</option>
+              <option value="5000">5초</option>
+              <option value="7000">7초</option>
+            </select>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelAutoSaveToast">자동저장 알림</span>
+          <span class="value">
+            <label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
+              <input id="setAutoSaveToast" type="checkbox"/> 표시
+            </label>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelLiveNetwork">LIVE NET</span>
+          <span class="value">
+            <label class="log-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
+              <input checked="" id="setLiveNetwork" type="checkbox"/> 사용
+            </label>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelLiveNicknameMode">네트워크 표시명</span>
+          <span class="value">
+            <select id="setLiveNicknameMode" title="Live network display name">
+              <option value="nickname">닉네임</option>
+              <option value="callsign">Callsign</option>
+            </select>
+          </span>
+        </div>
+        <div class="stat-row" style="align-items:center;">
+          <span class="label" id="labelZdCmdLocale">ZERO-DAY 명령어</span>
+          <span class="value">
+            <select id="setZdCmdLocale" title="ZERO-DAY command display">
+              <option value="auto">auto</option>
+              <option value="english">english</option>
+              <option value="korean">korean</option>
+            </select>
+          </span>
+        </div>
+        <div class="small" style="margin-top:6px;" id="settingsHelp">
+          · 설정은 저장 데이터에 포함되며, 새로고침 후에도 유지됩니다.
+        </div>
+      </div>
+      <!-- v3.0.0: 튜토리얼 다시 보기 — 더보기 상단에서 설정 안으로 이동 -->
+      <div class="settings-tutorial-row">
+        <button id="btnOpenTutorial" type="button">튜토리얼 다시 보기</button>
+      </div>
+    </div>
+
+    <!-- 클라우드 계정 탭 -->
+    <div class="more-tab-panel" id="tabSave">
+      <div><span class="badge">SAVE</span><span id="saveTabTitle">클라우드 계정</span></div>
+      <!-- 계정 서브탭 -->
+      <div class="account-subtabs" id="accountSubtabs">
+        <button type="button" class="account-subtab-btn active" data-account-tab="status">계정 및 클라우드 상태</button>
+        <button type="button" class="account-subtab-btn" data-account-tab="custom">계정 커스텀</button>
+      </div>
+
+      <!-- 서브패널: 계정 및 클라우드 상태 -->
+      <div class="account-subpanel active" id="accountPanelStatus">
+        <div class="stat-box" style="font-size:12px;">
+          <div class="cloud-account-box" id="cloudAccountBox">
+            <div class="cloud-account-header">
+              <div>
+                <div class="small cloud-account-eyebrow">ACCOUNT</div>
+                <div class="cloud-account-title" id="cloudAccountTitle">클라우드 계정 연동</div>
+              </div>
+              <span class="cloud-badge" id="cloudStatusBadge">CLOUD SETUP</span>
+            </div>
+            <div class="small" id="cloudAccountDesc">클라우드 계정으로 다른 브라우저에서도 같은 세이브를 이어갑니다.</div>
+            <div class="cloud-account-status" id="cloudAccountStatus">설정 대기 중</div>
+            <div class="cloud-auth-form" id="cloudAuthForm">
+              <input id="cloudEmail" type="email" placeholder="이메일" autocomplete="username"/>
+              <input id="cloudPassword" type="password" placeholder="비밀번호" autocomplete="current-password"/>
+            </div>
+            <div class="cloud-auth-actions" style="margin-top:8px;">
+              <button id="btnCloudRegister" type="button">회원가입</button>
+              <button id="btnCloudLogin" type="button">이메일 로그인</button>
+              <button id="btnCloudGoogle" type="button">Google 로그인</button>
+            </div>
+            <div class="cloud-auth-actions" style="margin-top:6px;">
+              <button id="btnCloudSync" type="button">클라우드 저장</button>
+              <button id="btnCloudPull" type="button">클라우드 불러오기</button>
+              <button id="btnCloudLogout" type="button">로그아웃</button>
+            </div>
+            <div class="small" id="cloudAccountHelp">※ 클라우드 저장을 사용하려면 Firebase 설정과 계정 로그인이 필요합니다.</div>
+            <div class="cloud-user-card" id="cloudUserCard" hidden>
+              <div class="cloud-user-header-row">
+                <div class="cloud-avatar-box">
+                  <div class="cloud-avatar-preview" id="cloudAvatarPreview">💻</div>
+                </div>
+                <div class="cloud-user-main">
+                  <div class="cloud-user-name" id="cloudUserName">-</div>
+                  <div class="cloud-user-email" id="cloudUserEmail">-</div>
+                </div>
+              </div>
+              <div class="cloud-user-meta" id="cloudUserMeta">클라우드 저장 정보 없음</div>
+            </div>
+            <!-- 클라우드 통계 -->
+            <div class="cloud-profile-grid cloud-stats-grid" style="margin-top:10px;">
+              <div class="cloud-profile-row"><span>UID</span><strong id="cloudProfileUid">-</strong></div>
+              <div class="cloud-profile-row"><span>가입일</span><strong id="cloudProfileJoinDate">-</strong></div>
+              <div class="cloud-profile-row"><span>최근 로그인</span><strong id="cloudProfileLastLoginAt">-</strong></div>
+              <div class="cloud-profile-row"><span>최근 클라우드 저장</span><strong id="cloudProfileLastSaveAt">-</strong></div>
+              <div class="cloud-profile-row"><span>총 해킹 성공</span><strong id="cloudProfileHackCount">0</strong></div>
+              <div class="cloud-profile-row"><span>누적 획득 크레딧</span><strong id="cloudProfileCreditsEarned">0</strong></div>
+            </div>
+          </div>
+          <!-- 수동 저장/내보내기/가져오기 -->
+          <div class="manual-save-section" style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button id="btnSaveGame" title="현재 상태를 브라우저 LocalStorage에 저장합니다.">저장하기</button>
+            <button id="btnLoadGame" title="LocalStorage에서 저장된 데이터를 불러옵니다.">불러오기</button>
+            <button id="btnClearSave" title="저장 데이터를 삭제합니다.">저장 삭제</button>
+            <button id="btnExportSave" title="현재 저장 데이터를 JSON 파일로 내보냅니다.">내보내기</button>
+            <button id="btnImportSaveFile" title="JSON 저장 파일을 불러옵니다.">파일 불러오기</button>
+            <button id="btnBackupRestore" title="자동 백업 데이터를 조회하고 복구합니다.">백업 복구</button>
+          </div>
+          <!-- 텍스트 붙여넣기 불러오기 — v3.0.0 제거됨. 파일 불러오기 사용 -->
+          <textarea id="importSaveText" hidden></textarea>
+          <button id="btnImportSaveText" type="button" hidden></button>
+          <div class="small" style="margin-top:6px;" id="saveHelp">
+            · 저장 위치: 클라우드 계정<br/>
+            · 브라우저 내부 저장은 자동 캐시와 기존 세이브 이전에만 사용됩니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- 서브패널: 계정 커스텀 -->
+      <div class="account-subpanel" id="accountPanelCustom">
+        <div class="stat-box" style="font-size:12px;">
+          <div class="cloud-section-title" style="margin-bottom:8px;">계정 커스텀</div>
+          <div class="small" style="margin-bottom:10px; color:#8899aa;">닉네임, 프로필 아이콘, 대표 코드를 설정합니다.</div>
+          <button id="btnOpenProfilePanel" type="button" style="width:100%; margin-bottom:10px;">프로필 설정 열기</button>
+          <div class="cloud-profile-grid" id="customProfilePreview">
+            <div class="cloud-profile-row"><span>닉네임</span><strong id="customNicknameDisplay">-</strong></div>
+            <div class="cloud-profile-row"><span>프로필 아이콘</span><strong id="customAvatarDisplay">터미널</strong></div>
+            <div class="cloud-profile-row"><span>대표 코드</span><strong id="customFavCodeDisplay">-</strong></div>
+          </div>
+        </div>
+      </div>
+      <!-- Profile modal -->
+      <div class="cloud-profile-modal" id="cloudProfileModal" hidden>
+        <div class="cloud-profile-modal-card">
+          <div class="cloud-profile-modal-head">
+            <div>
+              <div class="cloud-section-title">프로필 설정</div>
+              <div class="small">닉네임, 아이콘, 대표 코드를 여기서 관리하세요.</div>
+            </div>
+            <button id="btnProfilePanelClose" type="button">닫기</button>
+          </div>
+          <div class="cloud-profile-grid cloud-profile-modal-grid">
+            <div class="cloud-profile-row">
+              <span>닉네임</span>
+              <div class="cloud-profile-inline">
+                <input id="cloudNicknameInput" maxlength="12" placeholder="닉네임" type="text"/>
+                <button id="btnCloudNicknameSave" type="button">프로필 저장</button>
+              </div>
+            </div>
+            <div class="cloud-profile-row cloud-profile-avatar-row">
+              <span>프로필 아이콘</span>
+              <div class="cloud-profile-inline cloud-avatar-actions">
+                <strong id="cloudProfileAvatarLabel">터미널</strong>
+                <button id="btnOpenAvatarPicker" type="button">아이콘 변경</button>
+                <button id="btnCloudAvatarSave" type="button">아이콘 저장</button>
+              </div>
+            </div>
+            <div class="cloud-profile-row">
+              <span>대표 코드</span>
+              <div class="cloud-profile-inline cloud-favorite-inline">
+                <select id="cloudFavoriteCodeSelect" title="대표 코드 선택"></select>
+                <button id="btnCloudFavoriteCodeSave" type="button">대표 코드 저장</button>
+              </div>
+            </div>
+            <div class="cloud-profile-row"><span>현재 대표 코드</span><strong id="cloudProfileFavoriteCode">-</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="cloud-avatar-modal" id="cloudAvatarModal" hidden>
+        <div class="cloud-avatar-modal-card">
+          <div class="cloud-avatar-modal-head">
+            <div>
+              <div class="cloud-section-title">아이콘 선택</div>
+              <div class="small">프로필 아이콘을 고르고 저장하세요.</div>
+            </div>
+            <button id="btnAvatarPickerClose" type="button">닫기</button>
+          </div>
+          <div class="cloud-avatar-preset-grid cloud-avatar-modal-grid" id="cloudAvatarPresetGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREDITS 탭 -->
+    <div class="more-tab-panel" id="tabCredits">
+      <div class="credits-card">
+        <div class="credits-title">HCSiG</div>
+        <div class="credits-subtitle">Hacking Code Simulator Game</div>
+        <div class="credits-divider"></div>
+        <div class="credits-row"><span id="creditsLabelDevelop">개발</span><strong>COMET DEVELOPS</strong></div>
+        <div class="credits-row"><span id="creditsLabelPublish">유통</span><strong>COMETODLITE</strong></div>
+        <div class="credits-row"><span id="creditsLabelCopyright">© 2025–2026</span><strong>COMET</strong></div>
+        <div class="credits-divider"></div>
+        <div class="credits-meta">
+          <span id="creditsVersion">v3.0.0</span>
+          <span id="creditsSeasonLabel">PRESEASON</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설명서 탭 -->
+    <div class="more-tab-panel" id="tabManual">
+      <div><span class="badge">MANUAL</span><span>설명서</span></div>
+      <div class="manual-body stat-box" style="font-size:12px; margin-top:8px;">
+        <details class="manual-section" open>
+          <summary><strong>재화</strong></summary>
+          <p>· 크레딧: 기본 화폐. 상점 구매·코드 강화에 사용.</p>
+          <p>· TOKEN: EVENT 기능 재화. OPS SHOP에서 사용.</p>
+          <p>· COIN: 희귀 시즌 재화. SEASON SHOP에서 사용.</p>
+          <p>· OneDay: ZERO-DAY 성장 재화. PVP &gt; PVE 순으로 획득.</p>
+          <p>· 취약점: ZERO-DAY 입장권. 스캔 1% 확률 / 조각 50개 제작.</p>
+        </details>
+        <details class="manual-section">
+          <summary><strong>모드</strong></summary>
+          <p>· NORMAL: 기본 해킹. 패널티 없음.</p>
+          <p>· RISK: 성공률 -15%p, 보상 ×2. 실패 시 에너지 +1 소모.</p>
+          <p>· EXTREME: Lv.5+, 성공률 -35%p, 보상 ×3. 실패 시 에너지 +2 소모.</p>
+        </details>
+        <details class="manual-section">
+          <summary><strong>서버 루트</strong></summary>
+          <p>· 외부 루트: 레벨 요구 -1, 보안 ×0.85, 보상 ×0.8.</p>
+          <p>· 내부 루트: 기본 설정.</p>
+          <p>· 코어 루트: 레벨 요구 +2, 보안 ×1.2, 보상 ×1.35.</p>
+        </details>
+        <details class="manual-section">
+          <summary><strong>데이터 타워</strong></summary>
+          <p>· 100층, 10챕터 × 10층 구조. 에너지 1 소모.</p>
+          <p>· BREACH / SHIELD / FOCUS / EXIT 4액션 턴제 전투.</p>
+          <p>· 첫 클리어 보상 &gt; 반복 보상(80% 감소). 챕터 클리어 보상 별도.</p>
+        </details>
+        <details class="manual-section">
+          <summary><strong>EVENT</strong></summary>
+          <p>· WEEKLY CHALLENGE: 매주 월 05:00 KST 리셋. SCORE·TOKEN 획득.</p>
+          <p>· PASS: 월간 시즌제. 패스 포인트 100 = 티어 1 (최대 30티어).</p>
+          <p>· 시즌 1: 2026-05-01 시작, 테마 ZERO-DAY.</p>
+        </details>
+        <details class="manual-section">
+          <summary><strong>ZERO-DAY</strong></summary>
+          <p>· 온보딩 완료 → 취약점 1개 지급, PVE·PVP 해금.</p>
+          <p>· PVE 입문 난이도: 하루 1회 무료.</p>
+          <p>· PVP: 로그인 필요. 비동기 스냅샷 기반 매칭.</p>
+          <p>· 명령어: scan/probe/enum(정찰), breach/inject/elevate/bypass(침투), mask/cloak/wipe/scrub(은폐), spoof/reroute/jam/decoy(교란), exfil/exit/disconnect(탈출).</p>
+        </details>
+      </div>
+    </div>
+
+    <!-- SUPPORT 탭 -->
+    <div class="more-tab-panel" id="tabSupport">
+      <div id="supportPanelMount"></div>
+    </div>
+
+  </div><!-- /moreModalBody -->
+  <div id="moreModalFooter"><button id="btnMoreClose2">닫기</button></div>
+</div>
 </div>
 
-</div>
-</div>
-<!-- 저장 탭 -->
-<div class="more-tab-panel" id="tabSave">
-<div>
-<span class="badge">SAVE</span>
-<span id="saveTabTitle">클라우드 계정</span>
-</div>
-<div class="stat-box" style="font-size:12px;">
-<div class="cloud-account-box" id="cloudAccountBox">
-<div class="cloud-account-header">
-<div>
-<div class="small cloud-account-eyebrow">ACCOUNT</div>
-<div class="cloud-account-title" id="cloudAccountTitle">클라우드 계정 연동</div>
-</div>
-<span class="cloud-badge" id="cloudStatusBadge">CLOUD SETUP</span>
-</div>
-<div class="small" id="cloudAccountDesc">클라우드 계정으로 Safari / Chrome / Edge 등 다른 브라우저에서도 같은 세이브를 이어갑니다.</div>
-<div class="cloud-account-status" id="cloudAccountStatus">설정 대기 중</div>
-<div class="cloud-account-layout">
-<div class="cloud-section cloud-section-account">
-<div class="cloud-section-title">계정</div>
-<div class="cloud-auth-form" id="cloudAuthForm">
-<input id="cloudEmail" type="email" placeholder="이메일" autocomplete="username"/>
-<input id="cloudPassword" type="password" placeholder="비밀번호" autocomplete="current-password"/>
-</div>
-<div class="cloud-auth-actions" style="margin-top:8px;">
-<button id="btnCloudRegister" type="button">회원가입</button>
-<button id="btnCloudLogin" type="button">이메일 로그인</button>
-<button id="btnCloudGoogle" type="button">Google 로그인</button>
-</div>
-<div class="cloud-auth-actions" style="margin-top:6px;">
-<button id="btnCloudSync" type="button">클라우드 저장</button>
-<button id="btnCloudPull" type="button">클라우드 불러오기</button>
-<button id="btnCloudLogout" type="button">로그아웃</button>
-</div>
-<div class="small" id="cloudAccountHelp">※ 클라우드 저장을 사용하려면 Firebase 설정과 계정 로그인이 필요합니다.</div>
-<div class="cloud-user-card" id="cloudUserCard" hidden>
-<div class="cloud-user-header-row">
-<div class="cloud-avatar-box">
-<div class="cloud-avatar-preview" id="cloudAvatarPreview">💻</div>
-</div>
-<div class="cloud-user-main">
-<div class="cloud-user-name" id="cloudUserName">-</div>
-<div class="cloud-user-email" id="cloudUserEmail">-</div>
-</div>
-</div>
-<div class="cloud-user-meta" id="cloudUserMeta">클라우드 저장 정보 없음</div>
-</div>
-<div class="cloud-profile-entry">
-<div class="cloud-profile-entry-copy">
-<div class="cloud-section-title">프로필</div>
-<div class="small">닉네임, 아이콘, 대표 코드는 별도 창에서 관리합니다.</div>
-</div>
-<button id="btnOpenProfilePanel" type="button">프로필 설정</button>
-</div>
-</div>
-<div class="cloud-section cloud-section-stats">
-<div class="cloud-section-title">클라우드 상태</div>
-<div class="cloud-profile-grid cloud-stats-grid">
-<div class="cloud-profile-row"><span>UID</span><strong id="cloudProfileUid">-</strong></div>
-<div class="cloud-profile-row"><span>가입일</span><strong id="cloudProfileJoinDate">-</strong></div>
-<div class="cloud-profile-row"><span>최근 로그인</span><strong id="cloudProfileLastLoginAt">-</strong></div>
-<div class="cloud-profile-row"><span>최근 클라우드 저장</span><strong id="cloudProfileLastSaveAt">-</strong></div>
-<div class="cloud-profile-row"><span>총 해킹 성공</span><strong id="cloudProfileHackCount">0</strong></div>
-<div class="cloud-profile-row"><span>누적 획득 크레딧</span><strong id="cloudProfileCreditsEarned">0</strong></div>
-</div>
-</div>
-</div>
-<div class="cloud-profile-modal" id="cloudProfileModal" hidden>
-<div class="cloud-profile-modal-card">
-<div class="cloud-profile-modal-head">
-<div>
-<div class="cloud-section-title">프로필 설정</div>
-<div class="small">닉네임, 아이콘, 대표 코드를 여기서 관리하세요.</div>
-</div>
-<button id="btnProfilePanelClose" type="button">닫기</button>
-</div>
-<div class="cloud-profile-grid cloud-profile-modal-grid">
-<div class="cloud-profile-row">
-<span>닉네임</span>
-<div class="cloud-profile-inline">
-<input id="cloudNicknameInput" maxlength="12" placeholder="닉네임" type="text"/>
-<button id="btnCloudNicknameSave" type="button">프로필 저장</button>
-</div>
-</div>
-<div class="cloud-profile-row cloud-profile-avatar-row">
-<span>프로필 아이콘</span>
-<div class="cloud-profile-inline cloud-avatar-actions">
-<strong id="cloudProfileAvatarLabel">터미널</strong>
-<button id="btnOpenAvatarPicker" type="button">아이콘 변경</button>
-<button id="btnCloudAvatarSave" type="button">아이콘 저장</button>
-</div>
-</div>
-<div class="cloud-profile-row">
-<span>대표 코드</span>
-<div class="cloud-profile-inline cloud-favorite-inline">
-<select id="cloudFavoriteCodeSelect" title="대표 코드 선택"></select>
-<button id="btnCloudFavoriteCodeSave" type="button">대표 코드 저장</button>
-</div>
-</div>
-<div class="cloud-profile-row"><span>현재 대표 코드</span><strong id="cloudProfileFavoriteCode">-</strong></div>
-</div>
-</div>
-</div>
-<div class="cloud-avatar-modal" id="cloudAvatarModal" hidden>
-<div class="cloud-avatar-modal-card">
-<div class="cloud-avatar-modal-head">
-<div>
-<div class="cloud-section-title">아이콘 선택</div>
-<div class="small">프로필 아이콘을 고르고 저장하세요.</div>
-</div>
-<button id="btnAvatarPickerClose" type="button">닫기</button>
-</div>
-<div class="cloud-avatar-preset-grid cloud-avatar-modal-grid" id="cloudAvatarPresetGrid"></div>
-</div>
-</div>
-</div>
-<div class="small" id="saveHelp">
-              · 저장 위치: 클라우드 계정<br/>
-              · 브라우저 내부 저장은 자동 캐시와 기존 세이브 이전에만 사용됩니다.
-            </div>
-</div>
-</div>
-</div>
-<div id="moreModalFooter">
-<button id="btnMoreClose2">닫기</button>
-</div>
-</div>
-</div>
+
+<!-- 공용 UI 요소 -->
 <div id="toastContainer"></div>
 <div id="logList" hidden></div>
+
+<!-- 로그 관련 (더보기 모달 내 로그 탭은 제거되었지만 JS가 참조하므로 hidden 유지) -->
+<div id="tabLogs" hidden>
+  <div class="log-search-row">
+    <span class="small" id="logSearchHelp">로그 검색 (로그 항목 클릭 → 핀/해제)</span>
+    <input type="text" id="logSearchInput" placeholder="검색어 입력..." style="max-width:160px;"/>
+    <button id="btnClearLogs" type="button">로그 초기화</button>
+    <button id="btnToggleLogs" type="button">로그 숨기기</button>
+  </div>
+  <div id="logPanelBody">
+    <div class="small" id="logFilterTitle">로그 필터</div>
+    <label class="log-filter-label"><input type="checkbox" id="filterSystem" checked/> 시스템</label>
+    <label class="log-filter-label"><input type="checkbox" id="filterScan" checked/> 스캔</label>
+    <label class="log-filter-label"><input type="checkbox" id="filterHack" checked/> 해킹</label>
+    <label class="log-filter-label"><input type="checkbox" id="filterShop" checked/> 상점</label>
+    <label class="log-filter-label"><input type="checkbox" id="filterLevel" checked/> 레벨</label>
+  </div>
+</div>
+
+<!-- 코드 상세 모달 -->
 <div id="codeDetailModalBackdrop" aria-hidden="true">
-<div id="codeDetailModal" role="dialog" aria-modal="true" aria-labelledby="codeDetailModalTitle">
-<div id="codeDetailModalHeader">
-<div>
-<span class="badge">CODE DETAIL</span>
-<h2 id="codeDetailModalTitle">코드 상세</h2>
+  <div id="codeDetailModal" role="dialog" aria-modal="true" aria-labelledby="codeDetailModalTitle">
+    <div id="codeDetailModalHeader">
+      <div>
+        <span class="badge">CODE DETAIL</span>
+        <h2 id="codeDetailModalTitle">코드 상세</h2>
+      </div>
+      <button id="btnCodeDetailClose" type="button">✕</button>
+    </div>
+    <div id="codeDetailModalBody"></div>
+    <div id="codeDetailModalFooter" class="button-row code-action-row">
+      <button id="btnModalUpgradeCode" type="button">코드 강화</button>
+      <button id="btnModalSyncCode" type="button">코드 동기화</button>
+      <button id="btnModalEvolveCode" type="button">코드 진화</button>
+      <button id="btnModalShardCode" type="button">조각 강화</button>
+    </div>
+  </div>
 </div>
-<button id="btnCodeDetailClose" type="button">✕</button>
-</div>
-<div id="codeDetailModalBody"></div>
-<div id="codeDetailModalFooter" class="button-row code-action-row">
-<button id="btnModalUpgradeCode" type="button">코드 강화</button>
-<button id="btnModalSyncCode" type="button">코드 동기화</button>
-<button id="btnModalEvolveCode" type="button">코드 진화</button>
-<button id="btnModalShardCode" type="button">조각 강화</button>
-</div>
-</div>
-</div>
+
+<!-- 튜토리얼 모달 -->
 <div id="tutorialBackdrop" aria-hidden="true">
-<div id="tutorialModal" role="dialog" aria-modal="true" aria-labelledby="tutorialStepTitle">
-<div id="tutorialHeader">
-<div>
-<span class="badge" id="tutorialStepLabel">STEP 1 / 11</span>
-<h2>HCSiG 온보딩</h2>
+  <div id="tutorialModal" role="dialog" aria-modal="true" aria-labelledby="tutorialStepTitle">
+    <div id="tutorialHeader">
+      <div>
+        <span class="badge" id="tutorialStepLabel">STEP 1 / 12</span>
+        <h2>HCSiG 온보딩</h2>
+      </div>
+      <button id="btnTutorialSkip" type="button">건너뛰기</button>
+    </div>
+    <div id="tutorialBody">
+      <h3 id="tutorialStepTitle">환영합니다</h3>
+      <div id="tutorialStepGoal">첫 루프: 코드 확보 → 장착 → NORMAL 해킹</div>
+      <p id="tutorialStepText">서버를 뚫어 크레딧을 벌고 장비를 키우는 기본 흐름부터 짧게 안내합니다.</p>
+      <div id="tutorialStepChecklist"></div>
+      <div id="tutorialStepHint">다음을 누르면 가장 안전한 첫 진행 루트를 안내합니다.</div>
+    </div>
+    <div id="tutorialFooter">
+      <button id="btnTutorialPrev" type="button">이전</button>
+      <button id="btnTutorialNext" type="button">다음</button>
+      <button id="btnTutorialFinish" type="button">시작하기</button>
+    </div>
+  </div>
 </div>
-<button id="btnTutorialSkip" type="button">건너뛰기</button>
-</div>
-<div id="tutorialBody">
-<h3 id="tutorialStepTitle">환영합니다</h3>
-<div id="tutorialStepGoal">첫 목표: 코드 확보 → 서버 해킹</div>
-<p id="tutorialStepText">핵심 흐름을 짧게 안내합니다.</p>
-<div id="tutorialStepChecklist"></div>
-<div id="tutorialStepHint">다음 버튼을 눌러 진행하세요.</div>
-</div>
-<div id="tutorialFooter">
-<button id="btnTutorialPrev" type="button">이전</button>
-<button id="btnTutorialNext" type="button">다음</button>
-<button id="btnTutorialFinish" type="button">시작하기</button>
-</div>
-</div>
+
+<!-- 업데이트 로그 모달 (JS 참조용) -->
+<div id="updateLogBackdrop" style="display:none;">
+  <div id="updateLogModal">
+    <div><span id="updateVersionTitle"></span><span id="updateIndexLabel"></span></div>
+    <ul id="updateLinesList"></ul>
+    <div>
+      <button id="btnUpdatePrev" type="button">◀</button>
+      <button id="btnUpdateNext" type="button">▶</button>
+      <button id="btnUpdateDontShow" type="button">이후 더보기에서 확인</button>
+    </div>
+  </div>
 </div>
 
+<!-- Save Conflict Resolution Dialog (v3.0.1 Save Foundation) -->
+<div id="saveConflictBackdrop" style="display:none;">
+  <div id="saveConflictModal">
+    <div class="sc-title">⚠ 저장 데이터 충돌</div>
+    <div class="sc-subtitle" id="scSubtitle">로컬과 클라우드에 서로 다른 진행 데이터가 있습니다. 사용할 저장본을 선택하세요.</div>
+    <div class="sc-compare">
+      <div class="sc-side" id="scLocalSide">
+        <div class="sc-side-label">이 기기 (로컬)</div>
+        <div class="sc-side-score" id="scLocalScore">점수: -</div>
+        <div class="sc-side-time" id="scLocalTime">저장: -</div>
+        <div class="sc-side-detail" id="scLocalDetail"></div>
+      </div>
+      <div class="sc-vs">VS</div>
+      <div class="sc-side" id="scCloudSide">
+        <div class="sc-side-label">클라우드</div>
+        <div class="sc-side-score" id="scCloudScore">점수: -</div>
+        <div class="sc-side-time" id="scCloudTime">저장: -</div>
+        <div class="sc-side-detail" id="scCloudDetail"></div>
+      </div>
+    </div>
+    <div class="sc-actions">
+      <button class="sc-btn" id="scUseLocal">
+        <div class="sc-btn-title">이 기기 저장 사용</div>
+        <div class="sc-btn-desc">이 기기 데이터를 유지합니다</div>
+      </button>
+      <button class="sc-btn" id="scUseCloud">
+        <div class="sc-btn-title">클라우드 저장 사용</div>
+        <div class="sc-btn-desc">클라우드 데이터를 이 기기에 적용합니다</div>
+      </button>
+      <button class="sc-btn sc-btn-safe" id="scSafeMerge">
+        <div class="sc-btn-title">안전 병합 (권장)</div>
+        <div class="sc-btn-desc">점수가 더 높은 쪽을 자동 선택합니다</div>
+      </button>
+      <button class="sc-btn sc-btn-export" id="scExportBoth">
+        <div class="sc-btn-title">JSON 내보내기</div>
+        <div class="sc-btn-desc">두 데이터를 모두 백업 후 나중에 결정합니다</div>
+      </button>
+    </div>
+  </div>
+</div>
 
-
-
-
-
-
+<!-- Backup Restore Panel (v3.0.1 Save Foundation) — rendered by renderBackupPanel() -->
+<div id="backupRestoreBackdrop" style="display:none;">
+  <div id="backupRestoreModal">
+    <div class="br-title">💾 자동 백업 복구</div>
+    <div class="br-subtitle">마이그레이션·로드 전에 자동으로 저장된 백업 데이터입니다.</div>
+    <div id="brBackupList"></div>
+    <button class="br-close-btn" id="btnBrClose">닫기</button>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js?v=2.3.0"></script>
-<script src="auth.js?v=2.3.0"></script>
-<script src="cloudSave.js?v=2.3.0"></script>
-<script src="app-core.js?v=2.3.0"></script>
-<script src="app-ui.js?v=2.3.0"></script>
-<script src="liveOps.js?v=2.3.0"></script></body>
+<script src="firebase-config.js?v=3.0.1"></script>
+<script src="auth.js?v=3.0.2d"></script>
+<script src="cloudSave.js?v=3.0.2d"></script>
+<script src="app-core.js?v=3.0.2d"></script>
+<script src="app-ui.js?v=3.0.2d"></script>
+<script src="liveOps.js?v=3.0.2d"></script>
+<script src="bgm.js?v=3.0.2d"></script>
+</body>
 </html>

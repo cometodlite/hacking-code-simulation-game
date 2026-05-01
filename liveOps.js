@@ -1,5 +1,5 @@
 (function(){
-  const VERSION = '2.3.0';
+  const VERSION = '3.0.0';
   const HEARTBEAT_MS = 60000;
   const ACTIVE_WINDOW_MS = 120000;
   const RANK_WRITE_MS = 60000;
@@ -96,7 +96,7 @@
   }
 
   function escapeHtml(value){
-    return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, ch => ({
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
     }[ch]));
   }
@@ -208,10 +208,97 @@
     ];
   }
 
+  // v3.0.1 Foundation Prep 고정 공지 (Firebase 여부 무관하게 항상 상단 표시)
+  const SEASON_1_START_TS = new Date('2026-05-01T00:00:00+09:00').getTime();
+  const SEASON_1_END_TS = new Date('2026-05-31T23:59:59+09:00').getTime();
+  const PINNED_ANNOUNCEMENTS = [
+    {
+      id: 'pwr-recalibration-300',
+      title: text('3.0.0 PWR 재조정 안내', '3.0.0 PWR recalibration'),
+      body: text(
+        '3.0.0부터 CODE PWR 표기 기준이 새 보안 체계에 맞게 재조정됩니다. 기존 OPERATION급 CODE의 PWR이 낮아져 보일 수 있으나, 서버 보안값도 함께 재산정되므로 실제 체감 성능은 유지됩니다. 예: 기존 PWR 1000 → 신규 320 / 서버 보안 800~1200 → 250~380.',
+        'Starting in 3.0.0, CODE PWR values are recalibrated for the new security scale. OPERATION-grade CODEs may display lower numbers, but server security values are recalculated as well, so practical performance should remain similar. Example: previous PWR 1000 → new 320 / server security 800–1200 → 250–380.'
+      ),
+      createdAt: 1745967600000, // 2026-04-30
+      level: 'NOTICE'
+    },
+    {
+      id: 'support-desk-302',
+      title: text('🎁 SUPPORT DESK 오픈', '🎁 SUPPORT DESK Open'),
+      body: text(
+        'HCSiG 후원 시스템이 오픈되었습니다! SHOP 하단 또는 MORE→SUPPORT에서 Support Pack Start(₩1,500) / Plus(₩3,300)를 신청할 수 있습니다. 계좌 이체 후 입금자명을 입력하고 신청을 제출하면, 검토 후 REDEEM CODE가 발급됩니다. 코드를 MORE→SUPPORT→REDEEM에 입력하면 COIN, 에너지팩, 데일리 보너스 박스를 즉시 지급받습니다.',
+        'HCSiG Support Desk is now open! Apply for Support Pack Start (₩1,500) / Plus (₩3,300) at the bottom of SHOP or via MORE→SUPPORT. Submit your claim with payer name after bank transfer — we\'ll review and issue a REDEEM CODE. Enter the code in MORE→SUPPORT→REDEEM to instantly receive COIN, Energy Packs, and Daily Bonus Boxes.'
+      ),
+      createdAt: 1745884800000, // 2026-04-29
+      level: 'UPDATE'
+    },
+    {
+      id: 'convenience-update-302',
+      title: text('HCSiG v3.0.2 — Convenience Update', 'HCSiG v3.0.2 — Convenience Update'),
+      body: text(
+        '신규 아이템 타임 스와프(2h/5h/10h) · TRACE 앰플 · NULL 시드가 추가되었습니다. 초보자 한정 룰렛(EVENT→ROULETTE)이 오픈됩니다. 일일 미션 3종에 COIN 보상이 추가되었습니다. Support Pack 수동 결제 시스템이 MORE→SUPPORT에 추가되었습니다.',
+        'New items: Time Swap (2h/5h/10h), TRACE Ample, NULL Seed added. Beginner Roulette (EVENT→ROULETTE) is now open. COIN rewards added to 3 daily missions. Support Pack manual payment system added in MORE→SUPPORT.'
+      ),
+      createdAt: 1745798400000, // 2026-04-28
+      level: 'UPDATE'
+    },
+    {
+      id: 'foundation-prep-301',
+      title: text('HCSiG v3.0.1 — Foundation Prep Update', 'HCSiG v3.0.1 — Foundation Prep Update'),
+      body: text(
+        'HOME에 "오늘 할 일" 요약이 추가되었습니다. CODES 탭이 INVENTORY로 개편되어 CODES / ITEMS 두 패널로 분리되었습니다. ITEMS 패널에 AUTO-RUN 시스템이 추가되었습니다: 자동 스캔(10 COIN, 10초마다, 1시간)과 자동 해킹(15 COIN, 20초마다, 30분), 일일 3회, 에너지 팩 자동 소모 지원. DAILY 미션 완료 상태 저장이 강화되었습니다. 이번 업데이트는 3.0.0의 심화 시스템을 안정적으로 받기 위한 기반 패치입니다.',
+        '"Today" summary added to HOME. CODES tab renamed to INVENTORY with CODES / ITEMS panels. AUTO-RUN system added to ITEMS panel: Auto Scan (10 COIN, every 10s, 1 hour) and Auto Hack (15 COIN, every 20s, 30 min), 3 uses/day, auto-consumes Energy Packs. Daily mission save stability improved. This update is a foundation patch preparing for future 3.0.x deep systems.'
+      ),
+      createdAt: 1745712000000, // 2026-04-27
+      level: 'UPDATE'
+    }
+  ];
+
+  function getSeasonAnnouncement(){
+    const stamp = now();
+    if (stamp < SEASON_1_START_TS) {
+      return {
+        id: 'season-1-staging',
+        title: text('Season 1 staging', 'Season 1 staging'),
+        body: text(
+          '내일 자정, 시즌 1이 시작됩니다. Foundation Season은 한 달에 걸쳐 새로운 시스템이 단계적으로 가동됩니다. 첫날에는 시즌 PICKS와 기본 보상이 먼저 열립니다.',
+          'Season 1 begins at midnight. Foundation Season unfolds over the month, with new systems activated in stages. On day one, Season PICKS and base rewards open first.'
+        ),
+        createdAt: SEASON_1_START_TS,
+        level: 'SEASON'
+      };
+    }
+    if (stamp <= SEASON_1_END_TS) {
+      return {
+        id: 'season-1-live',
+        title: text('Season 1 active', 'Season 1 active'),
+        body: text(
+          '시즌 1이 시작되었습니다. 이번 시즌은 Foundation Season입니다. 오늘은 시즌 PICKS, 기본 보상, INVENTORY 구조가 먼저 열립니다. TRACE, ROM 복구, CODE 변형, CODEX 색상 수집은 시즌 진행 중 단계적으로 가동됩니다.',
+          'Season 1 has begun. This is Foundation Season. Today opens the season PICKS, base rewards, and the INVENTORY structure first. TRACE, ROM recovery, CODE mutation, and CODEX color collection will unlock in stages during the season.'
+        ),
+        createdAt: SEASON_1_START_TS,
+        level: 'SEASON'
+      };
+    }
+    return {
+      id: 'season-1-ended',
+      title: text('Season 1 ended', 'Season 1 ended'),
+      body: text(
+        'Foundation Season이 종료되었습니다. Legacy 정산과 다음 시즌 신호를 기다리는 중입니다.',
+        'Foundation Season has ended. Waiting for legacy settlement and the next season signal.'
+      ),
+      createdAt: SEASON_1_END_TS,
+      level: 'SEASON'
+    };
+  }
+
   function fallbackAnnouncements(status){
     const liveStatus = normalizeStatus(status || 'LOCAL MIRROR');
+    const seasonAnnouncement = getSeasonAnnouncement();
     if (liveStatus === 'ONLINE') {
       return [
+        ...PINNED_ANNOUNCEMENTS,
+        seasonAnnouncement,
         {
           id:'online-brief',
 	          title:'WEEKLY OPS ACTIVE',
@@ -223,6 +310,8 @@
     }
     if (liveStatus === 'DEGRADED') {
       return [
+        ...PINNED_ANNOUNCEMENTS,
+        seasonAnnouncement,
         {
           id:'degraded-brief',
           title:'Route Degraded',
@@ -234,6 +323,8 @@
     }
     if (liveStatus === 'MAINTENANCE') {
       return [
+        ...PINNED_ANNOUNCEMENTS,
+        seasonAnnouncement,
         {
           id:'maintenance-brief',
           title:'Maintenance Window',
@@ -244,6 +335,8 @@
       ];
     }
     return [
+      ...PINNED_ANNOUNCEMENTS,
+      seasonAnnouncement,
       {
         id:'local-brief',
         title:'LOCAL MIRROR',
@@ -454,8 +547,11 @@
   }
 
   function getAnnouncementItems(status){
-    const items = (state.announcements || []).filter(item => item && item.active !== false);
-    return items.length ? items : fallbackAnnouncements(status || getLiveStatus());
+    const firebase = (state.announcements || []).filter(item => item && item.active !== false);
+    const seasonAnnouncement = getSeasonAnnouncement();
+    const pinned = PINNED_ANNOUNCEMENTS.filter(p => !firebase.some(f => f.id === p.id));
+    const seasonal = firebase.some(f => f.id === seasonAnnouncement.id) ? [] : [seasonAnnouncement];
+    return firebase.length ? [...pinned, ...seasonal, ...firebase] : fallbackAnnouncements(status || getLiveStatus());
   }
 
   function renderRankTabs(){
